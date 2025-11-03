@@ -1,3 +1,5 @@
+"use client";
+
 import { Button } from "@/components/ui/button"
 import Iridescence from '@/components/Iridescence';
 import Link from 'next/link';
@@ -15,19 +17,43 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import Image from 'next/image';
 import { pool } from '@/lib/db';
+import { useState, useEffect } from 'react';
 
-async function getMenuItems() {
-  try {
-    const result = await pool.query("SELECT * FROM menu_items;");
-    return result.rows;
-  } catch (error) {
-    console.error('Error fetching menu items:', error);
-    return [];
-  }
-}
+export default function Home() {
+  const [menuItems, setMenuItems] = useState<any[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-export default async function Home() {
-  const menuItems = await getMenuItems();
+
+  async function getMenuItems() {
+          setLoading(true);
+          setError(null);
+          try {
+              const res = await fetch('/api/menu');
+              const data = await res.json();
+  
+              if (res.ok && data.ok) {
+                  setMenuItems(data.items || []);
+                  setLoading(false);
+                  return { ok: true };
+              }
+  
+              setError(data?.error || 'Failed to load menu');
+              setLoading(false);
+              return { ok: false };
+          } catch (err) {
+              console.error('Menu request', err);
+              setError('Network error');
+              setLoading(false);
+              return { ok: false };
+          }
+      }
+  
+      useEffect(() => {
+          getMenuItems();
+      }, []);
+
+
 
   return (
     // Give the iridescence canvas a visible size. The component itself uses `w-full h-full`,
