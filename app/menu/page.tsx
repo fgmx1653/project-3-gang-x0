@@ -1,5 +1,6 @@
 import { Button } from "@/components/ui/button"
 import Iridescence from '@/components/Iridescence';
+import Link from 'next/link';
 
 import {
   Card,
@@ -35,6 +36,8 @@ export default async function Home() {
 
     <div className='flex flex-col items-center justify-center gap-4 p-16 w-screen h-screen'>
 
+      <Link className='absolute left-4 top-4' href='/'><Button>Home</Button></Link>
+
       <div className='absolute -z-20 w-full h-full'>
         <Iridescence
           color={[1.0, 0.7, 0.7]}
@@ -54,7 +57,7 @@ export default async function Home() {
           </div>
           <div>
             <CardHeader>
-              <CardTitle className='font-header text-3xl text-black me-8 bg-yellow-500/50'>Milk Tea</CardTitle>
+              <CardTitle className='font-header text-3xl text-black bg-yellow-500/50'>Milk Tea</CardTitle>
               <CardDescription className='text-black/25 font-deco font-bold'>Our delicious selection of milk teas</CardDescription>
             </CardHeader>
             <CardContent className='pt-7'>
@@ -72,7 +75,7 @@ export default async function Home() {
 
         <Card className='bg-white/60 backdrop-blur-md '>
           <CardHeader>
-            <CardTitle className='font-header text-3xl text-black me-8 bg-yellow-500/50'>Green & Black Tea</CardTitle>
+            <CardTitle className='font-header text-3xl text-black bg-yellow-500/50'>Green & Black Tea</CardTitle>
             <CardDescription className='text-black/25 font-deco font-bold'>Our refreshing green and black teas</CardDescription>
           </CardHeader>
           <CardContent>
@@ -95,8 +98,8 @@ export default async function Home() {
 
         <Card className='bg-white/60 backdrop-blur-lg'>
           <CardHeader>
-            <CardTitle className='font-header text-3xl text-white me-8 bg-red-500'>Seasonal</CardTitle>
-            <CardDescription className='font-deco text-black/35 font-bold'>Just in time for fall</CardDescription>
+            <CardTitle className='font-header text-3xl text-white bg-red-500'>Seasonal</CardTitle>
+            <CardDescription className='font-deco text-black/25 font-bold'>Just in time for fall</CardDescription>
           </CardHeader>
           <CardContent>
             <div className='flex flex-col justify-between place-items-start -rotate-10 drop-shadow-[4px_16px_10px_rgba(168,25,8,0.6)] ps-4 '>
