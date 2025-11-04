@@ -50,10 +50,17 @@ export default async function Home() {
             <Link href='/kiosk'><Button className='hover:cursor-pointer'>Customer Kiosk</Button></Link>
           </TooltipTrigger>
           <TooltipContent>
-            <p>Has basic elements but looks like employee screen</p>
+            <p>Yet to implement cart functionality</p>
           </TooltipContent>
         </Tooltip>
-        <Link href='/login'><Button className='hover:cursor-pointer'>Employee Login</Button></Link>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Link href='/login'><Button className='hover:cursor-pointer'>Employees/Managers</Button></Link>
+          </TooltipTrigger>
+          <TooltipContent>
+            <p>Includes authentication and redirects for appropriate user; yet to implement manager dashboard and proper order submission</p>
+          </TooltipContent>
+        </Tooltip>
       </div>
     </div>
   );
