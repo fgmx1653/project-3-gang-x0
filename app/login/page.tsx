@@ -14,8 +14,9 @@ import {
 } from "@/components/ui/card"
 import Link from 'next/link';
 import { Input } from '@/components/ui/input';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import { getStoredUser } from '@/lib/clientAuth';
 
 import {
     Tooltip,
@@ -30,7 +31,6 @@ export default function Home() {
     const [password, setPassword] = useState('');
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
-    const [manager, setManager] = useState<boolean | null>(null);
 
     async function checkLogin(username: string, password: string) {
         setLoading(true);
@@ -49,8 +49,11 @@ export default function Home() {
                 // Normalize manager value: DB might store it as boolean, integer or string ('1')
                 const m = data.user?.ismanager;
                 const isManager = m === true || m === '1' || m === 1;
-                setManager(isManager);
                 // Return manager status to caller to avoid reading stale state immediately after setState
+
+                localStorage.setItem('user', JSON.stringify(data.user));
+                localStorage.setItem('isLoggedIn', '1');
+
                 return { ok: true, isManager };
             }
 
@@ -63,6 +66,22 @@ export default function Home() {
             return { ok: false };
         }
     }
+
+    useEffect(() => {
+        const user = getStoredUser();
+
+        if (user) {
+            const m = user?.ismanager;
+            const isManager = m === true || m === '1' || m === 1;
+
+            if (isManager) {
+                router.push('/manager');
+            } else {
+                router.push('/employee');
+            }
+        }
+
+    })
 
     return (
         <div className='flex h-screen items-center justify-center'>
@@ -90,20 +109,13 @@ export default function Home() {
                     </div>
                 </CardContent>
                 <CardFooter>
-                    <Tooltip>
-                        <TooltipTrigger asChild>
-                            <Button className='w-full' disabled={loading} onClick={async () => {
-                                const result = await checkLogin(username, password);
-                                if (result.ok) {
-                                    // router.push('/menu');
-                                    setError('Login successful! Manager: ' + (result.isManager ? 'yes' : 'no'));
-                                }
-                            }}>{loading ? 'Signing in...' : 'Log in'}</Button>
-                        </TooltipTrigger>
-                        <TooltipContent>
-                            <p>Currently does not support anything other than authentication</p>
-                        </TooltipContent>
-                    </Tooltip>
+                    <Button className='w-full' disabled={loading} onClick={async () => {
+                        const result = await checkLogin(username, password);
+                        if (result.ok) {
+                            // router.push('/menu');
+                            router.push(result.isManager ? '/manager' : '/employee');
+                        }
+                    }}>{loading ? 'Signing in...' : 'Log in'}</Button>
                 </CardFooter>
             </Card>
         </div>

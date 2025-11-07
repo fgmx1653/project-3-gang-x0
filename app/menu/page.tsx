@@ -1,3 +1,5 @@
+"use client";
+
 import { Button } from "@/components/ui/button"
 import Iridescence from '@/components/Iridescence';
 import Link from 'next/link';
@@ -15,19 +17,43 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import Image from 'next/image';
 import { pool } from '@/lib/db';
+import { useState, useEffect } from 'react';
 
-async function getMenuItems() {
-  try {
-    const result = await pool.query("SELECT * FROM menu_items;");
-    return result.rows;
-  } catch (error) {
-    console.error('Error fetching menu items:', error);
-    return [];
+export default function Home() {
+  const [menuItems, setMenuItems] = useState<any[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+
+  async function getMenuItems() {
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await fetch('/api/menu');
+      const data = await res.json();
+
+      if (res.ok && data.ok) {
+        setMenuItems(data.items || []);
+        setLoading(false);
+        return { ok: true };
+      }
+
+      setError(data?.error || 'Failed to load menu');
+      setLoading(false);
+      return { ok: false };
+    } catch (err) {
+      console.error('Menu request', err);
+      setError('Network error');
+      setLoading(false);
+      return { ok: false };
+    }
   }
-}
 
-export default async function Home() {
-  const menuItems = await getMenuItems();
+  useEffect(() => {
+    getMenuItems();
+  }, []);
+
+
 
   return (
     // Give the iridescence canvas a visible size. The component itself uses `w-full h-full`,
@@ -62,7 +88,7 @@ export default async function Home() {
             </CardHeader>
             <CardContent className='pt-7'>
               {menuItems
-                .filter(item => item.name.includes('milk') && !item.name.includes('green') && item.id < 24)
+                .filter(item => item.name.includes('milk') && !item.name.includes('green') && item.seasonal === 0)
                 .map((item) => (
                   <div key={item.id} className="mb-4 flex flex-row justify-between items-start gap-10">
                     <h2 className="text-lg font-bold font-deco">{item.name}</h2>
@@ -80,19 +106,19 @@ export default async function Home() {
           </CardHeader>
           <CardContent>
             {menuItems
-              .filter(item => (item.name.includes('green') || item.name.includes('black')) && !item.name.includes('milk') && item.id < 24)
+              .filter(item => (item.name.includes('green') || item.name.includes('black')) && !item.name.includes('milk') && item.seasonal === 0)
               .map((item) => (
                 <div key={item.id} className="mb-4 flex flex-row justify-between items-start gap-10">
                   <h2 className="text-lg font-bold font-deco">{item.name}</h2>
                   <p className="text-lg font-bold font-deco text-black/25">${item.price}</p>
                 </div>
               ))}
-              <div className='flex flex-col justify-between place-items-start -rotate-10 drop-shadow-[4px_16px_10px_rgba(176,104,7,0.5)] ps-10 mt-5'>
-                <img src="/img/mango_tea.png" alt="Image of mango black tea" width={70} className='' />
-              </div>
-              <div className='flex flex-col justify-between place-items-end rotate-10 drop-shadow-[4px_16px_10px_rgba(176,104,7,0.5)] pe-10 -mt-10'>
-                <img src="/img/passion_tea.png" alt="Image of passion fruit black tea" width={70} className='' />
-              </div>
+            <div className='flex flex-col justify-between place-items-start -rotate-10 drop-shadow-[4px_16px_10px_rgba(176,104,7,0.5)] ps-10 mt-5'>
+              <img src="/img/mango_tea.png" alt="Image of mango black tea" width={70} className='' />
+            </div>
+            <div className='flex flex-col justify-between place-items-end rotate-10 drop-shadow-[4px_16px_10px_rgba(176,104,7,0.5)] pe-10 -mt-10'>
+              <img src="/img/passion_tea.png" alt="Image of passion fruit black tea" width={70} className='' />
+            </div>
           </CardContent>
         </Card>
 
@@ -110,7 +136,7 @@ export default async function Home() {
             </div>
             <div className='pt-16'>
               {menuItems
-                .filter(item => item.id > 23)
+                .filter(item => item.seasonal === 1)
                 .map((item) => (
                   <div key={item.id} className="mb-4 flex flex-row justify-between items-start gap-10">
                     <h2 className="text-lg font-bold font-deco">{item.name}</h2>
