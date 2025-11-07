@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import Iridescence from "@/components/Iridescence";
 import Link from "next/link";
 import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { X } from "lucide-react";
 
 import {
@@ -40,6 +41,34 @@ export default function Home() {
 
   const [tab, setTab] = useState<string>("all");
   const [search, setSearch] = useState<string>("");
+
+  // persist cart to localStorage so checkout page can read it
+  useEffect(() => {
+    try {
+      if (typeof window !== "undefined") {
+        window.localStorage.setItem("cart", JSON.stringify(cart));
+      }
+    } catch (e) {
+      // ignore
+    }
+  }, [cart]);
+
+  // rehydrate cart from localStorage when kiosk mounts so going back preserves progress
+  useEffect(() => {
+    try {
+      if (typeof window !== "undefined") {
+        const raw = window.localStorage.getItem("cart");
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          if (Array.isArray(parsed)) setCart(parsed);
+        }
+      }
+    } catch (e) {
+      // ignore parse errors
+    }
+  }, []);
+
+  const router = useRouter();
 
   async function getMenuItems() {
     setLoading(true);
@@ -309,6 +338,25 @@ export default function Home() {
                 <div className="flex justify-between text-xl font-bold mt-2 pt-2 border-t">
                   <span>Total</span>
                   <span>${grandTotal.toFixed(2)}</span>
+                </div>
+                <div className="mt-6 flex justify-end">
+                  <Button
+                    onClick={() => {
+                      try {
+                        if (typeof window !== "undefined") {
+                          window.localStorage.setItem(
+                            "cart",
+                            JSON.stringify(cart)
+                          );
+                        }
+                      } catch (e) {}
+                      // navigate to checkout screen (SPA)
+                      router.push("/kiosk/checkout");
+                    }}
+                    className="ml-2"
+                  >
+                    Checkout
+                  </Button>
                 </div>
               </div>
             </div>
