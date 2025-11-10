@@ -29,6 +29,9 @@ export default function Home() {
   const [menuItems, setMenuItems] = useState<any[]>([]);
   const [cart, setCart] = useState<any[]>([]);
   const [cartOpen, setCartOpen] = useState(false);
+  // track whether we've rehydrated from localStorage to avoid
+  // overwriting the stored cart on initial mount
+  const [hydrated, setHydrated] = useState(false);
 
   // subtotal, tax and grand total
   const TAX_RATE = 0.085; // assumed tax rate (8.5%) — change if needed
@@ -42,17 +45,6 @@ export default function Home() {
   const [tab, setTab] = useState<string>("all");
   const [search, setSearch] = useState<string>("");
 
-  // persist cart to localStorage so checkout page can read it
-  useEffect(() => {
-    try {
-      if (typeof window !== "undefined") {
-        window.localStorage.setItem("cart", JSON.stringify(cart));
-      }
-    } catch (e) {
-      // ignore
-    }
-  }, [cart]);
-
   // rehydrate cart from localStorage when kiosk mounts so going back preserves progress
   useEffect(() => {
     try {
@@ -65,8 +57,24 @@ export default function Home() {
       }
     } catch (e) {
       // ignore parse errors
+    } finally {
+      // mark hydrated so the persist effect can start writing updates
+      setHydrated(true);
     }
   }, []);
+
+  // persist cart to localStorage so checkout page can read it
+  // only after we've rehydrated on mount (hydrated === true)
+  useEffect(() => {
+    if (!hydrated) return;
+    try {
+      if (typeof window !== "undefined") {
+        window.localStorage.setItem("cart", JSON.stringify(cart));
+      }
+    } catch (e) {
+      // ignore
+    }
+  }, [cart, hydrated]);
 
   const router = useRouter();
 
