@@ -16,7 +16,21 @@ export default function CheckoutPage() {
         typeof window !== "undefined"
           ? window.localStorage.getItem("cart")
           : null;
-      if (raw) setCart(JSON.parse(raw));
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed)) {
+          setCart(
+            parsed.map((it: any) => ({
+              ...it,
+              boba: it?.boba ?? 100,
+              ice: it?.ice ?? 100,
+              sugar: it?.sugar ?? 100,
+            }))
+          );
+        } else {
+          setCart(parsed);
+        }
+      }
     } catch (e) {
       setCart([]);
     }
@@ -44,7 +58,9 @@ export default function CheckoutPage() {
     }
 
     const confirmed = window.confirm(
-      `Are you sure you want to place this order?\n\nTotal: $${grandTotal.toFixed(2)}`
+      `Are you sure you want to place this order?\n\nTotal: $${grandTotal.toFixed(
+        2
+      )}`
     );
 
     if (confirmed) {
@@ -119,6 +135,13 @@ export default function CheckoutPage() {
                 <div>
                   <div className="font-medium">{item.name}</div>
                   <div className="text-sm text-gray-500">${item.price}</div>
+                  <div className="text-sm text-gray-500">
+                    {item.boba}% Boba
+                    <br />
+                    {item.ice}% Ice
+                    <br />
+                    {item.sugar}% Sugar
+                  </div>
                 </div>
                 <div className="flex items-center gap-2">
                   <Button
@@ -155,21 +178,29 @@ export default function CheckoutPage() {
           <Button
             variant={paymentType === "card" ? "default" : "outline"}
             onClick={() => setPaymentType("card")}
-            className={paymentType !== null && paymentType !== "card" ? "opacity-50" : ""}
+            className={
+              paymentType !== null && paymentType !== "card" ? "opacity-50" : ""
+            }
           >
             Pay with Card
           </Button>
           <Button
             variant={paymentType === "cash" ? "default" : "outline"}
             onClick={() => setPaymentType("cash")}
-            className={paymentType !== null && paymentType !== "cash" ? "opacity-50" : ""}
+            className={
+              paymentType !== null && paymentType !== "cash" ? "opacity-50" : ""
+            }
           >
             Pay with Cash
           </Button>
           <Button
             variant={paymentType === "mobile" ? "default" : "outline"}
             onClick={() => setPaymentType("mobile")}
-            className={paymentType !== null && paymentType !== "mobile" ? "opacity-50" : ""}
+            className={
+              paymentType !== null && paymentType !== "mobile"
+                ? "opacity-50"
+                : ""
+            }
           >
             Pay with Mobile
           </Button>

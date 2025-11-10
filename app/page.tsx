@@ -1,8 +1,7 @@
-
-
-import Image from 'next/image';
-import { Button } from '@/components/ui/button';
-import { pool } from '@/lib/db';
+import Image from "next/image";
+import ClearCartOnMount from "@/components/ClearCartOnMount";
+import { Button } from "@/components/ui/button";
+import { pool } from "@/lib/db";
 import {
   Field,
   FieldDescription,
@@ -11,25 +10,21 @@ import {
   FieldLegend,
   FieldSeparator,
   FieldSet,
-} from "@/components/ui/field"
-import Link from 'next/link';
+} from "@/components/ui/field";
+import Link from "next/link";
 
 import {
   Tooltip,
   TooltipContent,
   TooltipTrigger,
-} from "@/components/ui/tooltip"
-
-
-
-
+} from "@/components/ui/tooltip";
 
 async function getEmployees() {
   try {
     const result = await pool.query("SELECT * FROM employees;");
     return result.rows;
   } catch (error) {
-    console.error('Error fetching employees:', error);
+    console.error("Error fetching employees:", error);
     return [];
   }
 }
@@ -38,16 +33,22 @@ export default async function Home() {
   const employees = await getEmployees();
 
   return (
-    <div className='flex h-screen flex-col items-center justify-center gap-4'>
-      <div className='flex flex-row gap-4 items-center'>
+    <div className="flex h-screen flex-col items-center justify-center gap-4">
+      {/* Clear any existing kiosk cart when landing on the home page */}
+      <ClearCartOnMount />
+      <div className="flex flex-row gap-4 items-center">
         <img src="/logo.png" alt="Boba Shop Logo" width={50} />
-        <h1 className='font-bold text-xl font-mono'>gang_x0 dev portal</h1>
+        <h1 className="font-bold text-xl font-mono">gang_x0 dev portal</h1>
       </div>
-      <div className='flex flex-row gap-4'>
-        <Link href='/menu'><Button className='hover:cursor-pointer'>Menu Display</Button></Link>
+      <div className="flex flex-row gap-4">
+        <Link href="/menu">
+          <Button className="hover:cursor-pointer">Menu Display</Button>
+        </Link>
         <Tooltip>
           <TooltipTrigger asChild>
-            <Link href='/kiosk'><Button className='hover:cursor-pointer'>Customer Kiosk</Button></Link>
+            <Link href="/kiosk">
+              <Button className="hover:cursor-pointer">Customer Kiosk</Button>
+            </Link>
           </TooltipTrigger>
           <TooltipContent>
             <p>Yet to implement cart functionality</p>
@@ -55,10 +56,17 @@ export default async function Home() {
         </Tooltip>
         <Tooltip>
           <TooltipTrigger asChild>
-            <Link href='/login'><Button className='hover:cursor-pointer'>Employees/Managers</Button></Link>
+            <Link href="/login">
+              <Button className="hover:cursor-pointer">
+                Employees/Managers
+              </Button>
+            </Link>
           </TooltipTrigger>
           <TooltipContent>
-            <p>Includes authentication and redirects for appropriate user; yet to implement manager dashboard and proper order submission</p>
+            <p>
+              Includes authentication and redirects for appropriate user; yet to
+              implement manager dashboard and proper order submission
+            </p>
           </TooltipContent>
         </Tooltip>
       </div>

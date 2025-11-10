@@ -52,7 +52,15 @@ export default function Home() {
         const raw = window.localStorage.getItem("cart");
         if (raw) {
           const parsed = JSON.parse(raw);
-          if (Array.isArray(parsed)) setCart(parsed);
+          if (Array.isArray(parsed))
+            setCart(
+              parsed.map((it: any) => ({
+                ...it,
+                boba: it?.boba ?? 100,
+                ice: it?.ice ?? 100,
+                sugar: it?.sugar ?? 100,
+              }))
+            );
         }
       }
     } catch (e) {
@@ -107,7 +115,9 @@ export default function Home() {
   }, []);
 
   function addToCart(item: any) {
-    setCart((prev) => [...prev, item]);
+    // add default modifiers for boba, ice and sugar
+    const withMods = { ...item, boba: 100, ice: 100, sugar: 100 };
+    setCart((prev) => [...prev, withMods]);
   }
 
   return (
@@ -369,26 +379,107 @@ export default function Home() {
 
               {/* Cart items with more spacing */}
               <div className="space-y-4 mb-8">
-                {cart.map((item, idx) => (
-                  <div
-                    key={idx}
-                    className="flex justify-between items-center border-b border-gray-100 py-3"
-                  >
-                    <div className="flex flex-col">
-                      <span className="font-medium text-lg">{item.name}</span>
-                      <span className="text-gray-500">${item.price}</span>
-                    </div>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => {
-                        setCart(cart.filter((_, i) => i !== idx));
-                      }}
+                {cart.map((item: any, idx) => {
+                  const boba = item?.boba ?? 100;
+                  const ice = item?.ice ?? 100;
+                  const sugar = item?.sugar ?? 100;
+                  return (
+                    <div
+                      key={idx}
+                      className="flex flex-col border-b border-gray-100 py-3"
                     >
-                      Remove
-                    </Button>
-                  </div>
-                ))}
+                      <div className="flex justify-between items-center">
+                        <div className="flex flex-col">
+                          <span className="font-medium text-lg">
+                            {item.name}
+                          </span>
+                          <span className="text-gray-500">${item.price}</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() =>
+                              setCart(cart.filter((_, i) => i !== idx))
+                            }
+                          >
+                            Remove
+                          </Button>
+                        </div>
+                      </div>
+
+                      {/* Modifiers: boba, ice and sugar (boba first) */}
+                      <div className="mt-3 grid grid-cols-3 gap-4">
+                        <div>
+                          <div className="text-sm text-gray-600 mb-2">Boba</div>
+                          <div className="flex items-center gap-2">
+                            {[0, 25, 50, 75, 100].map((pct) => (
+                              <Button
+                                key={`boba-${idx}-${pct}`}
+                                size="sm"
+                                variant={boba === pct ? "default" : "outline"}
+                                onClick={() => {
+                                  setCart((prev) => {
+                                    const copy = [...prev];
+                                    copy[idx] = { ...copy[idx], boba: pct };
+                                    return copy;
+                                  });
+                                }}
+                              >
+                                {pct}%
+                              </Button>
+                            ))}
+                          </div>
+                        </div>
+                        <div>
+                          <div className="text-sm text-gray-600 mb-2">Ice</div>
+                          <div className="flex items-center gap-2">
+                            {[25, 50, 75, 100].map((pct) => (
+                              <Button
+                                key={`ice-${idx}-${pct}`}
+                                size="sm"
+                                variant={ice === pct ? "default" : "outline"}
+                                onClick={() => {
+                                  setCart((prev) => {
+                                    const copy = [...prev];
+                                    copy[idx] = { ...copy[idx], ice: pct };
+                                    return copy;
+                                  });
+                                }}
+                              >
+                                {pct}%
+                              </Button>
+                            ))}
+                          </div>
+                        </div>
+
+                        <div>
+                          <div className="text-sm text-gray-600 mb-2">
+                            Sugar
+                          </div>
+                          <div className="flex items-center gap-2">
+                            {[25, 50, 75, 100].map((pct) => (
+                              <Button
+                                key={`sugar-${idx}-${pct}`}
+                                size="sm"
+                                variant={sugar === pct ? "default" : "outline"}
+                                onClick={() => {
+                                  setCart((prev) => {
+                                    const copy = [...prev];
+                                    copy[idx] = { ...copy[idx], sugar: pct };
+                                    return copy;
+                                  });
+                                }}
+                              >
+                                {pct}%
+                              </Button>
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
 
               {/* Totals section with better spacing */}
