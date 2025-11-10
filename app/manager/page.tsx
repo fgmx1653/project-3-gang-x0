@@ -17,7 +17,76 @@ import {
 
 export default function ManagerHome() {
     const router = useRouter();
-    const [userName, setUserName] = useState<string>("");
+
+    // menuItems fetched from /api/menu
+    const [menuItems, setMenuItems] = useState<any[]>([]);
+    const [cart, setCart] = useState<any[]>([]);
+    const [loading, setLoading] = useState(false);
+    const [error, setError] = useState<string | null>(null);
+    const [placingOrder, setPlacingOrder] = useState(false);
+    const [orderSuccess, setOrderSuccess] = useState(false);
+
+    async function getMenuItems() {
+        setLoading(true);
+        setError(null);
+        try {
+            const res = await fetch('/api/menu');
+            const data = await res.json();
+
+            if (res.ok && data.ok) {
+                setMenuItems(data.items || []);
+                setLoading(false);
+                return { ok: true };
+            }
+
+            setError(data?.error || 'Failed to load menu');
+            setLoading(false);
+            return { ok: false };
+        } catch (err) {
+            console.error('Menu request', err);
+            setError('Network error');
+            setLoading(false);
+            return { ok: false };
+        }
+    }
+
+    async function placeOrder() {
+        const user = getStoredUser();
+        if (!user) {
+            setError('User not logged in');
+            return;
+        }
+
+        setPlacingOrder(true);
+        setError(null);
+        setOrderSuccess(false);
+
+        try {
+            const res = await fetch('/api/orders', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    items: cart,
+                    employeeId: user.id
+                }),
+            });
+
+            const data = await res.json();
+
+            if (res.ok && data.ok) {
+                setOrderSuccess(true);
+                setCart([]);
+                setTimeout(() => setOrderSuccess(false), 3000);
+            } else {
+                setError(data?.error || 'Failed to place order');
+            }
+        } catch (err) {
+            console.error('Order placement failed', err);
+            setError('Network error');
+        } finally {
+            setPlacingOrder(false);
+        }
+    }
 
     useEffect(() => {
         const user = getStoredUser();
@@ -96,21 +165,48 @@ export default function ManagerHome() {
                 />
             </div>
 
-            {/* Header */}
-            <div className="absolute left-4 top-4 flex flex-col gap-2">
-                <Link href="/">
-                    <Button variant="outline">Home</Button>
-                </Link>
-                <Button
-                    variant="outline"
-                    onClick={() => {
-                        logoutClient();
-                        router.push("/login");
-                    }}
-                >
-                    Log out
-                </Button>
-            </div>
+            <div className="flex flex-row gap-8">
+
+                <Card className='bg-white/60 backdrop-blur-md min-w-100 max-h-screen'>
+                    <CardHeader>
+                        <CardTitle className='font-header text-3xl text-black bg-yellow-500/50'>Order (Manager)</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                        {error && (
+                            <div className="mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded">
+                                {error}
+                            </div>
+                        )}
+                        {orderSuccess && (
+                            <div className="mb-4 p-3 bg-green-100 border border-green-400 text-green-700 rounded">
+                                Order placed successfully!
+                            </div>
+                        )}
+                        {cart.length != 0 && cart.map((item) => (
+                            // use the unique cartId for keys (fallback to item.id or index)
+                            <div key={item.cartId} className="mb-4 flex flex-row justify-between items-start gap-10">
+                                <h2 className="text-lg font-bold font-deco">{item.name}</h2>
+                                <div className='flex flex-row gap-2 items-center justify-center'>
+                                    <p className="text-lg font-bold font-deco text-black/25">${item.price}</p>
+                                    <X className='transition ease-in-out duration-200 hover:cursor-pointer hover:bg-white' onClick={() => {
+                                        setCart(prev => prev.filter(i => i !== item))
+                                    }} />
+                                </div>
+                            </div>
+                        )) || (
+                                <h2 className="text-lg font-bold font-deco text-black/25">Add items to your cart</h2>
+                            )}
+                    </CardContent>
+                    {
+                        cart.length != 0 && (
+                            <CardFooter>
+                                <Button onClick={placeOrder} disabled={placingOrder}>
+                                    {placingOrder ? 'Placing Order...' : 'Place Order'}
+                                </Button>
+                            </CardFooter>
+                        )
+                    }
+                </Card>
 
             {/* Main Content */}
             <div className="w-full max-w-6xl">
