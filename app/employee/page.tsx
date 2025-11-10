@@ -171,6 +171,7 @@ export default function Home() {
                     {
                         cart.length != 0 && (
                             <CardFooter>
+                                <Button>Place Order</Button>
                                 <Button onClick={placeOrder} disabled={placingOrder}>
                                     {placingOrder ? 'Placing Order...' : 'Place Order'}
                                 </Button>
