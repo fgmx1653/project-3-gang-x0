@@ -56,6 +56,10 @@ export default function OrderConfirmationPage() {
           <h2 className="text-xl font-semibold mb-4">Order Details</h2>
           <div className="space-y-2 text-sm">
             <div className="flex justify-between">
+              <span className="text-gray-600">Order Number:</span>
+              <span className="font-medium">#{orderData.orderId}</span>
+            </div>
+            <div className="flex justify-between">
               <span className="text-gray-600">Date:</span>
               <span className="font-medium">{currentDate}</span>
             </div>

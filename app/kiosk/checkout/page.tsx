@@ -36,7 +36,7 @@ export default function CheckoutPage() {
     } catch (e) {}
   }
 
-  function handleCompleteCheckout() {
+  async function handleCompleteCheckout() {
     // Check if payment type is selected
     if (!paymentType) {
       alert("Please select a payment method before completing checkout.");
@@ -48,26 +48,50 @@ export default function CheckoutPage() {
     );
 
     if (confirmed) {
-      // Prepare order data
-      const orderData = {
-        items: cart,
-        subtotal: subtotal,
-        tax: tax,
-        total: grandTotal,
-        paymentType: paymentType,
-      };
-
-      // Clear the cart
-      setCart([]);
       try {
-        if (typeof window !== "undefined") {
-          window.localStorage.removeItem("cart");
-        }
-      } catch (e) {}
+        // Submit order to database
+        const response = await fetch("/api/orders", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            items: cart,
+            // No employeeId for customer kiosk orders (will be NULL)
+          }),
+        });
 
-      // Navigate to order confirmation page
-      const encodedData = encodeURIComponent(JSON.stringify(orderData));
-      router.push(`/kiosk/order-confirmation?data=${encodedData}`);
+        const result = await response.json();
+
+        if (!result.ok) {
+          throw new Error(result.error || "Failed to create order");
+        }
+
+        // Prepare order data for confirmation page
+        const orderData = {
+          items: cart,
+          subtotal: subtotal,
+          tax: tax,
+          total: grandTotal,
+          paymentType: paymentType,
+          orderId: result.orderId,
+        };
+
+        // Clear the cart
+        setCart([]);
+        try {
+          if (typeof window !== "undefined") {
+            window.localStorage.removeItem("cart");
+          }
+        } catch (e) {}
+
+        // Navigate to order confirmation page
+        const encodedData = encodeURIComponent(JSON.stringify(orderData));
+        router.push(`/kiosk/order-confirmation?data=${encodedData}`);
+      } catch (error) {
+        console.error("Error creating order:", error);
+        alert("Failed to create order. Please try again.");
+      }
     }
   }
 
