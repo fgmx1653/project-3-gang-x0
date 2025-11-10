@@ -11,7 +11,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ ok: false, error: 'Invalid order items' }, { status: 400 });
     }
 
-    if (!employeeId) {
+    if (employeeId === null || employeeId === undefined) {
       return NextResponse.json({ ok: false, error: 'Employee ID required' }, { status: 400 });
     }
 

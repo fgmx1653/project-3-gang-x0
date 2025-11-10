@@ -19,7 +19,7 @@ export async function POST(req: Request) {
 
     if (result.rows.length > 0) {
       const user = result.rows[0];
-      return NextResponse.json({ ok: true, user: { id: user.id, username: user.username, ismanager: user.ismanager } });
+      return NextResponse.json({ ok: true, user: { id: user.id, name: user.username, username: user.username, ismanager: user.ismanager } });
     }
 
     return NextResponse.json({ ok: false, error: 'Invalid credentials' }, { status: 401 });

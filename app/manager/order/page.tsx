@@ -52,8 +52,14 @@ export default function ManagerOrderPage() {
 
     async function placeOrder() {
         const user = getStoredUser();
+
         if (!user) {
             setError('User not logged in');
+            return;
+        }
+
+        if (user.id === null || user.id === undefined) {
+            setError('User ID not found. Please log out and log back in.');
             return;
         }
 

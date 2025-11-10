@@ -64,6 +64,11 @@ export default function Home() {
             return;
         }
 
+        if (user.id === null || user.id === undefined) {
+            setError('User ID not found. Please log out and log back in.');
+            return;
+        }
+
         setPlacingOrder(true);
         setError(null);
         setOrderSuccess(false);
