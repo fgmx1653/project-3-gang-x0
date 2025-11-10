@@ -119,6 +119,12 @@ export async function DELETE(req: Request) {
             );
         }
 
+        // Delete from menu_recipe first to avoid orphaned records
+        await pool.query("DELETE FROM menu_recipe WHERE menu_item_id = $1", [
+            id,
+        ]);
+
+        // Then delete the menu item
         await pool.query("DELETE FROM menu_items WHERE id = $1", [id]);
         return NextResponse.json({ ok: true });
     } catch (error) {
