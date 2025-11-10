@@ -3,9 +3,12 @@
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 
 export default function CheckoutPage() {
+  const router = useRouter();
   const [cart, setCart] = useState<any[]>([]);
+  const [paymentType, setPaymentType] = useState<string | null>(null);
 
   useEffect(() => {
     try {
@@ -31,6 +34,41 @@ export default function CheckoutPage() {
       if (typeof window !== "undefined")
         window.localStorage.setItem("cart", JSON.stringify(next));
     } catch (e) {}
+  }
+
+  function handleCompleteCheckout() {
+    // Check if payment type is selected
+    if (!paymentType) {
+      alert("Please select a payment method before completing checkout.");
+      return;
+    }
+
+    const confirmed = window.confirm(
+      `Are you sure you want to place this order?\n\nTotal: $${grandTotal.toFixed(2)}`
+    );
+
+    if (confirmed) {
+      // Prepare order data
+      const orderData = {
+        items: cart,
+        subtotal: subtotal,
+        tax: tax,
+        total: grandTotal,
+        paymentType: paymentType,
+      };
+
+      // Clear the cart
+      setCart([]);
+      try {
+        if (typeof window !== "undefined") {
+          window.localStorage.removeItem("cart");
+        }
+      } catch (e) {}
+
+      // Navigate to order confirmation page
+      const encodedData = encodeURIComponent(JSON.stringify(orderData));
+      router.push(`/kiosk/order-confirmation?data=${encodedData}`);
+    }
   }
 
   return (
@@ -90,13 +128,37 @@ export default function CheckoutPage() {
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
-          <Button>Pay with Card</Button>
-          <Button>Pay with Cash</Button>
-          <Button>Pay with Mobile</Button>
+          <Button
+            variant={paymentType === "card" ? "default" : "outline"}
+            onClick={() => setPaymentType("card")}
+            className={paymentType !== null && paymentType !== "card" ? "opacity-50" : ""}
+          >
+            Pay with Card
+          </Button>
+          <Button
+            variant={paymentType === "cash" ? "default" : "outline"}
+            onClick={() => setPaymentType("cash")}
+            className={paymentType !== null && paymentType !== "cash" ? "opacity-50" : ""}
+          >
+            Pay with Cash
+          </Button>
+          <Button
+            variant={paymentType === "mobile" ? "default" : "outline"}
+            onClick={() => setPaymentType("mobile")}
+            className={paymentType !== null && paymentType !== "mobile" ? "opacity-50" : ""}
+          >
+            Pay with Mobile
+          </Button>
         </div>
 
         <div className="flex justify-end">
-          <Button className="w-full sm:w-auto">Complete Checkout</Button>
+          <Button
+            className="w-full sm:w-auto"
+            onClick={handleCompleteCheckout}
+            disabled={cart.length === 0}
+          >
+            Complete Checkout
+          </Button>
         </div>
       </div>
     </div>
