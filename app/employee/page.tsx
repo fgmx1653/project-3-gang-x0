@@ -30,6 +30,8 @@ export default function Home() {
     const [cart, setCart] = useState<any[]>([]);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const [placingOrder, setPlacingOrder] = useState(false);
+    const [orderSuccess, setOrderSuccess] = useState(false);
 
     async function getMenuItems() {
         setLoading(true);
@@ -52,6 +54,49 @@ export default function Home() {
             setError('Network error');
             setLoading(false);
             return { ok: false };
+        }
+    }
+
+    async function placeOrder() {
+        const user = getStoredUser();
+        if (!user) {
+            setError('User not logged in');
+            return;
+        }
+
+        if (user.id === null || user.id === undefined) {
+            setError('User ID not found. Please log out and log back in.');
+            return;
+        }
+
+        setPlacingOrder(true);
+        setError(null);
+        setOrderSuccess(false);
+
+        try {
+            const res = await fetch('/api/orders', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    items: cart,
+                    employeeId: user.id
+                }),
+            });
+
+            const data = await res.json();
+
+            if (res.ok && data.ok) {
+                setOrderSuccess(true);
+                setCart([]);
+                setTimeout(() => setOrderSuccess(false), 3000);
+            } else {
+                setError(data?.error || 'Failed to place order');
+            }
+        } catch (err) {
+            console.error('Order placement failed', err);
+            setError('Network error');
+        } finally {
+            setPlacingOrder(false);
         }
     }
 
@@ -98,6 +143,16 @@ export default function Home() {
                         <CardTitle className='font-header text-3xl text-black bg-yellow-500/50'>Order (Employee)</CardTitle>
                     </CardHeader>
                     <CardContent>
+                        {error && (
+                            <div className="mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded">
+                                {error}
+                            </div>
+                        )}
+                        {orderSuccess && (
+                            <div className="mb-4 p-3 bg-green-100 border border-green-400 text-green-700 rounded">
+                                Order placed successfully!
+                            </div>
+                        )}
                         {cart.length != 0 && cart.map((item) => (
                             // use the unique cartId for keys (fallback to item.id or index)
                             <div key={item.cartId} className="mb-4 flex flex-row justify-between items-start gap-10">
@@ -117,6 +172,9 @@ export default function Home() {
                         cart.length != 0 && (
                             <CardFooter>
                                 <Button>Place Order</Button>
+                                <Button onClick={placeOrder} disabled={placingOrder}>
+                                    {placingOrder ? 'Placing Order...' : 'Place Order'}
+                                </Button>
                             </CardFooter>
                         )
                     }
