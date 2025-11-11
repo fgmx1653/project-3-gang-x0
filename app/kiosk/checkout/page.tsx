@@ -101,9 +101,16 @@ export default function CheckoutPage() {
           }
         } catch (e) {}
 
-        // Navigate to order confirmation page
-        const encodedData = encodeURIComponent(JSON.stringify(orderData));
-        router.push(`/kiosk/order-confirmation?data=${encodedData}`);
+        // Save order to localStorage and navigate to confirmation page without putting large JSON in the URL.
+        try {
+          if (typeof window !== 'undefined') {
+            window.localStorage.setItem('lastOrder', JSON.stringify(orderData));
+          }
+        } catch (e) {
+          console.warn('Failed to store order in localStorage', e);
+        }
+
+        router.push('/kiosk/order-confirmation');
       } catch (error) {
         console.error("Error creating order:", error);
         alert("Failed to create order. Please try again.");
