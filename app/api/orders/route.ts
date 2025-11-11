@@ -21,7 +21,11 @@ export async function POST(req: Request) {
         await client.query("BEGIN");
 
         const orderDate = new Date();
-        const date = orderDate.toISOString().split("T")[0]; // YYYY-MM-DD
+        // Use local date instead of UTC to avoid timezone issues
+        const year = orderDate.getFullYear();
+        const month = String(orderDate.getMonth() + 1).padStart(2, "0");
+        const day = String(orderDate.getDate()).padStart(2, "0");
+        const date = `${year}-${month}-${day}`; // YYYY-MM-DD in local time
         const time = orderDate.toTimeString().split(" ")[0]; // HH:MM:SS
 
         // Get the next order_id
