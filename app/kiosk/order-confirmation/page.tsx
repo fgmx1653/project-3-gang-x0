@@ -1,5 +1,5 @@
 "use client";
-
+export const dynamic = "force-dynamic";
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
@@ -83,7 +83,9 @@ export default function OrderConfirmationPage() {
                 <div>
                   <div className="font-medium">{item.name}</div>
                 </div>
-                <div className="font-medium">${Number(item.price).toFixed(2)}</div>
+                <div className="font-medium">
+                  ${Number(item.price).toFixed(2)}
+                </div>
               </div>
             ))}
           </div>
