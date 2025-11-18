@@ -1,4 +1,3 @@
-// app/manager/orders/history/page.tsx
 "use client";
 
 import React, { useEffect, useState } from "react";
@@ -55,6 +54,7 @@ export default function OrdersHistoryPage() {
 
       const res = await fetch(`/api/trends/orders?${params.toString()}`, { cache: "no-store" });
       const data = await res.json();
+      console.debug("trends/orders response:", data);
       if (!data.ok) throw new Error(data.error || "Failed to load orders");
 
       setItems(data.items || []);
@@ -67,7 +67,7 @@ export default function OrdersHistoryPage() {
     }
   }
 
-  useEffect(() => { load(); /* eslint-disable-line */ }, []);
+  useEffect(() => { load(); }, []);
 
   function exportCSV() {
     const header = ["order_id","order_date","order_time","menu_item_id","menu_item_name","price","employee"];
@@ -151,6 +151,46 @@ export default function OrdersHistoryPage() {
               <div><span className="font-semibold">Revenue:</span> ${revenue.toFixed(2)}</div>
               <div className="opacity-70">Showing {items.length ? `${pageFrom}-${pageTo}` : "0"} of {count}</div>
             </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader><CardTitle>Orders (detail)</CardTitle></CardHeader>
+          <CardContent>
+            {loading ? (
+              <div>Loading...</div>
+            ) : items.length === 0 ? (
+              <div className="text-sm text-muted-foreground">No orders found for the selected filters.</div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead className="text-left text-muted-foreground">
+                    <tr>
+                      <th className="pr-4">Order ID</th>
+                      <th className="pr-4">Date</th>
+                      <th className="pr-4">Time</th>
+                      <th className="pr-4">Menu ID</th>
+                      <th className="pr-4">Menu Name</th>
+                      <th className="pr-4">Price</th>
+                      <th className="pr-4">Employee</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {items.map((r) => (
+                      <tr key={`${r.order_id}-${r.order_time}-${r.menu_item_id}`}>
+                        <td className="pr-4">{r.order_id}</td>
+                        <td className="pr-4">{r.order_date}</td>
+                        <td className="pr-4">{r.order_time}</td>
+                        <td className="pr-4">{r.menu_item_id}</td>
+                        <td className="pr-4">{r.menu_item_name ?? "-"}</td>
+                        <td className="pr-4">${(r.price ?? 0).toFixed(2)}</td>
+                        <td className="pr-4">{r.employee}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>
