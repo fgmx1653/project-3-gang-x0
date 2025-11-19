@@ -109,6 +109,14 @@ export async function POST(req: Request) {
             ]
         );
 
+        // Add order to order_status table with 'pending' status for kitchen display
+        await client.query(
+            `INSERT INTO order_status (order_id, status, updated_at)
+             VALUES ($1, 'pending', CURRENT_TIMESTAMP)
+             ON CONFLICT (order_id) DO NOTHING`,
+            [nextOrderId]
+        );
+
         // Commit transaction
         await client.query("COMMIT");
 
