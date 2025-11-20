@@ -6,7 +6,7 @@ import Link from "next/link";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { CheckCircle2, Clock, RefreshCw } from "lucide-react";
+import { CheckCircle2, Clock, RefreshCw, Archive } from "lucide-react";
 
 interface OrderItem {
     id: number;
@@ -29,6 +29,7 @@ export default function KitchenPage() {
     const [orders, setOrders] = useState<Order[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
+    const [archivedOrderIds, setArchivedOrderIds] = useState<Set<number>>(new Set());
 
     async function fetchOrders() {
         setLoading(true);
@@ -89,9 +90,13 @@ export default function KitchenPage() {
         }
     }
 
+    function archiveOrder(orderId: number) {
+        setArchivedOrderIds((prev) => new Set(prev).add(orderId));
+    }
+
     const pendingOrders = orders.filter((o) => o.status === "pending");
     const completedOrdersList = orders
-        .filter((o) => o.status === "completed")
+        .filter((o) => o.status === "completed" && !archivedOrderIds.has(o.order_id))
         .slice(0, 10); // Only show the last 10 completed orders
 
     return (
@@ -243,16 +248,29 @@ export default function KitchenPage() {
                                                 </div>
                                             ))}
                                         </div>
-                                        <Button
-                                            onClick={() =>
-                                                markAsInProgress(order.order_id)
-                                            }
-                                            variant="outline"
-                                            className="w-full border-2 hover:bg-orange-50"
-                                            size="sm"
-                                        >
-                                            Move to Pending
-                                        </Button>
+                                        <div className="flex gap-2">
+                                            <Button
+                                                onClick={() =>
+                                                    markAsInProgress(order.order_id)
+                                                }
+                                                variant="outline"
+                                                className="flex-1 border-2 hover:bg-orange-50"
+                                                size="sm"
+                                            >
+                                                Move to Pending
+                                            </Button>
+                                            <Button
+                                                onClick={() =>
+                                                    archiveOrder(order.order_id)
+                                                }
+                                                variant="outline"
+                                                className="flex-1 border-2 hover:bg-gray-100"
+                                                size="sm"
+                                            >
+                                                <Archive className="mr-2 h-4 w-4" />
+                                                Archive
+                                            </Button>
+                                        </div>
                                     </CardContent>
                                 </Card>
                             ))}
