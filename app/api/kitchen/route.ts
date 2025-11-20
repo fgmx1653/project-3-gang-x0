@@ -22,7 +22,7 @@ export async function GET(req: Request) {
         console.log("Fetching orders for date:", todayDate);
 
         const result = await pool.query(
-            `SELECT 
+            `SELECT
         o.order_id,
         MIN(o.order_date) as order_date,
         MIN(o.order_time) as order_time,
@@ -32,7 +32,10 @@ export async function GET(req: Request) {
           json_build_object(
             'menu_item_id', o.menu_item_id,
             'menu_item_name', COALESCE(m.name, 'Unknown Item'),
-            'price', o.price
+            'price', o.price,
+            'boba', COALESCE(o.boba, 100),
+            'ice', COALESCE(o.ice, 100),
+            'sugar', COALESCE(o.sugar, 100)
           )
         ) as items
       FROM orders o

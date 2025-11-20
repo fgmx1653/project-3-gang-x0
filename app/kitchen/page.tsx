@@ -13,6 +13,9 @@ interface OrderItem {
     menu_item_id: number;
     menu_item_name: string;
     price: string;
+    boba: number;
+    ice: number;
+    sugar: number;
 }
 
 interface Order {
@@ -204,11 +207,14 @@ export default function KitchenPage() {
                                         {order.items.map((item, idx) => (
                                             <div
                                                 key={idx}
-                                                className="flex justify-between items-start border-b pb-2 border-gray-200 last:border-0"
+                                                className="border-b pb-3 border-gray-200 last:border-0"
                                             >
                                                 <span className="font-semibold text-xl text-gray-800">
                                                     {item.menu_item_name}
                                                 </span>
+                                                <div className="text-sm text-gray-600 mt-1">
+                                                    Boba: {item.boba}% | Ice: {item.ice}% | Sugar: {item.sugar}%
+                                                </div>
                                             </div>
                                         ))}
                                     </div>
@@ -253,10 +259,15 @@ export default function KitchenPage() {
                                             <span className="text-3xl font-bold text-gray-700">
                                                 #{order.order_id}
                                             </span>
-                                            <CheckCircle2
-                                                className="text-green-600"
-                                                size={28}
-                                            />
+                                            <div className="flex flex-col items-end gap-1">
+                                                <span className="text-base font-semibold text-gray-600">
+                                                    {order.order_time.substring(0, 5)}
+                                                </span>
+                                                <CheckCircle2
+                                                    className="text-green-600"
+                                                    size={24}
+                                                />
+                                            </div>
                                         </CardTitle>
                                     </CardHeader>
                                     <CardContent className="pt-4">
@@ -264,9 +275,14 @@ export default function KitchenPage() {
                                             {order.items.map((item, idx) => (
                                                 <div
                                                     key={idx}
-                                                    className="text-base line-through text-gray-500"
+                                                    className="flex flex-col"
                                                 >
-                                                    {item.menu_item_name}
+                                                    <span className="text-base line-through text-gray-500">
+                                                        {item.menu_item_name}
+                                                    </span>
+                                                    <span className="text-xs text-gray-400">
+                                                        Boba: {item.boba}% | Ice: {item.ice}% | Sugar: {item.sugar}%
+                                                    </span>
                                                 </div>
                                             ))}
                                         </div>
