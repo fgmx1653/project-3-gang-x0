@@ -5,7 +5,7 @@ import Iridescence from "@/components/Iridescence";
 import Link from "next/link";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { X } from "lucide-react";
+import { X, Edit } from "lucide-react";
 import { getStoredUser, logoutClient } from "@/lib/clientAuth";
 
 import {
@@ -15,6 +15,15 @@ import {
     CardHeader,
     CardTitle,
 } from "@/components/ui/card";
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+} from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
 
 export default function ManagerOrderPage() {
     const router = useRouter();
@@ -25,6 +34,10 @@ export default function ManagerOrderPage() {
     const [error, setError] = useState<string | null>(null);
     const [placingOrder, setPlacingOrder] = useState(false);
     const [orderSuccess, setOrderSuccess] = useState(false);
+    const [editingItem, setEditingItem] = useState<any | null>(null);
+    const [editBoba, setEditBoba] = useState(100);
+    const [editIce, setEditIce] = useState(100);
+    const [editSugar, setEditSugar] = useState(100);
 
     async function getMenuItems() {
         setLoading(true);
@@ -162,27 +175,41 @@ export default function ManagerOrderPage() {
                         )}
                         {(cart.length != 0 &&
                             cart.map((item) => (
-                                <div
-                                    key={item.cartId}
-                                    className="mb-4 flex flex-row justify-between items-start gap-10"
-                                >
-                                    <h2 className="text-lg font-bold font-deco">
-                                        {item.name}
-                                    </h2>
-                                    <div className="flex flex-row gap-2 items-center justify-center">
-                                        <p className="text-lg font-bold font-deco text-black/25">
-                                            ${item.price}
-                                        </p>
-                                        <X
-                                            className="transition ease-in-out duration-200 hover:cursor-pointer hover:bg-white"
-                                            onClick={() => {
-                                                setCart((prev) =>
-                                                    prev.filter(
-                                                        (i) => i !== item
-                                                    )
-                                                );
-                                            }}
-                                        />
+                                <div key={item.cartId} className="mb-4 flex flex-col gap-2">
+                                    <div className="flex flex-row justify-between items-start gap-10">
+                                        <div>
+                                            <h2 className="text-lg font-bold font-deco">
+                                                {item.name}
+                                            </h2>
+                                            <div className="text-xs text-gray-600">
+                                                Boba: {item.boba ?? 100}% | Ice: {item.ice ?? 100}% | Sugar: {item.sugar ?? 100}%
+                                            </div>
+                                        </div>
+                                        <div className="flex flex-row gap-2 items-center justify-center">
+                                            <p className="text-lg font-bold font-deco text-black/25">
+                                                ${item.price}
+                                            </p>
+                                            <Edit
+                                                className="transition ease-in-out duration-200 hover:cursor-pointer hover:bg-blue-100 p-1"
+                                                size={24}
+                                                onClick={() => {
+                                                    setEditingItem(item);
+                                                    setEditBoba(item.boba ?? 100);
+                                                    setEditIce(item.ice ?? 100);
+                                                    setEditSugar(item.sugar ?? 100);
+                                                }}
+                                            />
+                                            <X
+                                                className="transition ease-in-out duration-200 hover:cursor-pointer hover:bg-white"
+                                                onClick={() => {
+                                                    setCart((prev) =>
+                                                        prev.filter(
+                                                            (i) => i !== item
+                                                        )
+                                                    );
+                                                }}
+                                            />
+                                        </div>
                                     </div>
                                 </div>
                             ))) || (
@@ -215,7 +242,13 @@ export default function ManagerOrderPage() {
                                                   Math.random() * 10000
                                               )}`;
 
-                                    const newItem = { ...item, cartId };
+                                    const newItem = {
+                                        ...item,
+                                        cartId,
+                                        boba: 100,
+                                        ice: 100,
+                                        sugar: 100
+                                    };
                                     setCart((prev) => [...prev, newItem]);
                                 }}
                             >
@@ -236,6 +269,82 @@ export default function ManagerOrderPage() {
                     ))}
                 </div>
             </div>
+
+            {/* Edit Customization Dialog */}
+            <Dialog open={editingItem !== null} onOpenChange={(open: boolean) => !open && setEditingItem(null)}>
+                <DialogContent className="bg-white">
+                    <DialogHeader>
+                        <DialogTitle>Customize {editingItem?.name}</DialogTitle>
+                        <DialogDescription>
+                            Adjust boba, ice, and sugar levels (25%, 50%, 75%, or 100%)
+                        </DialogDescription>
+                    </DialogHeader>
+                    <div className="space-y-4 py-4">
+                        <div className="space-y-2">
+                            <Label htmlFor="boba">Boba Level: {editBoba}%</Label>
+                            <div className="flex gap-2">
+                                {[25, 50, 75, 100].map((level) => (
+                                    <Button
+                                        key={level}
+                                        variant={editBoba === level ? "default" : "outline"}
+                                        onClick={() => setEditBoba(level)}
+                                        className="flex-1"
+                                    >
+                                        {level}%
+                                    </Button>
+                                ))}
+                            </div>
+                        </div>
+                        <div className="space-y-2">
+                            <Label htmlFor="ice">Ice Level: {editIce}%</Label>
+                            <div className="flex gap-2">
+                                {[25, 50, 75, 100].map((level) => (
+                                    <Button
+                                        key={level}
+                                        variant={editIce === level ? "default" : "outline"}
+                                        onClick={() => setEditIce(level)}
+                                        className="flex-1"
+                                    >
+                                        {level}%
+                                    </Button>
+                                ))}
+                            </div>
+                        </div>
+                        <div className="space-y-2">
+                            <Label htmlFor="sugar">Sugar Level: {editSugar}%</Label>
+                            <div className="flex gap-2">
+                                {[25, 50, 75, 100].map((level) => (
+                                    <Button
+                                        key={level}
+                                        variant={editSugar === level ? "default" : "outline"}
+                                        onClick={() => setEditSugar(level)}
+                                        className="flex-1"
+                                    >
+                                        {level}%
+                                    </Button>
+                                ))}
+                            </div>
+                        </div>
+                    </div>
+                    <DialogFooter>
+                        <Button variant="outline" onClick={() => setEditingItem(null)}>
+                            Cancel
+                        </Button>
+                        <Button
+                            onClick={() => {
+                                setCart(prev => prev.map(i =>
+                                    i === editingItem
+                                        ? { ...i, boba: editBoba, ice: editIce, sugar: editSugar }
+                                        : i
+                                ));
+                                setEditingItem(null);
+                            }}
+                        >
+                            Save Changes
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
         </div>
     );
 }

@@ -41,12 +41,15 @@ export async function POST(req: Request) {
         for (const item of items) {
             const menuItemId = item.id;
             const price = parseFloat(item.price);
+            const boba = item.boba ?? 100;
+            const ice = item.ice ?? 100;
+            const sugar = item.sugar ?? 100;
             totalRevenue += price;
 
             // Insert order record for this item
             await client.query(
-                "INSERT INTO orders (order_id, order_date, order_time, menu_item_id, price, employee) VALUES ($1, $2, $3, $4, $5, $6)",
-                [nextOrderId, date, time, menuItemId, price, employeeId]
+                "INSERT INTO orders (order_id, order_date, order_time, menu_item_id, price, employee, boba, ice, sugar) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)",
+                [nextOrderId, date, time, menuItemId, price, employeeId, boba, ice, sugar]
             );
 
             // Get ingredients for this menu item from menu_recipe
