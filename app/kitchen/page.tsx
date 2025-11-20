@@ -31,6 +31,19 @@ export default function KitchenPage() {
     const [error, setError] = useState<string | null>(null);
     const [archivedOrderIds, setArchivedOrderIds] = useState<Set<number>>(new Set());
 
+    // Load archived orders from localStorage on mount
+    useEffect(() => {
+        try {
+            const stored = localStorage.getItem('archivedOrders');
+            if (stored) {
+                const parsed = JSON.parse(stored);
+                setArchivedOrderIds(new Set(parsed));
+            }
+        } catch (e) {
+            console.error('Failed to load archived orders', e);
+        }
+    }, []);
+
     async function fetchOrders() {
         setLoading(true);
         setError(null);
@@ -91,7 +104,16 @@ export default function KitchenPage() {
     }
 
     function archiveOrder(orderId: number) {
-        setArchivedOrderIds((prev) => new Set(prev).add(orderId));
+        setArchivedOrderIds((prev) => {
+            const newSet = new Set(prev).add(orderId);
+            // Save to localStorage
+            try {
+                localStorage.setItem('archivedOrders', JSON.stringify(Array.from(newSet)));
+            } catch (e) {
+                console.error('Failed to save archived orders', e);
+            }
+            return newSet;
+        });
     }
 
     const pendingOrders = orders.filter((o) => o.status === "pending");
