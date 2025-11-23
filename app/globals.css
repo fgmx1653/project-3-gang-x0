@@ -135,3 +135,74 @@
     @apply bg-background text-foreground;
   }
 }
+
+/* Accessibility: High Contrast Mode */
+.high-contrast {
+  /* Override CSS variables for High Contrast */
+  --background: oklch(0 0 0);         /* Pure Black Background */
+  --foreground: oklch(1 0 0);         /* Pure White Text */
+
+  --card: oklch(0 0 0);               /* Black Cards */
+  --card-foreground: oklch(1 0 0);    /* White Card Text */
+
+  --popover: oklch(0 0 0);
+  --popover-foreground: oklch(1 0 0);
+
+  --primary: oklch(1 0 0);            /* White buttons */
+  --primary-foreground: oklch(0 0 0); /* Black text on buttons */
+
+  --secondary: oklch(0.2 0 0);        /* Dark Gray */
+  --secondary-foreground: oklch(1 0 0);
+
+  --muted: oklch(0.2 0 0);
+  --muted-foreground: oklch(0.8 0 0);
+
+  --accent: oklch(0.2 0 0);
+  --accent-foreground: oklch(1 0 0);
+
+  --destructive: oklch(0.5 1 25);     /* Bright Red */
+
+  --border: oklch(1 0 0);             /* White Borders */
+  --input: oklch(1 0 0);
+  --ring: oklch(1 0 0);               /* White Focus Rings */
+}
+
+/* Force background resets in high contrast to hide Iridescence/Blur effects */
+.high-contrast body,
+.high-contrast .bg-white\/60,
+.high-contrast .bg-white\/70,
+.high-contrast .backdrop-blur-md,
+.high-contrast .backdrop-blur-lg,
+.high-contrast [class*="bg-white"] {
+  background-color: black !important;
+  background-image: none !important;
+  backdrop-filter: none !important;
+  color: white !important;
+  border: 2px solid white !important;
+}
+
+/* Hide the shiny background entirely in high contrast */
+.high-contrast canvas {
+  display: none !important;
+}
+
+/* Override text colors */
+.high-contrast .text-black {
+  color: white !important;
+}
+
+.high-contrast .text-black\/25 {
+  color: oklch(0.7 0 0) !important;
+}
+
+/* Override specific background colors */
+.high-contrast .bg-yellow-500\/50 {
+  background-color: oklch(0.15 0 0) !important;
+  color: white !important;
+  border-bottom: 2px solid white;
+}
+
+/* Increase font weight for better legibility */
+.high-contrast body {
+  font-weight: 600;
+}

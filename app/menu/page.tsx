@@ -53,16 +53,8 @@ export default function Home() {
   }, []);
 
   return (
-    // Give the iridescence canvas a visible size. The component itself uses `w-full h-full`,
-    // so we provide a full-screen container here. Replace `h-screen` with a smaller height
-    // if you want it to be partial.
-
-    <div className="flex flex-col items-center justify-center gap-4 p-16 w-screen h-screen">
-      <Link className="absolute left-4 top-4" href="/">
-        <Button>Home</Button>
-      </Link>
-
-      <div className="absolute -z-20 w-full h-full">
+    <div className="relative min-h-screen w-full flex flex-col overflow-hidden">
+      <div className="fixed inset-0 -z-20 bg-white/50">
         <Iridescence
           color={[1.0, 0.7, 0.7]}
           mouseReact={false}
@@ -71,7 +63,14 @@ export default function Home() {
         />
       </div>
 
-      <div className="flex flex-row gap-8">
+      <div className="flex-none p-6 z-10">
+        <Link href="/">
+          <Button variant="outline" className="shadow-md">Home</Button>
+        </Link>
+      </div>
+
+      <div className="flex-1 flex items-center justify-center p-8">
+        <div className="flex flex-row gap-8 flex-wrap justify-center max-w-7xl">
         <Card className="bg-white/60 backdrop-blur-md flex flex-row gap-2 ps-6">
           <div className="flex flex-col items-start justify-center gap-24">
             <img
@@ -216,6 +215,7 @@ export default function Home() {
             </div>
           </CardContent>
         </Card>
+        </div>
       </div>
     </div>
   );

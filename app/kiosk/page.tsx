@@ -9,32 +9,21 @@ import { X } from "lucide-react";
 
 import {
   Card,
-  CardAction,
   CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import Image from "next/image";
 
 import { ScrollArea } from "@/components/ui/scroll-area";
-
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 export default function Home() {
-  // menuItems fetched from /api/menu
   const [menuItems, setMenuItems] = useState<any[]>([]);
   const [cart, setCart] = useState<any[]>([]);
   const [cartOpen, setCartOpen] = useState(false);
-  // track whether we've rehydrated from localStorage to avoid
-  // overwriting the stored cart on initial mount
   const [hydrated, setHydrated] = useState(false);
 
-  // subtotal, tax and grand total
-  const TAX_RATE = 0.085; // assumed tax rate (8.5%) — change if needed
+  const TAX_RATE = 0.085;
   const subtotal = cart.reduce((sum, item) => sum + Number(item.price || 0), 0);
   const tax = subtotal * TAX_RATE;
   const grandTotal = subtotal + tax;
@@ -45,7 +34,6 @@ export default function Home() {
   const [tab, setTab] = useState<string>("all");
   const [search, setSearch] = useState<string>("");
 
-  // rehydrate cart from localStorage when kiosk mounts so going back preserves progress
   useEffect(() => {
     try {
       if (typeof window !== "undefined") {
@@ -64,24 +52,18 @@ export default function Home() {
         }
       }
     } catch (e) {
-      // ignore parse errors
     } finally {
-      // mark hydrated so the persist effect can start writing updates
       setHydrated(true);
     }
   }, []);
 
-  // persist cart to localStorage so checkout page can read it
-  // only after we've rehydrated on mount (hydrated === true)
   useEffect(() => {
     if (!hydrated) return;
     try {
       if (typeof window !== "undefined") {
         window.localStorage.setItem("cart", JSON.stringify(cart));
       }
-    } catch (e) {
-      // ignore
-    }
+    } catch (e) {}
   }, [cart, hydrated]);
 
   const router = useRouter();
@@ -115,18 +97,14 @@ export default function Home() {
   }, []);
 
   function addToCart(item: any) {
-    // add default modifiers for boba, ice and sugar
     const withMods = { ...item, boba: 100, ice: 100, sugar: 100 };
     setCart((prev) => [...prev, withMods]);
   }
 
   return (
-    <div className="flex flex-col items-center justify-center gap-4 p-8 w-screen h-screen">
-      <Link className="absolute left-4 top-4" href="/">
-        <Button>Home</Button>
-      </Link>
+    <div className="flex flex-col w-full h-screen overflow-hidden relative">
 
-      <div className="absolute -z-20 w-full h-full">
+      <div className="fixed inset-0 -z-20 bg-white/50">
         <Iridescence
           color={[1.0, 0.7, 0.7]}
           mouseReact={true}
@@ -135,346 +113,222 @@ export default function Home() {
         />
       </div>
 
-      <Tabs defaultValue="all" value={tab} className="h-screen p-2 gap-4">
-        <TabsList className="bg-white/60 backdrop-blur-md py-8 pe-4 rounded-xl">
-          <TabsTrigger
-            onClick={() => setTab("all")}
-            className="p-7 rounded-lg"
-            value="all"
-          >
-            All Drinks
-          </TabsTrigger>
-          <TabsTrigger
-            onClick={() => setTab("milk")}
-            className="p-7 rounded-lg"
-            value="milk"
-          >
-            Milk Tea
-          </TabsTrigger>
-          <TabsTrigger
-            onClick={() => setTab("green")}
-            className="p-7 rounded-lg"
-            value="green"
-          >
-            Green Tea
-          </TabsTrigger>
-          <TabsTrigger
-            onClick={() => setTab("black")}
-            className="p-7 rounded-lg"
-            value="black"
-          >
-            Black Tea
-          </TabsTrigger>
-          <TabsTrigger
-            onClick={() => setTab("seasonal")}
-            className="p-7 rounded-lg"
-            value="seasonal"
-          >
-            Seasonal
-          </TabsTrigger>
-          <Input
-            value={search}
-            type="text"
-            onChange={(e) => {
-              setSearch(e.target.value);
-              if (search !== "") {
-                setTab("all");
-              }
-            }}
-            className="border-solid border-2 border-black/20 ms-2"
-            placeholder="Search items..."
-          />
-        </TabsList>
-        <ScrollArea className="relative max-h-[calc(100vh-220px)] overflow-auto w-full">
-          <TabsContent value="all" className="pt-2 pe-4 pb-4">
-            <div className="grid grid-cols-4 gap-4">
-              {menuItems
-                .filter((item) => item.name.includes(search))
-                .map((item) => (
-                  <Card
-                    key={item.id}
-                    onClick={() => addToCart(item)}
-                    className="bg-white/60 backdrop-blur-md transform transition-transform duration-200 ease-in-out hover:-translate-y-1 hover:shadow-lg hover:bg-white cursor-pointer w-60 h-60 flex flex-col"
-                  >
-                    <CardContent className="flex-1 flex flex-col justify-between items-center p-2">
-                      <div className="relative w-36 h-24 mb-2">
-                        <Image
-                          src={`/img/${item.name
-                            .replace(/\s+/g, "_")
-                            .replace(/[^a-zA-Z0-9_]/g, "")}.png`}
-                          alt={item.name}
-                          fill
-                          className="object-contain"
-                        />
-                      </div>
-                      <h1 className="font-deco font-bold text-center w-full truncate">
-                        {item.name}
-                      </h1>
-                      <h1 className="font-deco text-center w-full">
-                        ${item.price}
-                      </h1>
-                    </CardContent>
-                  </Card>
-                ))}
-            </div>
-          </TabsContent>
-          <TabsContent value="milk" className="pt-2 pe-4 pb-4">
-            <div className="grid grid-cols-4 gap-4">
-              {menuItems
-                .filter((item) => item.name.includes("milk"))
-                .map((item) => (
-                  <Card
-                    key={item.id}
-                    onClick={() => addToCart(item)}
-                    className="bg-white/60 backdrop-blur-md transform transition-transform duration-200 ease-in-out hover:-translate-y-1 hover:shadow-lg hover:bg-white cursor-pointer w-60 h-60 flex flex-col"
-                  >
-                    <CardContent className="flex-1 flex flex-col justify-between items-center p-2">
-                      <div className="relative w-36 h-24 mb-2">
-                        <Image
-                          src={`/img/${item.name
-                            .replace(/\s+/g, "_")
-                            .replace(/[^a-zA-Z0-9_]/g, "")}.png`}
-                          alt={item.name}
-                          fill
-                          className="object-contain"
-                        />
-                      </div>
-                      <h1 className="font-deco font-bold text-center w-full truncate">
-                        {item.name}
-                      </h1>
-                      <h1 className="font-deco text-center w-full">
-                        ${item.price}
-                      </h1>
-                    </CardContent>
-                  </Card>
-                ))}
-            </div>
-          </TabsContent>
-          <TabsContent value="green" className="pt-2 pe-4 pb-4">
-            <div className="grid grid-cols-4 gap-4">
-              {menuItems
-                .filter((item) => item.name.includes("green"))
-                .map((item) => (
-                  <Card
-                    key={item.id}
-                    onClick={() => addToCart(item)}
-                    className="bg-white/60 backdrop-blur-md transform transition-transform duration-200 ease-in-out hover:-translate-y-1 hover:shadow-lg hover:bg-white cursor-pointer w-60 h-60 flex flex-col"
-                  >
-                    <CardContent className="flex-1 flex flex-col justify-between items-center p-2">
-                      <div className="relative w-36 h-24 mb-2">
-                        <Image
-                          src={`/img/${item.name
-                            .replace(/\s+/g, "_")
-                            .replace(/[^a-zA-Z0-9_]/g, "")}.png`}
-                          alt={item.name}
-                          fill
-                          className="object-contain"
-                        />
-                      </div>
-                      <h1 className="font-deco font-bold text-center w-full truncate">
-                        {item.name}
-                      </h1>
-                      <h1 className="font-deco text-center w-full">
-                        ${item.price}
-                      </h1>
-                    </CardContent>
-                  </Card>
-                ))}
-            </div>
-          </TabsContent>
-          <TabsContent value="black" className="pt-2 pe-4 pb-4">
-            <div className="grid grid-cols-4 gap-4">
-              {menuItems
-                .filter((item) => item.name.includes("black"))
-                .map((item) => (
-                  <Card
-                    key={item.id}
-                    onClick={() => addToCart(item)}
-                    className="bg-white/60 backdrop-blur-md transform transition-transform duration-200 ease-in-out hover:-translate-y-1 hover:shadow-lg hover:bg-white cursor-pointer w-60 h-60 flex flex-col"
-                  >
-                    <CardContent className="flex-1 flex flex-col justify-between items-center p-2">
-                      <div className="relative w-36 h-24 mb-2">
-                        <Image
-                          src={`/img/${item.name
-                            .replace(/\s+/g, "_")
-                            .replace(/[^a-zA-Z0-9_]/g, "")}.png`}
-                          alt={item.name}
-                          fill
-                          className="object-contain"
-                        />
-                      </div>
-                      <h1 className="font-deco font-bold text-center w-full truncate">
-                        {item.name}
-                      </h1>
-                      <h1 className="font-deco text-center w-full">
-                        ${item.price}
-                      </h1>
-                    </CardContent>
-                  </Card>
-                ))}
-            </div>
-          </TabsContent>
-          <TabsContent value="seasonal" className="pt-2 pe-4 pb-4">
-            <div className="grid grid-cols-4 gap-4">
-              {menuItems
-                .filter((item) => item.seasonal === 1)
-                .map((item) => (
-                  <Card
-                    key={item.id}
-                    onClick={() => addToCart(item)}
-                    className="bg-white/60 backdrop-blur-md transform transition-transform duration-200 ease-in-out hover:-translate-y-1 hover:shadow-lg hover:bg-white cursor-pointer w-60 h-60 flex flex-col"
-                  >
-                    <CardContent className="flex-1 flex flex-col justify-between items-center p-2">
-                      <div className="relative w-36 h-24 mb-2">
-                        <Image
-                          src={`/img/${item.name
-                            .replace(/\s+/g, "_")
-                            .replace(/[^a-zA-Z0-9_]/g, "")}.png`}
-                          alt={item.name}
-                          fill
-                          className="object-contain"
-                        />
-                      </div>
-                      <h1 className="font-deco font-bold text-center w-full truncate">
-                        {item.name}
-                      </h1>
-                      <h1 className="font-deco text-center w-full">
-                        ${item.price}
-                      </h1>
-                    </CardContent>
-                  </Card>
-                ))}
-            </div>
-          </TabsContent>
-        </ScrollArea>
+      <div className="flex-none p-6 z-10">
+        <Link href="/">
+          <Button variant="outline" className="shadow-md">Home</Button>
+        </Link>
+      </div>
+
+      <Tabs defaultValue="all" value={tab} className="flex-1 flex flex-col min-h-0 px-8 gap-4">
+
+        <div className="flex-none bg-white/60 backdrop-blur-md p-2 rounded-xl flex flex-wrap gap-2 items-center shadow-sm">
+          <TabsList className="bg-transparent h-auto flex flex-wrap gap-2 p-0">
+            {["all", "milk", "green", "black", "seasonal"].map((cat) => (
+               <TabsTrigger
+                key={cat}
+                onClick={() => setTab(cat)}
+                className="px-6 py-3 rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-md transition-all capitalize"
+                value={cat}
+              >
+                {cat === 'all' ? 'All Drinks' : cat.replace('milk', ' Milk').replace('green', ' Green').replace('black', ' Black') + (cat !== 'seasonal' ? ' Tea' : '')}
+              </TabsTrigger>
+            ))}
+          </TabsList>
+
+          <div className="flex-1 min-w-[200px] flex justify-end">
+             <Input
+                value={search}
+                type="text"
+                onChange={(e) => {
+                  setSearch(e.target.value);
+                  if (search !== "") {
+                    setTab("all");
+                  }
+                }}
+                className="w-full max-w-xs bg-white/50 border-black/10 focus:bg-white transition-colors"
+                placeholder="Search items..."
+              />
+          </div>
+        </div>
+
+        <div className="flex-1 min-h-0 rounded-lg border bg-white/10 backdrop-blur-sm overflow-hidden">
+          <ScrollArea className="h-full p-4">
+            {["all", "milk", "green", "black", "seasonal"].map((catValue) => (
+                <TabsContent key={catValue} value={catValue} className="mt-0 h-full">
+                    <div className="grid grid-cols-[repeat(auto-fill,minmax(220px,1fr))] gap-6 pb-6">
+                        {menuItems
+                            .filter((item) => {
+                                const matchesSearch = item.name.toLowerCase().includes(search.toLowerCase());
+                                if (!matchesSearch) return false;
+                                if (catValue === "all") return true;
+                                if (catValue === "seasonal") return item.seasonal === 1;
+                                return item.name.toLowerCase().includes(catValue);
+                            })
+                            .map((item) => (
+                                <Card
+                                    key={item.id}
+                                    onClick={() => addToCart(item)}
+                                    className="bg-white/80 backdrop-blur-md hover:scale-105 hover:shadow-xl hover:bg-white transition-all duration-200 cursor-pointer border-2 border-transparent hover:border-primary/20 flex flex-col aspect-[4/5]"
+                                >
+                                    <CardContent className="flex-1 flex flex-col justify-between items-center p-4">
+                                        <div className="relative w-full flex-1 min-h-[120px] mb-4">
+                                            <Image
+                                                src={`/img/${item.name
+                                                    .replace(/\s+/g, "_")
+                                                    .replace(/[^a-zA-Z0-9_]/g, "")}.png`}
+                                                alt={item.name}
+                                                fill
+                                                className="object-contain drop-shadow-md"
+                                            />
+                                        </div>
+                                        <div className="text-center w-full space-y-1">
+                                            <h1 className="font-deco font-bold text-lg leading-tight line-clamp-2 h-12 flex items-center justify-center">
+                                                {item.name}
+                                            </h1>
+                                            <h1 className="font-deco text-xl text-primary font-semibold">
+                                                ${item.price}
+                                            </h1>
+                                        </div>
+                                    </CardContent>
+                                </Card>
+                            ))}
+                    </div>
+                </TabsContent>
+            ))}
+          </ScrollArea>
+        </div>
       </Tabs>
 
-      <div className="absolute bottom-0 w-screen h-30 bg-white/60 backdrop-blur-md flex items-center justify-center shadow-lg gap-8">
-        <h1 className="text-2xl font-bold">Subtotal: ${subtotal.toFixed(2)}</h1>
-        <Button className="text-lg" onClick={() => setCartOpen(true)}>
-          View Cart
-        </Button>
+      <div className="flex-none bg-white/80 backdrop-blur-xl border-t border-black/5 shadow-[0_-10px_40px_rgba(0,0,0,0.1)] p-6 z-20">
+        <div className="max-w-7xl mx-auto flex items-center justify-between gap-8">
+            <div className="flex flex-col">
+                <span className="text-sm text-muted-foreground uppercase tracking-wider font-bold">Total</span>
+                <span className="text-4xl font-bold font-deco">${subtotal.toFixed(2)}</span>
+            </div>
 
-        {/* Cart drawer with backdrop overlay */}
+            <Button
+                size="lg"
+                className="text-xl px-10 py-8 rounded-full shadow-lg animate-in slide-in-from-right-10"
+                onClick={() => setCartOpen(true)}
+            >
+                View Cart ({cart.length})
+            </Button>
+        </div>
+      </div>
+
         {cartOpen && (
-          <>
-            {/* Semi-transparent backdrop */}
+          <div className="fixed inset-0 z-50 flex items-end justify-center sm:items-center">
             <div
-              className="fixed inset-0 bg-black/20 backdrop-blur-sm z-40"
+              className="absolute inset-0 bg-black/40 backdrop-blur-sm animate-in fade-in"
               onClick={() => setCartOpen(false)}
             />
 
-            {/* Cart drawer panel */}
-            <div className="fixed bottom-0 left-0 right-0 w-full bg-white shadow-xl p-6 h-[70vh] overflow-y-auto animate-slide-up z-50 rounded-t-xl">
-              <div className="flex items-center justify-between mb-6">
-                <h2 className="text-2xl font-bold">Your Cart</h2>
+            <div className="relative bg-white w-full max-w-lg h-[85vh] sm:h-[80vh] sm:rounded-2xl shadow-2xl flex flex-col animate-in slide-in-from-bottom-10">
+
+              <div className="flex items-center justify-between p-6 border-b">
+                <h2 className="text-2xl font-bold font-deco">Your Cart</h2>
                 <Button
                   onClick={() => setCartOpen(false)}
-                  variant="outline"
-                  className="rounded-full w-8 h-8 p-0"
+                  variant="ghost"
+                  size="icon"
+                  className="rounded-full"
                 >
-                  ✕
+                  <X className="h-6 w-6" />
                 </Button>
               </div>
 
-              {/* Cart items with more spacing */}
-              <div className="space-y-4 mb-8">
-                {cart.map((item: any, idx) => {
+              <div className="flex-1 overflow-y-auto p-6 space-y-6">
+                {cart.length === 0 ? (
+                    <div className="h-full flex flex-col items-center justify-center text-muted-foreground opacity-50">
+                        <span className="text-6xl mb-4">🧋</span>
+                        <p>Your cart is empty</p>
+                    </div>
+                ) : cart.map((item: any, idx) => {
                   const boba = item?.boba ?? 100;
                   const ice = item?.ice ?? 100;
                   const sugar = item?.sugar ?? 100;
                   return (
                     <div
                       key={idx}
-                      className="flex flex-col border-b border-gray-100 py-3"
+                      className="flex flex-col border-b border-gray-100 pb-6 last:border-0"
                     >
-                      <div className="flex justify-between items-center">
-                        <div className="flex flex-col">
-                          <span className="font-medium text-lg">
-                            {item.name}
-                          </span>
-                          <span className="text-gray-500">${item.price}</span>
+                      <div className="flex justify-between items-start mb-4">
+                        <div>
+                          <span className="font-bold text-lg block">{item.name}</span>
+                          <span className="text-primary font-medium">${item.price}</span>
                         </div>
-                        <div className="flex items-center gap-2">
-                          <Button
-                            variant="outline"
+                        <Button
+                            variant="destructive"
                             size="sm"
-                            onClick={() =>
-                              setCart(cart.filter((_, i) => i !== idx))
-                            }
-                          >
+                            className="h-8 px-3"
+                            onClick={() => setCart(cart.filter((_, i) => i !== idx))}
+                        >
                             Remove
-                          </Button>
-                        </div>
+                        </Button>
                       </div>
 
-                      {/* Modifiers: boba, ice and sugar (boba first) */}
-                      <div className="mt-3 grid grid-cols-3 gap-4">
-                        <div>
-                          <div className="text-sm text-gray-600 mb-2">Boba</div>
-                          <div className="flex items-center gap-2">
-                            {[0, 25, 50, 75, 100].map((pct) => (
-                              <Button
-                                key={`boba-${idx}-${pct}`}
-                                size="sm"
-                                variant={boba === pct ? "default" : "outline"}
-                                onClick={() => {
-                                  setCart((prev) => {
-                                    const copy = [...prev];
-                                    copy[idx] = { ...copy[idx], boba: pct };
-                                    return copy;
-                                  });
-                                }}
-                              >
-                                {pct}%
-                              </Button>
-                            ))}
-                          </div>
-                        </div>
-                        <div>
-                          <div className="text-sm text-gray-600 mb-2">Ice</div>
-                          <div className="flex items-center gap-2">
-                            {[25, 50, 75, 100].map((pct) => (
-                              <Button
-                                key={`ice-${idx}-${pct}`}
-                                size="sm"
-                                variant={ice === pct ? "default" : "outline"}
-                                onClick={() => {
-                                  setCart((prev) => {
-                                    const copy = [...prev];
-                                    copy[idx] = { ...copy[idx], ice: pct };
-                                    return copy;
-                                  });
-                                }}
-                              >
-                                {pct}%
-                              </Button>
-                            ))}
-                          </div>
+                      <div className="grid grid-cols-1 gap-3 bg-gray-50 p-3 rounded-lg">
+                        <div className="flex items-center justify-between">
+                            <span className="text-xs font-bold text-gray-500 uppercase w-12">Boba</span>
+                            <div className="flex gap-1 flex-1 justify-end">
+                                {[0, 50, 100].map((pct) => (
+                                    <button
+                                        key={`boba-${idx}-${pct}`}
+                                        onClick={() => {
+                                            setCart((prev) => {
+                                                const copy = [...prev];
+                                                copy[idx] = { ...copy[idx], boba: pct };
+                                                return copy;
+                                            });
+                                        }}
+                                        className={`px-2 py-1 text-xs rounded-md transition-all ${boba === pct ? 'bg-black text-white shadow-sm' : 'bg-white text-gray-600 border hover:bg-gray-200'}`}
+                                    >
+                                        {pct}%
+                                    </button>
+                                ))}
+                            </div>
                         </div>
 
-                        <div>
-                          <div className="text-sm text-gray-600 mb-2">
-                            Sugar
-                          </div>
-                          <div className="flex items-center gap-2">
-                            {[25, 50, 75, 100].map((pct) => (
-                              <Button
-                                key={`sugar-${idx}-${pct}`}
-                                size="sm"
-                                variant={sugar === pct ? "default" : "outline"}
-                                onClick={() => {
-                                  setCart((prev) => {
-                                    const copy = [...prev];
-                                    copy[idx] = { ...copy[idx], sugar: pct };
-                                    return copy;
-                                  });
-                                }}
-                              >
-                                {pct}%
-                              </Button>
-                            ))}
-                          </div>
+                        <div className="flex items-center justify-between">
+                            <span className="text-xs font-bold text-gray-500 uppercase w-12">Ice</span>
+                            <div className="flex gap-1 flex-1 justify-end">
+                                {[0, 50, 100].map((pct) => (
+                                    <button
+                                        key={`ice-${idx}-${pct}`}
+                                        onClick={() => {
+                                            setCart((prev) => {
+                                                const copy = [...prev];
+                                                copy[idx] = { ...copy[idx], ice: pct };
+                                                return copy;
+                                            });
+                                        }}
+                                        className={`px-2 py-1 text-xs rounded-md transition-all ${ice === pct ? 'bg-blue-500 text-white shadow-sm' : 'bg-white text-gray-600 border hover:bg-gray-200'}`}
+                                    >
+                                        {pct}%
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+
+                        <div className="flex items-center justify-between">
+                            <span className="text-xs font-bold text-gray-500 uppercase w-12">Sugar</span>
+                            <div className="flex gap-1 flex-1 justify-end">
+                                {[0, 50, 100].map((pct) => (
+                                    <button
+                                        key={`sugar-${idx}-${pct}`}
+                                        onClick={() => {
+                                            setCart((prev) => {
+                                                const copy = [...prev];
+                                                copy[idx] = { ...copy[idx], sugar: pct };
+                                                return copy;
+                                            });
+                                        }}
+                                        className={`px-2 py-1 text-xs rounded-md transition-all ${sugar === pct ? 'bg-pink-500 text-white shadow-sm' : 'bg-white text-gray-600 border hover:bg-gray-200'}`}
+                                    >
+                                        {pct}%
+                                    </button>
+                                ))}
+                            </div>
                         </div>
                       </div>
                     </div>
@@ -482,48 +336,39 @@ export default function Home() {
                 })}
               </div>
 
-              {/* Totals section with better spacing */}
-              <div className="border-t pt-4 space-y-2">
-                <div className="flex justify-between text-lg">
-                  <span className="text-gray-600">Subtotal</span>
-                  <span>${subtotal.toFixed(2)}</span>
+              <div className="p-6 bg-gray-50 border-t">
+                <div className="space-y-2 mb-6">
+                  <div className="flex justify-between text-gray-600">
+                    <span>Subtotal</span>
+                    <span>${subtotal.toFixed(2)}</span>
+                  </div>
+                  <div className="flex justify-between text-gray-600">
+                    <span>Tax (8.5%)</span>
+                    <span>${tax.toFixed(2)}</span>
+                  </div>
+                  <div className="flex justify-between text-2xl font-bold pt-2 border-t border-gray-200">
+                    <span>Total</span>
+                    <span>${grandTotal.toFixed(2)}</span>
+                  </div>
                 </div>
-                <div className="flex justify-between text-lg">
-                  <span className="text-gray-600">
-                    Tax ({(TAX_RATE * 100).toFixed()}%)
-                  </span>
-                  <span>${tax.toFixed(2)}</span>
-                </div>
-                <div className="flex justify-between text-xl font-bold mt-2 pt-2 border-t">
-                  <span>Total</span>
-                  <span>${grandTotal.toFixed(2)}</span>
-                </div>
-                <div className="mt-6 flex justify-end">
-                  <Button
+                <Button
                     onClick={() => {
                       try {
                         if (typeof window !== "undefined") {
-                          window.localStorage.setItem(
-                            "cart",
-                            JSON.stringify(cart)
-                          );
+                          window.localStorage.setItem("cart", JSON.stringify(cart));
                         }
                       } catch (e) {}
-                      // navigate to checkout screen (SPA)
                       router.push("/kiosk/checkout");
                     }}
-                    className="ml-2"
+                    className="w-full text-lg py-6"
+                    disabled={cart.length === 0}
                   >
-                    Checkout
+                    Proceed to Checkout
                   </Button>
-                </div>
               </div>
             </div>
-          </>
+          </div>
         )}
-
-        {/* <Button className="text-lg">View Cart</Button> */}
-      </div>
     </div>
   );
 }

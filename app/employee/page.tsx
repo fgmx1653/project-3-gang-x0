@@ -115,19 +115,8 @@ export default function Home() {
     }, []);
 
     return (
-
-
-        <div className='flex flex-col items-center justify-center gap-4 p-16 w-screen h-screen'>
-
-            <div className='absolute left-4 top-4 flex flex-col gap-2'>
-                <Link href='/'><Button>Home</Button></Link>
-                <Button onClick={() => {
-                    logoutClient();
-                    router.push('/login');
-                }}>Log out</Button>
-            </div>
-
-            <div className='absolute -z-20 w-full h-full'>
+        <div className="relative h-screen w-full flex flex-col overflow-hidden">
+            <div className="fixed inset-0 -z-20 bg-white/50">
                 <Iridescence
                     color={[1.0, 0.7, 0.7]}
                     mouseReact={true}
@@ -136,72 +125,106 @@ export default function Home() {
                 />
             </div>
 
-            <div className="flex flex-row gap-8">
+            <div className="flex-none p-4 flex gap-2 z-10 bg-white/30 backdrop-blur-sm border-b border-white/20">
+                <Link href='/'>
+                    <Button variant="outline">Home</Button>
+                </Link>
+                <Button
+                    variant="outline"
+                    onClick={() => {
+                        logoutClient();
+                        router.push('/login');
+                    }}
+                >
+                    Log out
+                </Button>
+            </div>
 
-                <Card className='bg-white/60 backdrop-blur-md min-w-100 max-h-screen'>
-                    <CardHeader>
-                        <CardTitle className='font-header text-3xl text-black bg-yellow-500/50'>Order (Employee)</CardTitle>
+            <div className="flex-1 flex flex-row gap-6 p-6 overflow-hidden">
+                <Card className="bg-white/60 backdrop-blur-md w-96 flex flex-col shadow-xl border-2 border-white/50 h-full">
+                    <CardHeader className="flex-none">
+                        <CardTitle className="font-header text-3xl text-black bg-yellow-500/50 p-2 rounded-md">
+                            Order (Employee)
+                        </CardTitle>
                     </CardHeader>
-                    <CardContent>
+                    <CardContent className="flex-1 overflow-y-auto space-y-4 p-4">
                         {error && (
-                            <div className="mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded">
+                            <div className="p-3 bg-red-100 border border-red-400 text-red-700 rounded">
                                 {error}
                             </div>
                         )}
                         {orderSuccess && (
-                            <div className="mb-4 p-3 bg-green-100 border border-green-400 text-green-700 rounded">
+                            <div className="p-3 bg-green-100 border border-green-400 text-green-700 rounded">
                                 Order placed successfully!
                             </div>
                         )}
-                        {cart.length != 0 && cart.map((item) => (
-                            // use the unique cartId for keys (fallback to item.id or index)
-                            <div key={item.cartId} className="mb-4 flex flex-row justify-between items-start gap-10">
-                                <h2 className="text-lg font-bold font-deco">{item.name}</h2>
-                                <div className='flex flex-row gap-2 items-center justify-center'>
-                                    <p className="text-lg font-bold font-deco text-black/25">${item.price}</p>
-                                    <X className='transition ease-in-out duration-200 hover:cursor-pointer hover:bg-white' onClick={() => {
-                                        setCart(prev => prev.filter(i => i !== item))
-                                    }} />
-                                </div>
+                        {cart.length === 0 ? (
+                            <div className="text-center py-10 text-muted-foreground font-deco text-xl opacity-50">
+                                Cart is empty
                             </div>
-                        )) || (
-                                <h2 className="text-lg font-bold font-deco text-black/25">Add items to your cart</h2>
-                            )}
+                        ) : (
+                            cart.map((item) => (
+                                <div
+                                    key={item.cartId}
+                                    className="flex flex-row justify-between items-center p-3 bg-white/50 rounded-lg border border-white/40 shadow-sm"
+                                >
+                                    <h2 className="font-deco font-bold text-lg leading-tight">
+                                        {item.name}
+                                    </h2>
+                                    <div className="flex items-center gap-3">
+                                        <span className="font-deco font-bold text-black/50">
+                                            ${item.price}
+                                        </span>
+                                        <Button
+                                            variant="ghost"
+                                            size="icon"
+                                            className="h-8 w-8 hover:bg-red-100 hover:text-red-600"
+                                            onClick={() => setCart((prev) => prev.filter((i) => i !== item))}
+                                        >
+                                            <X className="h-4 w-4" />
+                                        </Button>
+                                    </div>
+                                </div>
+                            ))
+                        )}
                     </CardContent>
-                    {
-                        cart.length != 0 && (
-                            <CardFooter>
-                                <Button onClick={placeOrder} disabled={placingOrder}>
-                                    {placingOrder ? 'Placing Order...' : 'Place Order'}
-                                </Button>
-                            </CardFooter>
-                        )
-                    }
+                    {cart.length > 0 && (
+                        <CardFooter className="flex-none border-t border-white/20 p-4 bg-white/20">
+                            <Button className="w-full text-lg py-6 shadow-lg" onClick={placeOrder} disabled={placingOrder}>
+                                {placingOrder ? 'Placing Order...' : 'Place Order'}
+                            </Button>
+                        </CardFooter>
+                    )}
                 </Card>
 
-                <div className='grid grid-cols-4 gap-4'>
-                    {menuItems.map((item) => (
-                        <div key={item.id}>
-                            <button onClick={() => {
-                                // Create a unique cartId and do NOT mutate the original menu item
-                                const cartId = (typeof crypto !== 'undefined' && 'randomUUID' in crypto)
-                                    ? (crypto as any).randomUUID()
-                                    : `${item.id}-${Date.now()}-${Math.floor(Math.random() * 10000)}`;
+                <div className="flex-1 overflow-y-auto pr-2">
+                    <div className="grid grid-cols-[repeat(auto-fill,minmax(220px,1fr))] gap-4 pb-20">
+                        {menuItems.map((item) => (
+                            <button
+                                key={item.id}
+                                className="text-left h-full"
+                                onClick={() => {
+                                    const cartId = (typeof crypto !== 'undefined' && 'randomUUID' in crypto)
+                                        ? (crypto as any).randomUUID()
+                                        : `${item.id}-${Date.now()}-${Math.floor(Math.random() * 10000)}`;
 
-                                const newItem = { ...item, cartId };
-                                setCart(prev => [...prev, newItem]);
-                            }}>
-                                <Card className='bg-white/60 backdrop-blur-md transform transition-transform duration-200 ease-in-out hover:-translate-y-1 hover:shadow-lg hover:bg-white hover:cursor-pointer w-60'>
-                                    <CardContent>
-                                        <div className='flex flex-col justify-between items-start'>
-                                            <h1 className='font-deco font-bold'>{item.name}</h1>
-                                            <h1 className='font-deco'>${item.price}</h1>
+                                    const newItem = { ...item, cartId };
+                                    setCart(prev => [...prev, newItem]);
+                                }}
+                            >
+                                <Card className="h-full bg-white/60 backdrop-blur-md hover:bg-white hover:scale-105 transition-all duration-200 shadow-sm hover:shadow-xl border-2 border-transparent hover:border-yellow-400/50 group">
+                                    <CardContent className="p-5 flex flex-col justify-between h-full gap-4">
+                                        <h1 className="font-deco font-bold text-xl group-hover:text-yellow-600 transition-colors">
+                                            {item.name}
+                                        </h1>
+                                        <div className="font-deco text-2xl font-bold text-black/40 self-end">
+                                            ${item.price}
                                         </div>
                                     </CardContent>
                                 </Card>
                             </button>
-                        </div>
-                    ))}
+                        ))}
+                    </div>
                 </div>
             </div>
         </div>
