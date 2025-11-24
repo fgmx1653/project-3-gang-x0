@@ -1,12 +1,12 @@
 "use client";
 
-import { Button } from "@/components/ui/button"
-import Iridescence from '@/components/Iridescence';
-import Link from 'next/link';
-import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
-import { X } from 'lucide-react';
-import { getStoredUser, logoutClient } from '@/lib/clientAuth';
+import { Button } from "@/components/ui/button";
+import Iridescence from "@/components/Iridescence";
+import Link from "next/link";
+import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { X, Edit } from "lucide-react";
+import { getStoredUser, logoutClient } from "@/lib/clientAuth";
 
 import {
     Card,
@@ -16,13 +16,20 @@ import {
     CardFooter,
     CardHeader,
     CardTitle,
-} from "@/components/ui/card"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import Image from 'next/image';
+} from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import Image from "next/image";
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+} from "@/components/ui/dialog";
 
 export default function Home() {
-
     const router = useRouter();
 
     // menuItems fetched from /api/menu
@@ -32,12 +39,16 @@ export default function Home() {
     const [error, setError] = useState<string | null>(null);
     const [placingOrder, setPlacingOrder] = useState(false);
     const [orderSuccess, setOrderSuccess] = useState(false);
+    const [editingItem, setEditingItem] = useState<any | null>(null);
+    const [editBoba, setEditBoba] = useState(100);
+    const [editIce, setEditIce] = useState(100);
+    const [editSugar, setEditSugar] = useState(100);
 
     async function getMenuItems() {
         setLoading(true);
         setError(null);
         try {
-            const res = await fetch('/api/menu');
+            const res = await fetch("/api/menu");
             const data = await res.json();
 
             if (res.ok && data.ok) {
@@ -46,12 +57,12 @@ export default function Home() {
                 return { ok: true };
             }
 
-            setError(data?.error || 'Failed to load menu');
+            setError(data?.error || "Failed to load menu");
             setLoading(false);
             return { ok: false };
         } catch (err) {
-            console.error('Menu request', err);
-            setError('Network error');
+            console.error("Menu request", err);
+            setError("Network error");
             setLoading(false);
             return { ok: false };
         }
@@ -60,12 +71,12 @@ export default function Home() {
     async function placeOrder() {
         const user = getStoredUser();
         if (!user) {
-            setError('User not logged in');
+            setError("User not logged in");
             return;
         }
 
         if (user.id === null || user.id === undefined) {
-            setError('User ID not found. Please log out and log back in.');
+            setError("User ID not found. Please log out and log back in.");
             return;
         }
 
@@ -74,12 +85,12 @@ export default function Home() {
         setOrderSuccess(false);
 
         try {
-            const res = await fetch('/api/orders', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+            const res = await fetch("/api/orders", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
                     items: cart,
-                    employeeId: user.id
+                    employeeId: user.id,
                 }),
             });
 
@@ -90,26 +101,25 @@ export default function Home() {
                 setCart([]);
                 setTimeout(() => setOrderSuccess(false), 3000);
             } else {
-                setError(data?.error || 'Failed to place order');
+                setError(data?.error || "Failed to place order");
             }
         } catch (err) {
-            console.error('Order placement failed', err);
-            setError('Network error');
+            console.error("Order placement failed", err);
+            setError("Network error");
         } finally {
             setPlacingOrder(false);
         }
     }
 
     useEffect(() => {
-
         const user = getStoredUser();
 
-        if (!user) router.push('/login');
+        if (!user) router.push("/login");
 
         const m = user?.ismanager;
-        const isManager = m === true || m === '1' || m === 1;
+        const isManager = m === true || m === "1" || m === 1;
 
-        if (isManager) router.push('/manager');
+        if (isManager) router.push("/manager");
 
         getMenuItems();
     }, []);
@@ -126,14 +136,14 @@ export default function Home() {
             </div>
 
             <div className="flex-none p-4 flex gap-2 z-10 bg-white/30 backdrop-blur-sm border-b border-white/20">
-                <Link href='/'>
+                <Link href="/">
                     <Button variant="outline">Home</Button>
                 </Link>
                 <Button
                     variant="outline"
                     onClick={() => {
                         logoutClient();
-                        router.push('/login');
+                        router.push("/login");
                     }}
                 >
                     Log out
@@ -166,23 +176,55 @@ export default function Home() {
                             cart.map((item) => (
                                 <div
                                     key={item.cartId}
-                                    className="flex flex-row justify-between items-center p-3 bg-white/50 rounded-lg border border-white/40 shadow-sm"
+                                    className="flex flex-col gap-2 p-3 bg-white/50 rounded-lg border border-white/40 shadow-sm"
                                 >
-                                    <h2 className="font-deco font-bold text-lg leading-tight">
-                                        {item.name}
-                                    </h2>
-                                    <div className="flex items-center gap-3">
-                                        <span className="font-deco font-bold text-black/50">
-                                            ${item.price}
-                                        </span>
-                                        <Button
-                                            variant="ghost"
-                                            size="icon"
-                                            className="h-8 w-8 hover:bg-red-100 hover:text-red-600"
-                                            onClick={() => setCart((prev) => prev.filter((i) => i !== item))}
-                                        >
-                                            <X className="h-4 w-4" />
-                                        </Button>
+                                    <div className="flex flex-row justify-between items-start">
+                                        <div>
+                                            <h2 className="font-deco font-bold text-lg leading-tight">
+                                                {item.name}
+                                            </h2>
+                                            <div className="text-xs text-gray-600 font-deco">
+                                                Boba: {item.boba ?? 100}% | Ice:{" "}
+                                                {item.ice ?? 100}% | Sugar:{" "}
+                                                {item.sugar ?? 100}%
+                                            </div>
+                                        </div>
+                                        <div className="flex items-center gap-2">
+                                            <span className="font-deco font-bold text-black/50">
+                                                ${item.price}
+                                            </span>
+                                            <Button
+                                                variant="ghost"
+                                                size="icon"
+                                                className="h-8 w-8 hover:bg-blue-100"
+                                                onClick={() => {
+                                                    setEditingItem(item);
+                                                    setEditBoba(
+                                                        item.boba ?? 100
+                                                    );
+                                                    setEditIce(item.ice ?? 100);
+                                                    setEditSugar(
+                                                        item.sugar ?? 100
+                                                    );
+                                                }}
+                                            >
+                                                <Edit className="h-4 w-4" />
+                                            </Button>
+                                            <Button
+                                                variant="ghost"
+                                                size="icon"
+                                                className="h-8 w-8 hover:bg-red-100 hover:text-red-600"
+                                                onClick={() =>
+                                                    setCart((prev) =>
+                                                        prev.filter(
+                                                            (i) => i !== item
+                                                        )
+                                                    )
+                                                }
+                                            >
+                                                <X className="h-4 w-4" />
+                                            </Button>
+                                        </div>
                                     </div>
                                 </div>
                             ))
@@ -190,8 +232,14 @@ export default function Home() {
                     </CardContent>
                     {cart.length > 0 && (
                         <CardFooter className="flex-none border-t border-white/20 p-4 bg-white/20">
-                            <Button className="w-full text-lg py-6 shadow-lg" onClick={placeOrder} disabled={placingOrder}>
-                                {placingOrder ? 'Placing Order...' : 'Place Order'}
+                            <Button
+                                className="w-full text-lg py-6 shadow-lg"
+                                onClick={placeOrder}
+                                disabled={placingOrder}
+                            >
+                                {placingOrder
+                                    ? "Placing Order..."
+                                    : "Place Order"}
                             </Button>
                         </CardFooter>
                     )}
@@ -204,12 +252,24 @@ export default function Home() {
                                 key={item.id}
                                 className="text-left h-full"
                                 onClick={() => {
-                                    const cartId = (typeof crypto !== 'undefined' && 'randomUUID' in crypto)
-                                        ? (crypto as any).randomUUID()
-                                        : `${item.id}-${Date.now()}-${Math.floor(Math.random() * 10000)}`;
+                                    const cartId =
+                                        typeof crypto !== "undefined" &&
+                                        "randomUUID" in crypto
+                                            ? (crypto as any).randomUUID()
+                                            : `${
+                                                  item.id
+                                              }-${Date.now()}-${Math.floor(
+                                                  Math.random() * 10000
+                                              )}`;
 
-                                    const newItem = { ...item, cartId };
-                                    setCart(prev => [...prev, newItem]);
+                                    const newItem = {
+                                        ...item,
+                                        cartId,
+                                        boba: 100,
+                                        ice: 100,
+                                        sugar: 100,
+                                    };
+                                    setCart((prev) => [...prev, newItem]);
                                 }}
                             >
                                 <Card className="h-full bg-white/60 backdrop-blur-md hover:bg-white hover:scale-105 transition-all duration-200 shadow-sm hover:shadow-xl border-2 border-transparent hover:border-yellow-400/50 group">
@@ -227,6 +287,112 @@ export default function Home() {
                     </div>
                 </div>
             </div>
+
+            {/* Edit Customization Dialog */}
+            <Dialog
+                open={editingItem !== null}
+                onOpenChange={(open) => !open && setEditingItem(null)}
+            >
+                <DialogContent className="bg-white">
+                    <DialogHeader>
+                        <DialogTitle>Customize {editingItem?.name}</DialogTitle>
+                        <DialogDescription>
+                            Adjust boba, ice, and sugar levels (25%, 50%, 75%,
+                            or 100%)
+                        </DialogDescription>
+                    </DialogHeader>
+                    <div className="space-y-4 py-4">
+                        <div className="space-y-2">
+                            <Label htmlFor="boba">
+                                Boba Level: {editBoba}%
+                            </Label>
+                            <div className="flex gap-2">
+                                {[25, 50, 75, 100].map((level) => (
+                                    <Button
+                                        key={level}
+                                        variant={
+                                            editBoba === level
+                                                ? "default"
+                                                : "outline"
+                                        }
+                                        onClick={() => setEditBoba(level)}
+                                        className="flex-1"
+                                    >
+                                        {level}%
+                                    </Button>
+                                ))}
+                            </div>
+                        </div>
+                        <div className="space-y-2">
+                            <Label htmlFor="ice">Ice Level: {editIce}%</Label>
+                            <div className="flex gap-2">
+                                {[25, 50, 75, 100].map((level) => (
+                                    <Button
+                                        key={level}
+                                        variant={
+                                            editIce === level
+                                                ? "default"
+                                                : "outline"
+                                        }
+                                        onClick={() => setEditIce(level)}
+                                        className="flex-1"
+                                    >
+                                        {level}%
+                                    </Button>
+                                ))}
+                            </div>
+                        </div>
+                        <div className="space-y-2">
+                            <Label htmlFor="sugar">
+                                Sugar Level: {editSugar}%
+                            </Label>
+                            <div className="flex gap-2">
+                                {[25, 50, 75, 100].map((level) => (
+                                    <Button
+                                        key={level}
+                                        variant={
+                                            editSugar === level
+                                                ? "default"
+                                                : "outline"
+                                        }
+                                        onClick={() => setEditSugar(level)}
+                                        className="flex-1"
+                                    >
+                                        {level}%
+                                    </Button>
+                                ))}
+                            </div>
+                        </div>
+                    </div>
+                    <DialogFooter>
+                        <Button
+                            variant="outline"
+                            onClick={() => setEditingItem(null)}
+                        >
+                            Cancel
+                        </Button>
+                        <Button
+                            onClick={() => {
+                                setCart((prev) =>
+                                    prev.map((i) =>
+                                        i === editingItem
+                                            ? {
+                                                  ...i,
+                                                  boba: editBoba,
+                                                  ice: editIce,
+                                                  sugar: editSugar,
+                                              }
+                                            : i
+                                    )
+                                );
+                                setEditingItem(null);
+                            }}
+                        >
+                            Save Changes
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
         </div>
     );
 }

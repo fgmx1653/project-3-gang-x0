@@ -7,9 +7,9 @@ import { Button } from "@/components/ui/button";
 import Link from "next/link";
 
 import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
+    Tooltip,
+    TooltipContent,
+    TooltipTrigger,
 } from "@/components/ui/tooltip";
 
 export default function Home() {
@@ -42,7 +42,22 @@ export default function Home() {
               </Link>
             </TooltipTrigger>
             <TooltipContent>
-              <p>Yet to implement cart functionality</p>
+              <p>Functional</p>
+            </TooltipContent>
+          </Tooltip>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Link href="/kitchen">
+                <Button className="hover:cursor-pointer">
+                  Kitchen Display
+                </Button>
+              </Link>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p>
+                Real-time kitchen order tracking system for managing
+                pending and completed orders
+              </p>
             </TooltipContent>
           </Tooltip>
           <Tooltip>
