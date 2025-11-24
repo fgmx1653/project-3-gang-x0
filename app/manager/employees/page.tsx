@@ -171,7 +171,12 @@ export default function Page() {
     <div className="p-6 h-screen flex flex-col">
       <Card className="flex flex-col h-full">
         <CardHeader>
-          <CardTitle>Staff</CardTitle>
+          <div className="flex items-center justify-between">
+            <CardTitle>Staff</CardTitle>
+            <Link href="/manager">
+              <Button variant="outline">Back</Button>
+            </Link>
+          </div>
         </CardHeader>
         <CardContent className="flex flex-col flex-1 min-h-0">
           <div className="space-y-4 mb-4">
