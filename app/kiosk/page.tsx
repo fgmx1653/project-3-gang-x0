@@ -120,6 +120,16 @@ export default function Home() {
     setCart((prev) => [...prev, withMods]);
   }
 
+  // Capitalize the first letter of every word for display (Title Case)
+  function capitalizeWords(input: any) {
+    const s = String(input ?? "").trim();
+    if (!s) return "";
+    return s
+      .split(/\s+/)
+      .map((w) => (w.length > 0 ? w[0].toUpperCase() + w.slice(1) : ""))
+      .join(" ");
+  }
+
   return (
     <div className="flex flex-col items-center justify-center gap-4 p-8 w-screen h-screen">
       <Link className="absolute left-4 top-4" href="/">
@@ -190,6 +200,15 @@ export default function Home() {
             <div className="grid grid-cols-4 gap-4">
               {menuItems
                 .filter((item) => item.name.includes(search))
+                .sort((a, b) =>
+                  String(a.name || "").localeCompare(
+                    String(b.name || ""),
+                    undefined,
+                    {
+                      sensitivity: "base",
+                    }
+                  )
+                )
                 .map((item) => (
                   <Card
                     key={item.id}
@@ -208,7 +227,7 @@ export default function Home() {
                         />
                       </div>
                       <h1 className="font-deco font-bold text-center w-full truncate">
-                        {item.name}
+                        {capitalizeWords(item.name)}
                       </h1>
                       <h1 className="font-deco text-center w-full">
                         ${item.price}
@@ -222,6 +241,15 @@ export default function Home() {
             <div className="grid grid-cols-4 gap-4">
               {menuItems
                 .filter((item) => item.name.includes("milk"))
+                .sort((a, b) =>
+                  String(a.name || "").localeCompare(
+                    String(b.name || ""),
+                    undefined,
+                    {
+                      sensitivity: "base",
+                    }
+                  )
+                )
                 .map((item) => (
                   <Card
                     key={item.id}
@@ -240,7 +268,7 @@ export default function Home() {
                         />
                       </div>
                       <h1 className="font-deco font-bold text-center w-full truncate">
-                        {item.name}
+                        {capitalizeWords(item.name)}
                       </h1>
                       <h1 className="font-deco text-center w-full">
                         ${item.price}
@@ -254,6 +282,15 @@ export default function Home() {
             <div className="grid grid-cols-4 gap-4">
               {menuItems
                 .filter((item) => item.name.includes("green"))
+                .sort((a, b) =>
+                  String(a.name || "").localeCompare(
+                    String(b.name || ""),
+                    undefined,
+                    {
+                      sensitivity: "base",
+                    }
+                  )
+                )
                 .map((item) => (
                   <Card
                     key={item.id}
@@ -272,7 +309,7 @@ export default function Home() {
                         />
                       </div>
                       <h1 className="font-deco font-bold text-center w-full truncate">
-                        {item.name}
+                        {capitalizeWords(item.name)}
                       </h1>
                       <h1 className="font-deco text-center w-full">
                         ${item.price}
@@ -286,6 +323,15 @@ export default function Home() {
             <div className="grid grid-cols-4 gap-4">
               {menuItems
                 .filter((item) => item.name.includes("black"))
+                .sort((a, b) =>
+                  String(a.name || "").localeCompare(
+                    String(b.name || ""),
+                    undefined,
+                    {
+                      sensitivity: "base",
+                    }
+                  )
+                )
                 .map((item) => (
                   <Card
                     key={item.id}
@@ -304,7 +350,7 @@ export default function Home() {
                         />
                       </div>
                       <h1 className="font-deco font-bold text-center w-full truncate">
-                        {item.name}
+                        {capitalizeWords(item.name)}
                       </h1>
                       <h1 className="font-deco text-center w-full">
                         ${item.price}
@@ -318,6 +364,15 @@ export default function Home() {
             <div className="grid grid-cols-4 gap-4">
               {menuItems
                 .filter((item) => item.seasonal === 1)
+                .sort((a, b) =>
+                  String(a.name || "").localeCompare(
+                    String(b.name || ""),
+                    undefined,
+                    {
+                      sensitivity: "base",
+                    }
+                  )
+                )
                 .map((item) => (
                   <Card
                     key={item.id}
@@ -336,7 +391,7 @@ export default function Home() {
                         />
                       </div>
                       <h1 className="font-deco font-bold text-center w-full truncate">
-                        {item.name}
+                        {capitalizeWords(item.name)}
                       </h1>
                       <h1 className="font-deco text-center w-full">
                         ${item.price}
