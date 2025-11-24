@@ -45,6 +45,53 @@ export default function Home() {
   const [tab, setTab] = useState<string>("all");
   const [search, setSearch] = useState<string>("");
 
+  // Accessibility: text size (root font-size in px). Persist in localStorage under 'textSize'
+  const [textSize, setTextSize] = useState<number | null>(null);
+
+  const applyTextSize = (px: number) => {
+    try {
+      // set a CSS variable so we can target only kiosk text via .kiosk-text
+      document.documentElement.style.setProperty(
+        "--kiosk-text-size",
+        `${px}px`
+      );
+      window.localStorage.setItem("textSize", String(px));
+      setTextSize(px);
+    } catch (e) {
+      // ignore
+    }
+  };
+
+  const increaseText = () => applyTextSize(Math.min((textSize ?? 16) + 2, 20));
+  const decreaseText = () => applyTextSize(Math.max((textSize ?? 16) - 2, 16));
+  const resetText = () => applyTextSize(16);
+
+  useEffect(() => {
+    // initialize from localStorage or computed root size
+    try {
+      const stored = window.localStorage.getItem("textSize");
+      if (stored) {
+        const n = Number(stored);
+        if (!isNaN(n)) {
+          document.documentElement.style.setProperty(
+            "--kiosk-text-size",
+            `${n}px`
+          );
+          setTextSize(n);
+          return;
+        }
+      }
+      // If nothing stored, default to 16px for the kiosk text variable
+      document.documentElement.style.setProperty("--kiosk-text-size", `16px`);
+      setTextSize(16);
+    } catch (e) {
+      // ignore
+    }
+
+    // Initialization complete; text size variable has been set from storage (if any).
+    return;
+  }, []);
+
   // rehydrate cart from localStorage when kiosk mounts so going back preserves progress
   useEffect(() => {
     try {
@@ -131,10 +178,36 @@ export default function Home() {
   }
 
   return (
-    <div className="flex flex-col items-center justify-center gap-4 p-8 w-screen h-screen">
-      <Link className="absolute left-4 top-4" href="/">
-        <Button>Home</Button>
-      </Link>
+    <div className="kiosk-text flex flex-col items-center justify-center gap-4 p-8 w-screen h-screen">
+      <div className="absolute left-4 top-4 flex flex-col gap-2 items-start">
+        <Link href="/">
+          <Button>Home</Button>
+        </Link>
+        <div className="flex items-center gap-2">
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={decreaseText}
+            aria-label="Decrease text size"
+          >
+            A-
+          </Button>
+          <Button size="sm" onClick={resetText} aria-label="Reset text size">
+            A
+          </Button>
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={increaseText}
+            aria-label="Increase text size"
+          >
+            A+
+          </Button>
+          <div className="text-sm text-muted-foreground ms-2">
+            {textSize ? `${textSize}px` : ""}
+          </div>
+        </div>
+      </div>
 
       <div className="absolute -z-20 w-full h-full">
         <Iridescence

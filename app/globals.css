@@ -54,8 +54,6 @@
       transform: rotate(5deg);
     }
   }
-
-
 }
 
 :root {
@@ -133,5 +131,9 @@
   }
   body {
     @apply bg-background text-foreground;
+  }
+
+  .kiosk-text * {
+    font-size: var(--kiosk-text-size) !important;
   }
 }
