@@ -1,3 +1,6 @@
+"use client";
+
+import { useEffect, useRef } from "react";
 import Image from "next/image";
 import ClearCartOnMount from "@/components/ClearCartOnMount";
 import { Button } from "@/components/ui/button";

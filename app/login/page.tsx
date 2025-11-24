@@ -84,11 +84,9 @@ export default function Home() {
     })
 
     return (
-        <div className='flex h-screen items-center justify-center'>
+        <div className='relative flex h-screen w-full items-center justify-center overflow-hidden'>
 
-            <Link className='absolute left-4 top-4' href='/'><Button>Home</Button></Link>
-
-            <div className='absolute -z-20 w-full h-full'>
+            <div className='fixed inset-0 -z-20 bg-white/50'>
                 <Iridescence
                     color={[1.0, 0.7, 0.7]}
                     mouseReact={false}
@@ -96,6 +94,8 @@ export default function Home() {
                     speed={1.0}
                 />
             </div>
+
+            <Link className='absolute left-4 top-4 z-10' href='/'><Button>Home</Button></Link>
 
             <Card className='flex w-80 bg-white/60 backdrop-blur-md'>
                 <CardHeader>
