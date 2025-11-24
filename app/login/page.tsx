@@ -19,6 +19,7 @@ import { useRouter } from 'next/navigation';
 import { getStoredUser } from '@/lib/clientAuth';
 
 import { signIn } from "next-auth/react";
+import { translateText } from '@/lib/translate';
 
 
 export default function Home() {
@@ -28,6 +29,9 @@ export default function Home() {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [checkingSession, setCheckingSession] = useState(true);
+    const [lang, setLang] = useState('en');
+    const [loginLabel, setLoginLabel] = useState('Login');
+    const [continueWithGoogleLabel, setContinueWithGoogleLabel] = useState('Continue with Google');
 
     async function checkLogin(username: string, password: string) {
         setLoading(true);
@@ -100,7 +104,15 @@ export default function Home() {
             setCheckingSession(false);
         })();
     }, [router]);
-
+    
+    useEffect(() => {
+        async function translateLabels() {
+            setLoginLabel(await translateText('Login', lang));
+            setContinueWithGoogleLabel(await translateText('Continue with Google', lang));
+        }
+        translateLabels();
+    }, [lang]);
+    
     return (
         <div className='flex h-screen items-center justify-center'>
 
@@ -114,18 +126,14 @@ export default function Home() {
                     speed={1.0}
                 />
             </div>
-
             <Card className='flex w-80 bg-white/60 backdrop-blur-md'>
                 <CardHeader>
-                    <CardTitle>Login</CardTitle>
+                    <CardTitle>{loginLabel}</CardTitle>
                 </CardHeader>
                 <CardContent>
                     <div className='flex flex-col gap-2'>
                         <Input className='border-black/25' placeholder="Username" value={username} onChange={(e) => setUsername((e.target as HTMLInputElement).value)} />
                         <Input className='border-black/25' placeholder="Password" type="password" value={password} onChange={(e) => setPassword((e.target as HTMLInputElement).value)} />
-                        <div className='relative py-2 text-center text-xs text-black/60'>
-                            or
-                        </div>
                         <Button
                             variant="outline"
                             type="button"
@@ -133,7 +141,7 @@ export default function Home() {
                                 signIn("google", { callbackUrl: "/login" });
                             }}
                         >
-                            Continue with Google
+                            {continueWithGoogleLabel}
                         </Button>
                         {error && <p className="text-sm text-black">{error}</p>}
                     </div>
@@ -145,7 +153,17 @@ export default function Home() {
                             // router.push('/menu');
                             router.push(result.isManager ? '/manager' : '/employee');
                         }
+                        {/* Example language selector for demo */ }
                     }}>{loading ? 'Signing in...' : 'Log in'}</Button>
+                    <div className='absolute right-4 top-4'>
+                        <select value={lang} onChange={e => setLang(e.target.value)}>
+                            <option value='en'>English</option>
+                            <option value='es'>Español</option>
+                            <option value='fr'>Français</option>
+                            <option value='zh'>中文</option>
+                            <option value='de'>Deutsch</option>
+                        </select>
+                    </div>
                 </CardFooter>
             </Card>
         </div>
