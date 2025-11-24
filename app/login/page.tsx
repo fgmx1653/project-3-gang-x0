@@ -18,11 +18,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { getStoredUser } from '@/lib/clientAuth';
 
-import {
-    Tooltip,
-    TooltipContent,
-    TooltipTrigger,
-} from "@/components/ui/tooltip"
+import { signIn } from "next-auth/react";
 
 
 export default function Home() {
@@ -31,6 +27,7 @@ export default function Home() {
     const [password, setPassword] = useState('');
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const [checkingSession, setCheckingSession] = useState(true);
 
     async function checkLogin(username: string, password: string) {
         setLoading(true);
@@ -68,20 +65,41 @@ export default function Home() {
     }
 
     useEffect(() => {
-        const user = getStoredUser();
-
-        if (user) {
-            const m = user?.ismanager;
-            const isManager = m === true || m === '1' || m === 1;
-
-            if (isManager) {
-                router.push('/manager');
-            } else {
-                router.push('/employee');
+        // First, check if we already have an Auth.js session; if so, bootstrap localStorage
+        (async () => {
+            try {
+                const res = await fetch('/api/auth/session', { cache: 'no-store' });
+                if (res.ok) {
+                    const session = await res.json();
+                    if (session?.user) {
+                        const m = (session.user as any).ismanager;
+                        const isManager = m === true || m === '1' || m === 1;
+                        const userPayload = {
+                            id: (session.user as any).id,
+                            name: session.user.name,
+                            username: session.user.name,
+                            ismanager: isManager,
+                        };
+                        localStorage.setItem('user', JSON.stringify(userPayload));
+                        localStorage.setItem('isLoggedIn', '1');
+                        router.push(isManager ? '/manager' : '/employee');
+                        return;
+                    }
+                }
+            } catch (_) {
+                // Ignore network errors; fall back to localStorage check
             }
-        }
 
-    })
+            // Fallback: respect any existing localStorage session
+            const user = getStoredUser();
+            if (user) {
+                const m = user?.ismanager;
+                const isManager = m === true || m === '1' || m === 1;
+                router.push(isManager ? '/manager' : '/employee');
+            }
+            setCheckingSession(false);
+        })();
+    }, [router]);
 
     return (
         <div className='flex h-screen items-center justify-center'>
@@ -105,11 +123,23 @@ export default function Home() {
                     <div className='flex flex-col gap-2'>
                         <Input className='border-black/25' placeholder="Username" value={username} onChange={(e) => setUsername((e.target as HTMLInputElement).value)} />
                         <Input className='border-black/25' placeholder="Password" type="password" value={password} onChange={(e) => setPassword((e.target as HTMLInputElement).value)} />
+                        <div className='relative py-2 text-center text-xs text-black/60'>
+                            or
+                        </div>
+                        <Button
+                            variant="outline"
+                            type="button"
+                            onClick={() => {
+                                signIn("google", { callbackUrl: "/login" });
+                            }}
+                        >
+                            Continue with Google
+                        </Button>
                         {error && <p className="text-sm text-black">{error}</p>}
                     </div>
                 </CardContent>
                 <CardFooter>
-                    <Button className='w-full' disabled={loading} onClick={async () => {
+                    <Button className='w-full' disabled={loading || checkingSession} onClick={async () => {
                         const result = await checkLogin(username, password);
                         if (result.ok) {
                             // router.push('/menu');
