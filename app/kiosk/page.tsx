@@ -31,6 +31,53 @@ export default function Home() {
   const [tab, setTab] = useState<string>("all");
   const [search, setSearch] = useState<string>("");
 
+  // Accessibility: text size (root font-size in px). Persist in localStorage under 'textSize'
+  const [textSize, setTextSize] = useState<number | null>(null);
+
+  const applyTextSize = (px: number) => {
+    try {
+      // set a CSS variable so we can target only kiosk text via .kiosk-text
+      document.documentElement.style.setProperty(
+        "--kiosk-text-size",
+        `${px}px`
+      );
+      window.localStorage.setItem("textSize", String(px));
+      setTextSize(px);
+    } catch (e) {
+      // ignore
+    }
+  };
+
+  const increaseText = () => applyTextSize(Math.min((textSize ?? 16) + 2, 24));
+  const decreaseText = () => applyTextSize(Math.max((textSize ?? 16) - 2, 16));
+  const resetText = () => applyTextSize(16);
+
+  useEffect(() => {
+    // initialize from localStorage or computed root size
+    try {
+      const stored = window.localStorage.getItem("textSize");
+      if (stored) {
+        const n = Number(stored);
+        if (!isNaN(n)) {
+          document.documentElement.style.setProperty(
+            "--kiosk-text-size",
+            `${n}px`
+          );
+          setTextSize(n);
+          return;
+        }
+      }
+      // If nothing stored, default to 16px for the kiosk text variable
+      document.documentElement.style.setProperty("--kiosk-text-size", `16px`);
+      setTextSize(16);
+    } catch (e) {
+      // ignore
+    }
+
+    // Initialization complete; text size variable has been set from storage (if any).
+    return;
+  }, []);
+
   useEffect(() => {
     try {
       if (typeof window !== "undefined") {
@@ -118,7 +165,7 @@ export default function Home() {
   }
 
   return (
-    <div className="flex flex-col w-full h-screen overflow-hidden relative">
+    <div className="kiosk-text flex flex-col w-full h-screen overflow-hidden relative">
       <div className="fixed inset-0 -z-20 bg-white/50">
         <Iridescence
           color={[1.0, 0.7, 0.7]}
@@ -129,11 +176,38 @@ export default function Home() {
       </div>
 
       <div className="flex-none p-6 z-10">
-        <Link href="/">
-          <Button variant="outline" className="shadow-md">
-            Home
-          </Button>
-        </Link>
+        <div className="flex items-center gap-3">
+          <Link href="/">
+            <Button variant="outline" className="shadow-md">
+              Home
+            </Button>
+          </Link>
+
+          <div className="flex items-center gap-2">
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={decreaseText}
+              aria-label="Decrease text size"
+            >
+              A-
+            </Button>
+            <Button size="sm" onClick={resetText} aria-label="Reset text size">
+              A
+            </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={increaseText}
+              aria-label="Increase text size"
+            >
+              A+
+            </Button>
+            <div className="text-sm text-muted-foreground ms-2">
+              {textSize ? `${textSize}px` : ""}
+            </div>
+          </div>
+        </div>
       </div>
 
       <Tabs
