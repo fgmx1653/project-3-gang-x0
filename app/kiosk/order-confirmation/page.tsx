@@ -1,13 +1,13 @@
 import OrderConfirmationClient from '@/app/kiosk/order-confirmation/OrderConfirmationClient';
 
 type Props = {
-  searchParams?: { [key: string]: string | string[] | undefined };
+  searchParams?: Promise<{ [key: string]: string | string[] | undefined }>;
 };
 
 // Server component: receives searchParams at render time and passes the encoded data to the client.
-export default function Page({ searchParams }: Props) {
-  const raw = Array.isArray(searchParams?.data) ? searchParams?.data[0] : searchParams?.data;
-  // pass through the encoded string (or null) to the client component
+export default async function Page({ searchParams }: Props) {
+  const params = searchParams ? await searchParams : {};
+  const raw = Array.isArray(params?.data) ? params.data[0] : params.data;
   const encodedData = raw ?? null;
 
   return <OrderConfirmationClient encodedData={encodedData} />;

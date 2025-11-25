@@ -4,6 +4,7 @@ import { Pacifico } from "next/font/google";
 import { Delius } from "next/font/google";
 import "./globals.css";
 import AccessibilityMenu from "@/components/AccessibilityMenu";
+import { LanguageProvider } from "@/lib/LanguageContext";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -42,8 +43,10 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} ${pacifico.variable} ${delius.variable} antialiased`}
       >
-        {children}
-        <AccessibilityMenu />
+        <LanguageProvider>
+          {children}
+          <AccessibilityMenu />
+        </LanguageProvider>
       </body>
     </html>
   );

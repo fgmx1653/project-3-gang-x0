@@ -6,7 +6,8 @@ import Link from "next/link";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { X, Edit } from "lucide-react";
-import { getStoredUser, logoutClient } from "@/lib/clientAuth";
+import { getStoredUser } from '@/lib/clientAuth';
+import LogoutButton from '@/components/LogoutButton';
 
 import {
     Card,
@@ -139,15 +140,7 @@ export default function Home() {
                 <Link href="/">
                     <Button variant="outline">Home</Button>
                 </Link>
-                <Button
-                    variant="outline"
-                    onClick={() => {
-                        logoutClient();
-                        router.push("/login");
-                    }}
-                >
-                    Log out
-                </Button>
+                <LogoutButton variant="outline" redirect="/login" />
             </div>
 
             <div className="flex-1 flex flex-row gap-6 p-6 overflow-hidden">

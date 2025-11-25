@@ -5,10 +5,62 @@ import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 
+import { translateText } from '@/lib/translate';
+import { useLanguage } from "@/lib/LanguageContext";
+
 export default function CheckoutPage() {
   const router = useRouter();
   const [cart, setCart] = useState<any[]>([]);
+  const [translatedCart, setTranslatedCart] = useState<any[]>([]);
   const [paymentType, setPaymentType] = useState<string | null>(null);
+
+  const { lang, setLang } = useLanguage();
+
+  const [bobaLabel, setBobaLabel] = useState('Boba');
+    const [iceLabel, setIceLabel] = useState('Ice');
+    const [sugarLabel, setSugarLabel] = useState('Sugar');
+    const [emptyCartLabel, setEmptyCartLabel] = useState('Your cart is empty');
+    const [checkoutLabel, setCheckoutLabel] = useState('Checkout');
+    const [backToKioskLabel, setBackToKioskLabel] = useState('Back to Kiosk');
+    const [subtotalLabel, setSubtotalLabel] = useState('Subtotal');
+    const [totalLabel, setTotalLabel] = useState('Total');
+    const [removeLabel, setRemoveLabel] = useState('Remove');
+    const [taxLabel, setTaxLabel] = useState('Tax');
+    const [paymentMethodAlertLabel, setPaymentMethodAlertLabel] = useState('Please select a payment method before completing checkout.');
+    const [confirmationAlertLabel, setConfirmationAlertLabel] = useState('Are you sure you want to place this order?\n\nTotal:');
+    const [failedOrderAlertLabel, setFailedOrderAlertLabel] = useState("Failed to create order. Please try again.");
+    const [payWithCardLabel, setPayWithCardLabel] = useState('Pay with Card');
+    const [payWithCashLabel, setPayWithCashLabel] = useState('Pay with Cash');
+    const [payWithMobileLabel, setPayWithMobileLabel] = useState('Pay with Mobile');
+    const [completeCheckoutLabel, setCompleteCheckoutLabel] = useState('Complete Checkout');
+
+    const handleLangChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+      setLang(e.target.value);
+    };
+
+    useEffect(() => {
+      async function translateLabels() {
+          setBobaLabel(await translateText('Boba', lang));
+          setIceLabel(await translateText('Ice', lang));
+          setSugarLabel(await translateText('Sugar', lang));
+          setEmptyCartLabel(await translateText('Your cart is empty', lang));
+          setCheckoutLabel(await translateText('Checkout', lang));
+          setBackToKioskLabel(await translateText('Back to Kiosk', lang));
+          setSubtotalLabel(await translateText('Subtotal', lang));
+          setTotalLabel(await translateText('Total', lang));
+          setRemoveLabel(await translateText('Remove', lang));
+          setTaxLabel(await translateText('Tax', lang));
+          setPaymentMethodAlertLabel(await translateText('Please select a payment method before completing checkout.', lang));
+          setConfirmationAlertLabel(await translateText('Are you sure you want to place this order?\n\nTotal:', lang));
+          setFailedOrderAlertLabel(await translateText("Failed to create order. Please try again.", lang));
+          setPayWithCardLabel(await translateText('Pay with Card', lang));
+          setPayWithCashLabel(await translateText('Pay with Cash', lang));
+          setPayWithMobileLabel(await translateText('Pay with Mobile', lang));
+          setCompleteCheckoutLabel(await translateText('Complete Checkout', lang));
+
+      }
+      translateLabels();
+    }, [lang]);
 
   useEffect(() => {
     try {
@@ -53,12 +105,12 @@ export default function CheckoutPage() {
   async function handleCompleteCheckout() {
     // Check if payment type is selected
     if (!paymentType) {
-      alert("Please select a payment method before completing checkout.");
+      alert(paymentMethodAlertLabel);
       return;
     }
 
     const confirmed = window.confirm(
-      `Are you sure you want to place this order?\n\nTotal: $${grandTotal.toFixed(
+      `${confirmationAlertLabel} $${grandTotal.toFixed(
         2
       )}`
     );
@@ -113,25 +165,43 @@ export default function CheckoutPage() {
         router.push('/kiosk/order-confirmation');
       } catch (error) {
         console.error("Error creating order:", error);
-        alert("Failed to create order. Please try again.");
+        alert(failedOrderAlertLabel);
       }
     }
   }
+
+      useEffect(() => {
+        async function translateCartNames() {
+            if (!cart.length) {
+                setTranslatedCart([]);
+                return;
+            }
+            const translated = await Promise.all(
+                cart.map(async item => ({
+                    ...item,
+                    name: await translateText(item.name, lang)
+                }))
+            );
+            setTranslatedCart(translated);
+        }
+        translateCartNames();
+    }, [cart, lang]);
+
 
   return (
     <div className="min-h-screen p-8 bg-background text-foreground">
       <div className="max-w-4xl mx-auto bg-white/70 backdrop-blur-md rounded-lg p-6">
         <div className="flex items-center justify-between mb-6">
-          <h1 className="text-2xl font-bold">Checkout</h1>
+          <h1 className="text-2xl font-bold">{checkoutLabel}</h1>
           <Link href="/kiosk">
-            <Button variant="outline">Back to Kiosk</Button>
+            <Button variant="outline">{backToKioskLabel}</Button>
           </Link>
         </div>
 
         <div className="space-y-4 mb-6">
           {cart.length === 0 ? (
             <div className="text-center text-muted-foreground">
-              Your cart is empty
+              {emptyCartLabel}
             </div>
           ) : (
             cart.map((item, idx) => (
@@ -140,14 +210,14 @@ export default function CheckoutPage() {
                 className="flex justify-between items-center border-b py-3"
               >
                 <div>
-                  <div className="font-medium">{item.name}</div>
+                  <div className="font-medium">{translatedCart[idx]?.name || item.name}</div>
                   <div className="text-sm text-gray-500">${item.price}</div>
                   <div className="text-sm text-gray-500">
-                    {item.boba}% Boba
+                    {item.boba}% {bobaLabel}
                     <br />
-                    {item.ice}% Ice
+                    {item.ice}% {iceLabel}
                     <br />
-                    {item.sugar}% Sugar
+                    {item.sugar}% {sugarLabel}
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
@@ -156,7 +226,7 @@ export default function CheckoutPage() {
                     size="sm"
                     onClick={() => removeAt(idx)}
                   >
-                    Remove
+                    {removeLabel}
                   </Button>
                 </div>
               </div>
@@ -166,17 +236,17 @@ export default function CheckoutPage() {
 
         <div className="border-t pt-4 space-y-2 mb-6">
           <div className="flex justify-between text-lg">
-            <span className="text-gray-600">Subtotal</span>
+            <span className="text-gray-600">{subtotalLabel}</span>
             <span>${subtotal.toFixed(2)}</span>
           </div>
           <div className="flex justify-between text-lg">
             <span className="text-gray-600">
-              Tax ({(TAX_RATE * 100).toFixed(2)}%)
+              {taxLabel} ({(TAX_RATE * 100).toFixed(2)}%)
             </span>
             <span>${tax.toFixed(2)}</span>
           </div>
           <div className="flex justify-between text-xl font-bold mt-2 pt-2 border-t">
-            <span>Total</span>
+            <span>{totalLabel}</span>
             <span>${grandTotal.toFixed(2)}</span>
           </div>
         </div>
@@ -189,7 +259,7 @@ export default function CheckoutPage() {
               paymentType !== null && paymentType !== "card" ? "opacity-50" : ""
             }
           >
-            Pay with Card
+            {payWithCardLabel}
           </Button>
           <Button
             variant={paymentType === "cash" ? "default" : "outline"}
@@ -198,7 +268,7 @@ export default function CheckoutPage() {
               paymentType !== null && paymentType !== "cash" ? "opacity-50" : ""
             }
           >
-            Pay with Cash
+            {payWithCashLabel}
           </Button>
           <Button
             variant={paymentType === "mobile" ? "default" : "outline"}
@@ -209,7 +279,7 @@ export default function CheckoutPage() {
                 : ""
             }
           >
-            Pay with Mobile
+            {payWithMobileLabel}
           </Button>
         </div>
 
@@ -219,7 +289,7 @@ export default function CheckoutPage() {
             onClick={handleCompleteCheckout}
             disabled={cart.length === 0}
           >
-            Complete Checkout
+            {completeCheckoutLabel}
           </Button>
         </div>
       </div>

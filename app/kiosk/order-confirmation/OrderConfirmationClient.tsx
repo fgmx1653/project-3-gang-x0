@@ -4,12 +4,58 @@ import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 
+import { translateText } from '@/lib/translate';
+import { useLanguage } from "@/lib/LanguageContext";
+
 type Props = {
   encodedData?: string | null;
 };
 
 export default function OrderConfirmationClient({ encodedData }: Props) {
   const [orderData, setOrderData] = useState<any>(null);
+
+  const { lang, setLang } = useLanguage();
+  const [translatedOrderData, setTranslatedOrderData] = useState<any>(null);
+  const [missingOrderDataLabel, setMissingOrderDataLabel] = useState('No order data found.');
+  const [backToKioskLabel, setBackToKioskLabel] = useState('Back to Kiosk');
+  const [orderPlacedLabel, setOrderPlacedLabel] = useState('Order Placed!');
+  const [thankYouLabel, setThankYouLabel] = useState('Thank you for your order.');
+  const [orderDetailsLabel, setOrderDetailsLabel] = useState('Order Details');
+  const [orderNumberLabel, setOrderNumberLabel] = useState('Order Number');
+  const [dateLabel, setDateLabel] = useState('Date');
+  const [paymentMethodLabel, setPaymentMethodLabel] = useState('Payment Method');
+  const [paymentTypeLabel, setPaymentTypeLabel] = useState('');
+  const [itemsLabel, setItemsLabel] = useState('Items');
+  const [subtotalLabel, setSubtotalLabel] = useState('Subtotal');
+    const [totalLabel, setTotalLabel] = useState('Total');
+    const [taxLabel, setTaxLabel] = useState('Tax');
+
+  const handleLangChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    setLang(e.target.value);
+  };
+
+  useEffect(() => {
+      async function translateLabels() {
+        setMissingOrderDataLabel(await translateText('No order data found.', lang));
+        setBackToKioskLabel(await translateText('Back to Kiosk', lang));
+        setOrderPlacedLabel(await translateText('Order Placed!', lang));
+        setThankYouLabel(await translateText('Thank you for your order.', lang));
+        setOrderDetailsLabel(await translateText('Order Details', lang));
+        setOrderNumberLabel(await translateText('Order Number', lang));
+        setDateLabel(await translateText('Date', lang));
+        setPaymentMethodLabel(await translateText('Payment Method', lang));
+        if (orderData?.paymentType) {
+          setPaymentTypeLabel(await translateText(orderData.paymentType, lang));
+        } else {
+          setPaymentTypeLabel(await translateText('Not specified', lang));
+        }
+        setItemsLabel(await translateText('Items', lang));
+        setSubtotalLabel(await translateText('Subtotal', lang));
+        setTotalLabel(await translateText('Total', lang));
+        setTaxLabel(await translateText('Tax', lang));
+      }
+      translateLabels();
+    }, [lang]);
 
   useEffect(() => {
     try {
@@ -37,13 +83,32 @@ export default function OrderConfirmationClient({ encodedData }: Props) {
     }
   }, [encodedData]);
 
+  useEffect(() => {
+    async function translateOrderDetails() {
+      if (!Array.isArray(orderData?.items) || orderData.items.length === 0) {
+        setTranslatedOrderData([]);
+        return;
+      }
+      const translated = await Promise.all(
+        orderData.items.map(async (item: any) => ({
+          ...item,
+          name: await translateText(item?.name, lang)
+        }))
+      );
+      setTranslatedOrderData(translated);
+    }
+    translateOrderDetails();
+  }, [orderData, lang]);
+
+
+
   if (!orderData) {
     return (
       <div className="min-h-screen p-8 bg-background text-foreground flex items-center justify-center">
         <div className="text-center">
-          <p className="text-xl mb-4">No order data found</p>
+          <p className="text-xl mb-4">{missingOrderDataLabel}</p>
           <Link href="/kiosk">
-            <Button>Return to Kiosk</Button>
+            <Button>{backToKioskLabel}</Button>
           </Link>
         </div>
       </div>
@@ -63,35 +128,39 @@ export default function OrderConfirmationClient({ encodedData }: Props) {
       <div className="max-w-2xl mx-auto bg-white/70 backdrop-blur-md rounded-lg p-8">
         <div className="text-center mb-8">
           <div className="text-6xl mb-4">✓</div>
-          <h1 className="text-3xl font-bold text-green-600 mb-2">Order Placed!</h1>
-          <p className="text-gray-600">Thank you for your order</p>
+          <h1 className="text-3xl font-bold text-green-600 mb-2">{orderPlacedLabel}</h1>
+          <p className="text-gray-600">{thankYouLabel}</p>
         </div>
 
         <div className="border-t border-b py-6 mb-6">
-          <h2 className="text-xl font-semibold mb-4">Order Details</h2>
+          <h2 className="text-xl font-semibold mb-4">{orderDetailsLabel}</h2>
           <div className="space-y-2 text-sm">
             <div className="flex justify-between">
-              <span className="text-gray-600">Order Number:</span>
+              <span className="text-gray-600">{orderNumberLabel}:</span>
               <span className="font-medium">#{orderData.orderId}</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-gray-600">Date:</span>
+              <span className="text-gray-600">{dateLabel}:</span>
               <span className="font-medium">{currentDate}</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-gray-600">Payment Method:</span>
-              <span className="font-medium capitalize">{orderData.paymentType || "Not specified"}</span>
+              <span className="text-gray-600">{paymentMethodLabel}:</span>
+              <span className="font-medium capitalize">{paymentTypeLabel}</span>
             </div>
           </div>
         </div>
 
         <div className="mb-6">
-          <h2 className="text-xl font-semibold mb-4">Items</h2>
+          <h2 className="text-xl font-semibold mb-4">{itemsLabel}</h2>
           <div className="space-y-3">
             {orderData.items?.map((item: any, idx: number) => (
               <div key={idx} className="flex justify-between items-center py-2 border-b">
                 <div>
-                  <div className="font-medium">{item.name}</div>
+                  <div className="font-medium">
+                    {Array.isArray(translatedOrderData) && translatedOrderData[idx]?.name
+                      ? translatedOrderData[idx].name
+                      : item.name}
+                  </div>
                 </div>
                 <div className="font-medium">${Number(item.price).toFixed(2)}</div>
               </div>
@@ -101,22 +170,22 @@ export default function OrderConfirmationClient({ encodedData }: Props) {
 
         <div className="border-t pt-4 space-y-2 mb-8">
           <div className="flex justify-between text-lg">
-            <span className="text-gray-600">Subtotal</span>
+            <span className="text-gray-600">{subtotalLabel}</span>
             <span>${orderData.subtotal?.toFixed(2)}</span>
           </div>
           <div className="flex justify-between text-lg">
-            <span className="text-gray-600">Tax (8.50%)</span>
+            <span className="text-gray-600">{taxLabel} (8.50%)</span>
             <span>${orderData.tax?.toFixed(2)}</span>
           </div>
           <div className="flex justify-between text-2xl font-bold mt-2 pt-2 border-t">
-            <span>Total</span>
+            <span>{totalLabel}</span>
             <span>${orderData.total?.toFixed(2)}</span>
           </div>
         </div>
 
         <div className="flex justify-center">
           <Link href="/kiosk">
-            <Button className="w-full sm:w-auto">Return to Kiosk</Button>
+            <Button className="w-full sm:w-auto">{backToKioskLabel}</Button>
           </Link>
         </div>
       </div>

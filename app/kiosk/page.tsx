@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import Iridescence from "@/components/Iridescence";
 import Link from "next/link";
 import { useState, useEffect } from "react";
+import { useLanguage } from "@/lib/LanguageContext";
 import { useRouter } from "next/navigation";
 import { X } from "lucide-react";
 
@@ -13,6 +14,8 @@ import Image from "next/image";
 
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+
+import { translateText } from '@/lib/translate';
 
 export default function Home() {
     const [menuItems, setMenuItems] = useState<any[]>([]);
@@ -34,8 +37,37 @@ export default function Home() {
     const [tab, setTab] = useState<string>("all");
     const [search, setSearch] = useState<string>("");
 
+
+    // translating UI elements
+    const [translatedMenuItems, setTranslatedMenuItems] = useState<any[]>([]);
+    const { lang, setLang } = useLanguage();
+    const [homeLabel, setHomeLabel] = useState('Home');
+    const [allDrinksLabel, setAllDrinksLabel] = useState('All Drinks');
+    const [milkTeaLabel, setMilkTeaLabel] = useState('Milk Tea');
+    const [greenTeaLabel, setGreenTeaLabel] = useState('Green Tea');
+    const [blackTeaLabel, setBlackTeaLabel] = useState('Black Tea');
+    const [seasonalLabel, setSeasonalLabel] = useState('Seasonal');
+    const [searchPlaceholderLabel, setSearchPlaceholderLabel] = useState('Search items...');
+    const [subtotalLabel, setSubtotalLabel] = useState('Subtotal');
+    const [totalLabel, setTotalLabel] = useState('Total');
+    const [viewCartLabel, setViewCartLabel] = useState('View Cart');
+    const [yourCartLabel, setYourCartLabel] = useState('Your Cart');
+    const [removeLabel, setRemoveLabel] = useState('Remove');
+    const [taxLabel, setTaxLabel] = useState('Tax');
+    const [proceedToCheckoutLabel, setProceedToCheckoutLabel] = useState('Proceed to Checkout');
+    const [bobaLabel, setBobaLabel] = useState('Boba');
+    const [iceLabel, setIceLabel] = useState('Ice');
+    const [sugarLabel, setSugarLabel] = useState('Sugar');
+    const [emptyCartLabel, setEmptyCartLabel] = useState('Your cart is empty');
+
+
     // Accessibility: text size (root font-size in px). Persist in localStorage under 'textSize'
     const [textSize, setTextSize] = useState<number | null>(null);
+
+    // When user changes language, update context
+    const handleLangChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+        setLang(e.target.value);
+    };
 
     const applyTextSize = (px: number) => {
         try {
@@ -162,6 +194,7 @@ export default function Home() {
         getMenuItems();
     }, []);
 
+    
     function addToCart(item: any) {
         const withMods = { ...item, boba: 100, ice: 100, sugar: 100 };
         setCart((prev) => [...prev, withMods]);
@@ -176,6 +209,54 @@ export default function Home() {
             .join(" ");
     }
 
+    // translation for UI labels
+    useEffect(() => {
+      async function translateLabels() {
+          setHomeLabel(await translateText('Home', lang));
+          setAllDrinksLabel(await translateText('All Drinks', lang));
+          setMilkTeaLabel(await translateText('Milk Tea', lang));
+          setGreenTeaLabel(await translateText('Green Tea', lang));
+          setBlackTeaLabel(await translateText('Black Tea', lang));
+          setSeasonalLabel(await translateText('Seasonal', lang));
+          setSearchPlaceholderLabel(await translateText('Search items...', lang));
+          setSubtotalLabel(await translateText('Subtotal', lang));
+        setTotalLabel(await translateText('Total', lang));
+          setViewCartLabel(await translateText('View Cart', lang));
+          setYourCartLabel(await translateText('Your Cart', lang));
+          setRemoveLabel(await translateText('Remove', lang));
+        setTaxLabel(await translateText('Tax', lang));
+        setProceedToCheckoutLabel(await translateText('Proceed to Checkout', lang));
+        setBobaLabel(await translateText('Boba', lang));
+        setIceLabel(await translateText('Ice', lang));
+        setSugarLabel(await translateText('Sugar', lang));
+        setEmptyCartLabel(await translateText('Your cart is empty', lang));
+
+      }
+      translateLabels();
+    }, [lang]);
+
+
+    // translation for menu item names
+    useEffect(() => {
+        async function translateMenuNames() {
+            if (!menuItems.length) {
+                setTranslatedMenuItems([]);
+                return;
+            }
+            const translated = await Promise.all(
+                menuItems.map(async item => ({
+                    ...item,
+                    name: await translateText(item.name, lang)
+                }))
+            );
+            setTranslatedMenuItems(translated);
+        }
+        translateMenuNames();
+    }, [menuItems, lang]);
+
+
+
+
     return (
         <div className="kiosk-text flex flex-col w-full h-screen overflow-hidden relative">
             <div className="fixed inset-0 -z-20 bg-white/50">
@@ -188,42 +269,11 @@ export default function Home() {
             </div>
 
             <div className="flex-none p-6 z-10">
-                <div className="flex items-center gap-3">
-                    <Link href="/">
+                <Link href="/">
                         <Button variant="outline" className="shadow-md">
-                            Home
+                            {homeLabel}
                         </Button>
                     </Link>
-
-                    <div className="flex items-center gap-2">
-                        <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={decreaseText}
-                            aria-label="Decrease text size"
-                        >
-                            A-
-                        </Button>
-                        <Button
-                            size="sm"
-                            onClick={resetText}
-                            aria-label="Reset text size"
-                        >
-                            A
-                        </Button>
-                        <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={increaseText}
-                            aria-label="Increase text size"
-                        >
-                            A+
-                        </Button>
-                        <div className="text-sm text-muted-foreground ms-2">
-                            {textSize ? `${textSize}px` : ""}
-                        </div>
-                    </div>
-                </div>
             </div>
 
             <Tabs
@@ -242,12 +292,13 @@ export default function Home() {
                                     value={cat}
                                 >
                                     {cat === "all"
-                                        ? "All Drinks"
+                                        ? allDrinksLabel
                                         : cat
-                                              .replace("milk", " Milk")
-                                              .replace("green", " Green")
-                                              .replace("black", " Black") +
-                                          (cat !== "seasonal" ? " Tea" : "")}
+                                              .replace("milk", milkTeaLabel)
+                                              .replace("green", greenTeaLabel)
+                                              .replace("black", blackTeaLabel)
+                                              .replace("seasonal", seasonalLabel)
+                                    }
                                 </TabsTrigger>
                             )
                         )}
@@ -264,7 +315,7 @@ export default function Home() {
                                 }
                             }}
                             className="w-full max-w-xs bg-white/50 border-black/10 focus:bg-white transition-colors"
-                            placeholder="Search items..."
+                            placeholder={searchPlaceholderLabel}
                         />
                     </div>
                 </div>
@@ -279,7 +330,7 @@ export default function Home() {
                                     className="mt-0 h-full"
                                 >
                                     <div className="grid grid-cols-[repeat(auto-fill,minmax(220px,1fr))] gap-6 pb-6">
-                                        {menuItems
+                                        {translatedMenuItems
                                             .filter((item) => {
                                                 const matchesSearch = item.name
                                                     .toLowerCase()
@@ -296,18 +347,18 @@ export default function Home() {
                                                     .toLowerCase()
                                                     .includes(catValue);
                                             })
-                                            .map((item) => (
+                                            .map((item, idx) => (
                                                 <Card
                                                     key={item.id}
                                                     onClick={() =>
-                                                        addToCart(item)
+                                                        addToCart(menuItems[idx])
                                                     }
                                                     className="bg-white/80 backdrop-blur-md hover:scale-105 hover:shadow-xl hover:bg-white transition-all duration-200 cursor-pointer border-2 border-transparent hover:border-primary/20 flex flex-col aspect-[4/5]"
                                                 >
                                                     <CardContent className="flex-1 flex flex-col justify-between items-center p-4">
                                                         <div className="relative w-full flex-1 min-h-[120px] mb-4">
                                                             <Image
-                                                                src={`/img/${item.name
+                                                                src={`/img/${menuItems[idx].name
                                                                     .toLowerCase()
                                                                     .replace(
                                                                         /\s+/g,
@@ -324,7 +375,7 @@ export default function Home() {
                                                         </div>
                                                         <div className="text-center w-full space-y-1">
                                                             <h1 className="font-deco font-bold text-lg leading-tight line-clamp-2 h-12 flex items-center justify-center">
-                                                                {item.name}
+                                                                {translatedMenuItems[idx].name}
                                                             </h1>
                                                             <h1 className="font-deco text-xl text-primary font-semibold">
                                                                 ${item.price}
@@ -345,7 +396,7 @@ export default function Home() {
                 <div className="max-w-7xl mx-auto flex items-center justify-between gap-8">
                     <div className="flex flex-col">
                         <span className="text-sm text-muted-foreground uppercase tracking-wider font-bold">
-                            Total
+                            {subtotalLabel}
                         </span>
                         <span className="text-4xl font-bold font-deco">
                             ${subtotal.toFixed(2)}
@@ -357,7 +408,7 @@ export default function Home() {
                         className="text-xl px-10 py-8 rounded-full shadow-lg animate-in slide-in-from-right-10"
                         onClick={() => setCartOpen(true)}
                     >
-                        View Cart ({cart.length})
+                        {viewCartLabel} ({cart.length})
                     </Button>
                 </div>
             </div>
@@ -372,7 +423,7 @@ export default function Home() {
                     <div className="relative bg-white w-full max-w-lg h-[85vh] sm:h-[80vh] sm:rounded-2xl shadow-2xl flex flex-col animate-in slide-in-from-bottom-10">
                         <div className="flex items-center justify-between p-6 border-b">
                             <h2 className="text-2xl font-bold font-deco">
-                                Your Cart
+                                {yourCartLabel}
                             </h2>
                             <Button
                                 onClick={() => setCartOpen(false)}
@@ -388,13 +439,16 @@ export default function Home() {
                             {cart.length === 0 ? (
                                 <div className="h-full flex flex-col items-center justify-center text-muted-foreground opacity-50">
                                     <span className="text-6xl mb-4">🧋</span>
-                                    <p>Your cart is empty</p>
+                                    <p>{emptyCartLabel}</p>
                                 </div>
                             ) : (
                                 cart.map((item: any, idx) => {
                                     const boba = item?.boba ?? 100;
                                     const ice = item?.ice ?? 100;
                                     const sugar = item?.sugar ?? 100;
+                                    const currItemID = item?.id;
+                                    const translatedItemWithID = translatedMenuItems.find(it => it.id === currItemID);
+                                    const itemName = translatedItemWithID ? translatedItemWithID.name : item.name;
                                     return (
                                         <div
                                             key={idx}
@@ -403,7 +457,7 @@ export default function Home() {
                                             <div className="flex justify-between items-start mb-4">
                                                 <div>
                                                     <span className="font-bold text-lg block">
-                                                        {item.name}
+                                                        {itemName}
                                                     </span>
                                                     <span className="text-primary font-medium">
                                                         ${item.price}
@@ -422,14 +476,14 @@ export default function Home() {
                                                         )
                                                     }
                                                 >
-                                                    Remove
+                                                    {removeLabel}
                                                 </Button>
                                             </div>
 
                                             <div className="grid grid-cols-1 gap-3 bg-gray-50 p-3 rounded-lg">
                                                 <div className="flex items-center justify-between">
                                                     <span className="text-xs font-bold text-gray-500 uppercase w-12">
-                                                        Boba
+                                                        {bobaLabel}
                                                     </span>
                                                     <div className="flex gap-1 flex-1 justify-end">
                                                         {[0, 50, 100].map(
@@ -474,7 +528,7 @@ export default function Home() {
 
                                                 <div className="flex items-center justify-between">
                                                     <span className="text-xs font-bold text-gray-500 uppercase w-12">
-                                                        Ice
+                                                        {iceLabel}
                                                     </span>
                                                     <div className="flex gap-1 flex-1 justify-end">
                                                         {[0, 50, 100].map(
@@ -519,7 +573,7 @@ export default function Home() {
 
                                                 <div className="flex items-center justify-between">
                                                     <span className="text-xs font-bold text-gray-500 uppercase w-12">
-                                                        Sugar
+                                                        {sugarLabel}
                                                     </span>
                                                     <div className="flex gap-1 flex-1 justify-end">
                                                         {[0, 50, 100].map(
@@ -571,15 +625,15 @@ export default function Home() {
                         <div className="p-6 bg-gray-50 border-t">
                             <div className="space-y-2 mb-6">
                                 <div className="flex justify-between text-gray-600">
-                                    <span>Subtotal</span>
+                                    <span>{subtotalLabel}</span>
                                     <span>${subtotal.toFixed(2)}</span>
                                 </div>
                                 <div className="flex justify-between text-gray-600">
-                                    <span>Tax (8.5%)</span>
+                                    <span>{taxLabel} (8.5%)</span>
                                     <span>${tax.toFixed(2)}</span>
                                 </div>
                                 <div className="flex justify-between text-2xl font-bold pt-2 border-t border-gray-200">
-                                    <span>Total</span>
+                                    <span>{totalLabel}</span>
                                     <span>${grandTotal.toFixed(2)}</span>
                                 </div>
                             </div>
@@ -598,7 +652,7 @@ export default function Home() {
                                 className="w-full text-lg py-6"
                                 disabled={cart.length === 0}
                             >
-                                Proceed to Checkout
+                                {proceedToCheckoutLabel}
                             </Button>
                         </div>
                     </div>
