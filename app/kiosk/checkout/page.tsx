@@ -13,6 +13,7 @@ export default function CheckoutPage() {
   const [cart, setCart] = useState<any[]>([]);
   const [translatedCart, setTranslatedCart] = useState<any[]>([]);
   const [paymentType, setPaymentType] = useState<string | null>(null);
+  const [specialInstructions, setSpecialInstructions] = useState<string>("");
 
   const { lang, setLang } = useLanguage();
 
@@ -33,6 +34,8 @@ export default function CheckoutPage() {
     const [payWithCashLabel, setPayWithCashLabel] = useState('Pay with Cash');
     const [payWithMobileLabel, setPayWithMobileLabel] = useState('Pay with Mobile');
     const [completeCheckoutLabel, setCompleteCheckoutLabel] = useState('Complete Checkout');
+    const [specialInstructionsLabel, setSpecialInstructionsLabel] = useState('Special Instructions (Optional)');
+    const [instructionsPlaceholderLabel, setInstructionsPlaceholderLabel] = useState('Add any special requests or dietary notes...');
 
     const handleLangChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
       setLang(e.target.value);
@@ -57,6 +60,8 @@ export default function CheckoutPage() {
           setPayWithCashLabel(await translateText('Pay with Cash', lang));
           setPayWithMobileLabel(await translateText('Pay with Mobile', lang));
           setCompleteCheckoutLabel(await translateText('Complete Checkout', lang));
+          setSpecialInstructionsLabel(await translateText('Special Instructions (Optional)', lang));
+          setInstructionsPlaceholderLabel(await translateText('Add any special requests or dietary notes...', lang));
 
       }
       translateLabels();
@@ -125,6 +130,7 @@ export default function CheckoutPage() {
           },
           body: JSON.stringify({
             items: cart,
+            specialInstructions: specialInstructions.trim() || null,
             // No employeeId for customer kiosk orders (will be NULL)
           }),
         });
@@ -143,6 +149,7 @@ export default function CheckoutPage() {
           total: grandTotal,
           paymentType: paymentType,
           orderId: result.orderId,
+          specialInstructions: specialInstructions.trim() || null,
         };
 
         // Clear the cart
@@ -248,6 +255,23 @@ export default function CheckoutPage() {
           <div className="flex justify-between text-xl font-bold mt-2 pt-2 border-t">
             <span>{totalLabel}</span>
             <span>${grandTotal.toFixed(2)}</span>
+          </div>
+        </div>
+
+        <div className="mb-6">
+          <label className="block text-sm font-medium mb-2">
+            {specialInstructionsLabel}
+          </label>
+          <textarea
+            className="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-primary resize-none"
+            rows={3}
+            placeholder={instructionsPlaceholderLabel}
+            value={specialInstructions}
+            onChange={(e) => setSpecialInstructions(e.target.value)}
+            maxLength={500}
+          />
+          <div className="text-xs text-gray-500 mt-1 text-right">
+            {specialInstructions.length}/500
           </div>
         </div>
 

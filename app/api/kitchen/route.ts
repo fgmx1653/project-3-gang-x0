@@ -28,6 +28,7 @@ export async function GET(req: Request) {
         MIN(o.order_time) as order_time,
         MIN(o.employee) as employee,
         COALESCE(os.status, 'pending') as status,
+        os.instructions,
         json_agg(
           json_build_object(
             'menu_item_id', o.menu_item_id,
@@ -42,7 +43,7 @@ export async function GET(req: Request) {
       LEFT JOIN menu_items m ON o.menu_item_id = m.id
       LEFT JOIN order_status os ON o.order_id = os.order_id
       WHERE o.order_date = $1
-      GROUP BY o.order_id, os.status
+      GROUP BY o.order_id, os.status, os.instructions
       ORDER BY o.order_id DESC`,
             [todayDate]
         );

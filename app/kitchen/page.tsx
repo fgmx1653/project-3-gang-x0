@@ -24,6 +24,7 @@ interface Order {
     order_time: string;
     employee: number | null;
     status: string;
+    instructions: string | null;
     items: OrderItem[];
 }
 
@@ -218,6 +219,16 @@ export default function KitchenPage() {
                                             </div>
                                         ))}
                                     </div>
+                                    {order.instructions && (
+                                        <div className="mb-6 p-3 bg-yellow-50 border-2 border-yellow-400 rounded-lg max-h-32 overflow-y-auto">
+                                            <div className="text-sm font-semibold text-yellow-900 mb-1">
+                                                Special Instructions:
+                                            </div>
+                                            <div className="text-sm text-yellow-800 break-words">
+                                                {order.instructions}
+                                            </div>
+                                        </div>
+                                    )}
                                     <Button
                                         onClick={() =>
                                             markAsCompleted(order.order_id)
@@ -286,6 +297,16 @@ export default function KitchenPage() {
                                                 </div>
                                             ))}
                                         </div>
+                                        {order.instructions && (
+                                            <div className="mb-4 p-2 bg-yellow-50 border border-yellow-300 rounded text-xs">
+                                                <div className="font-semibold text-yellow-900">
+                                                    Instructions:
+                                                </div>
+                                                <div className="text-yellow-800 line-through break-words">
+                                                    {order.instructions}
+                                                </div>
+                                            </div>
+                                        )}
                                         <div className="flex gap-2">
                                             <Button
                                                 onClick={() =>
