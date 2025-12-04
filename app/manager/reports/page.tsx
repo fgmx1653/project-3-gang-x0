@@ -73,6 +73,7 @@ export default function TrendsPage() {
   const [selectedReport, setSelectedReport] = useState<Report | null>(null);
   const [filterStartDate, setFilterStartDate] = useState<string>("");
   const [filterEndDate, setFilterEndDate] = useState<string>("");
+  const [filterCategory, setFilterCategory] = useState<string>("all");
 
   // X-Report and Z-Report state
   const [xReportDialogOpen, setXReportDialogOpen] = useState(false);
@@ -125,26 +126,48 @@ export default function TrendsPage() {
     setSelectedReport(null);
     setFilterStartDate("");
     setFilterEndDate("");
+    setFilterCategory("all");
     loadReports();
   };
 
   const filteredReports = useMemo(() => {
-    if (!filterStartDate && !filterEndDate) return reports;
+    let filtered = reports;
 
-    return reports.filter((report) => {
-      const reportDate = new Date(report.date_created);
-      const start = filterStartDate ? new Date(filterStartDate) : null;
-      const end = filterEndDate ? new Date(filterEndDate) : null;
+    // Filter by category
+    if (filterCategory !== "all") {
+      filtered = filtered.filter((report) => {
+        const reportType = report.report_type.toLowerCase();
+        if (filterCategory === "profit") {
+          // Profit reports might have different naming, adjust as needed
+          return reportType.includes("profit") || reportType.includes("trends");
+        } else if (filterCategory === "z-report") {
+          return reportType === "z-report";
+        } else if (filterCategory === "inventory") {
+          return reportType.includes("inventory");
+        }
+        return true;
+      });
+    }
 
-      if (start && reportDate < start) return false;
-      if (end) {
-        const endOfDay = new Date(end);
-        endOfDay.setHours(23, 59, 59, 999);
-        if (reportDate > endOfDay) return false;
-      }
-      return true;
-    });
-  }, [reports, filterStartDate, filterEndDate]);
+    // Filter by date range
+    if (filterStartDate || filterEndDate) {
+      filtered = filtered.filter((report) => {
+        const reportDate = new Date(report.date_created);
+        const start = filterStartDate ? new Date(filterStartDate) : null;
+        const end = filterEndDate ? new Date(filterEndDate) : null;
+
+        if (start && reportDate < start) return false;
+        if (end) {
+          const endOfDay = new Date(end);
+          endOfDay.setHours(23, 59, 59, 999);
+          if (reportDate > endOfDay) return false;
+        }
+        return true;
+      });
+    }
+
+    return filtered;
+  }, [reports, filterStartDate, filterEndDate, filterCategory]);
 
   const generateXReport = async () => {
     setDailyReportLoading(true);
@@ -433,8 +456,21 @@ export default function TrendsPage() {
             </DialogHeader>
 
             <div className="space-y-4">
-              {/* Date Filters */}
+              {/* Filters */}
               <div className="flex items-center gap-4 flex-wrap">
+                <div className="flex items-center gap-2">
+                  <label className="text-sm font-medium">Category:</label>
+                  <select
+                    className="border rounded-md px-3 py-2 h-9 min-w-[140px]"
+                    value={filterCategory}
+                    onChange={(e) => setFilterCategory(e.target.value)}
+                  >
+                    <option value="all">All Reports</option>
+                    <option value="z-report">Z-Report</option>
+                    <option value="inventory">Inventory Report</option>
+                    <option value="profit">Profit/Trends</option>
+                  </select>
+                </div>
                 <div className="flex items-center gap-2">
                   <label className="text-sm font-medium">From:</label>
                   <Input
@@ -459,6 +495,7 @@ export default function TrendsPage() {
                   onClick={() => {
                     setFilterStartDate("");
                     setFilterEndDate("");
+                    setFilterCategory("all");
                   }}
                 >
                   Clear Filters
