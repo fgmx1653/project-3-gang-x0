@@ -38,6 +38,8 @@ export default function ManagerOrderPage() {
     const [editBoba, setEditBoba] = useState(100);
     const [editIce, setEditIce] = useState(100);
     const [editSugar, setEditSugar] = useState(100);
+    const [showInstructionsDialog, setShowInstructionsDialog] = useState(false);
+    const [specialInstructions, setSpecialInstructions] = useState("");
 
     async function getMenuItems() {
         setLoading(true);
@@ -86,7 +88,8 @@ export default function ManagerOrderPage() {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     items: cart,
-                    employeeId: user.id
+                    employeeId: user.id,
+                    specialInstructions: specialInstructions.trim() || null
                 }),
             });
 
@@ -95,6 +98,7 @@ export default function ManagerOrderPage() {
             if (res.ok && data.ok) {
                 setOrderSuccess(true);
                 setCart([]);
+                setSpecialInstructions("");
                 setTimeout(() => setOrderSuccess(false), 3000);
             } else {
                 setError(data?.error || 'Failed to place order');
@@ -224,7 +228,14 @@ export default function ManagerOrderPage() {
                         )}
                     </CardContent>
                     {cart.length > 0 && (
-                        <CardFooter className="flex-none border-t border-white/20 p-4 bg-white/20">
+                        <CardFooter className="flex-none border-t border-white/20 p-4 bg-white/20 flex-col gap-3">
+                            <Button
+                                variant="outline"
+                                className="w-full"
+                                onClick={() => setShowInstructionsDialog(true)}
+                            >
+                                {specialInstructions ? 'Edit Special Instructions' : 'Add Special Instructions'}
+                            </Button>
                             <Button className="w-full text-lg py-6 shadow-lg" onClick={placeOrder} disabled={placingOrder}>
                                 {placingOrder ? 'Placing Order...' : 'Place Order'}
                             </Button>
@@ -342,6 +353,39 @@ export default function ManagerOrderPage() {
                             }}
                         >
                             Save Changes
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
+            {/* Special Instructions Dialog */}
+            <Dialog open={showInstructionsDialog} onOpenChange={setShowInstructionsDialog}>
+                <DialogContent className="bg-white">
+                    <DialogHeader>
+                        <DialogTitle>Special Instructions</DialogTitle>
+                        <DialogDescription>
+                            Add any special requests or dietary notes for this order (optional)
+                        </DialogDescription>
+                    </DialogHeader>
+                    <div className="py-4">
+                        <textarea
+                            className="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-primary resize-none"
+                            rows={5}
+                            placeholder="Add any special requests or dietary notes..."
+                            value={specialInstructions}
+                            onChange={(e) => setSpecialInstructions(e.target.value)}
+                            maxLength={500}
+                        />
+                        <div className="text-xs text-gray-500 mt-1 text-right">
+                            {specialInstructions.length}/500
+                        </div>
+                    </div>
+                    <DialogFooter>
+                        <Button variant="outline" onClick={() => setShowInstructionsDialog(false)}>
+                            Cancel
+                        </Button>
+                        <Button onClick={() => setShowInstructionsDialog(false)}>
+                            Save
                         </Button>
                     </DialogFooter>
                 </DialogContent>
