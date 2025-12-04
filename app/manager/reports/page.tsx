@@ -2,11 +2,19 @@
 
 import React, { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";               // ← NEW
-import { ArrowLeft } from "lucide-react";                  // ← NEW
+import { ArrowLeft, History } from "lucide-react";                  // ← NEW
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 type SeriesPoint = {
   bucket: string;
@@ -21,6 +29,14 @@ type TopItem = {
   name: string;
   units: number;
   revenue: number;
+};
+
+type Report = {
+  report_id: number;
+  report_name: string;
+  report_type: string;
+  date_created: string;
+  report_text: string;
 };
 
 type GraphType = "bar" | "line" | "pie";
@@ -49,6 +65,22 @@ export default function TrendsPage() {
   const [top, setTop] = useState<TopItem[]>([]);
   const [error, setError] = useState<string | null>(null);
 
+  // Reports History state
+  const [historyDialogOpen, setHistoryDialogOpen] = useState(false);
+  const [reports, setReports] = useState<Report[]>([]);
+  const [reportsLoading, setReportsLoading] = useState(false);
+  const [reportsError, setReportsError] = useState<string | null>(null);
+  const [selectedReport, setSelectedReport] = useState<Report | null>(null);
+  const [filterStartDate, setFilterStartDate] = useState<string>("");
+  const [filterEndDate, setFilterEndDate] = useState<string>("");
+
+  // X-Report and Z-Report state
+  const [xReportDialogOpen, setXReportDialogOpen] = useState(false);
+  const [zReportDialogOpen, setZReportDialogOpen] = useState(false);
+  const [dailyReportData, setDailyReportData] = useState<any>(null);
+  const [dailyReportLoading, setDailyReportLoading] = useState(false);
+  const [dailyReportError, setDailyReportError] = useState<string | null>(null);
+
   const load = async () => {
     setLoading(true);
     setError(null);
@@ -73,6 +105,166 @@ export default function TrendsPage() {
 
   useEffect(() => { load(); /* eslint-disable-next-line */ }, []);
 
+  const loadReports = async () => {
+    setReportsLoading(true);
+    setReportsError(null);
+    try {
+      const res = await fetch("/api/reports", { cache: "no-store" });
+      const data = await res.json();
+      if (!data.ok) throw new Error(data.error || "Failed to load reports");
+      setReports(data.reports || []);
+    } catch (e: any) {
+      setReportsError(e?.message || "Error loading reports");
+    } finally {
+      setReportsLoading(false);
+    }
+  };
+
+  const openHistoryDialog = () => {
+    setHistoryDialogOpen(true);
+    setSelectedReport(null);
+    setFilterStartDate("");
+    setFilterEndDate("");
+    loadReports();
+  };
+
+  const filteredReports = useMemo(() => {
+    if (!filterStartDate && !filterEndDate) return reports;
+
+    return reports.filter((report) => {
+      const reportDate = new Date(report.date_created);
+      const start = filterStartDate ? new Date(filterStartDate) : null;
+      const end = filterEndDate ? new Date(filterEndDate) : null;
+
+      if (start && reportDate < start) return false;
+      if (end) {
+        const endOfDay = new Date(end);
+        endOfDay.setHours(23, 59, 59, 999);
+        if (reportDate > endOfDay) return false;
+      }
+      return true;
+    });
+  }, [reports, filterStartDate, filterEndDate]);
+
+  const generateXReport = async () => {
+    setDailyReportLoading(true);
+    setDailyReportError(null);
+    try {
+      const res = await fetch("/api/reports/x-report");
+      const data = await res.json();
+      if (!data.ok) throw new Error(data.error || "Failed to generate X-Report");
+      setDailyReportData(data.report);
+      setXReportDialogOpen(true);
+    } catch (e: any) {
+      setDailyReportError(e?.message || "Error generating X-Report");
+      alert(e?.message || "Error generating X-Report");
+    } finally {
+      setDailyReportLoading(false);
+    }
+  };
+
+  const generateZReport = async () => {
+    if (!confirm("Are you sure you want to generate a Z-Report? This can only be done once per day and will be saved to the database.")) {
+      return;
+    }
+
+    setDailyReportLoading(true);
+    setDailyReportError(null);
+    try {
+      const res = await fetch("/api/reports/z-report", { method: "POST" });
+      const data = await res.json();
+      if (!data.ok) throw new Error(data.error || "Failed to generate Z-Report");
+      setDailyReportData(data.report);
+      setZReportDialogOpen(true);
+      alert("Z-Report generated and saved successfully!");
+    } catch (e: any) {
+      setDailyReportError(e?.message || "Error generating Z-Report");
+      alert(e?.message || "Error generating Z-Report");
+    } finally {
+      setDailyReportLoading(false);
+    }
+  };
+
+  const deleteReport = async (reportId: number) => {
+    if (!confirm("Are you sure you want to delete this report? This action cannot be undone.")) {
+      return;
+    }
+
+    try {
+      const res = await fetch(`/api/reports?id=${reportId}`, { method: "DELETE" });
+      const data = await res.json();
+      if (!data.ok) throw new Error(data.error || "Failed to delete report");
+
+      // Reload reports list
+      await loadReports();
+      setSelectedReport(null);
+      alert("Report deleted successfully!");
+    } catch (e: any) {
+      alert(e?.message || "Error deleting report");
+    }
+  };
+
+  const formatReportText = (report: any) => {
+    if (typeof report.report_text === "string") {
+      return report.report_text;
+    }
+    // Format for X/Z reports
+    const { type, date, generated, totals, hourlySales, topItems } = report;
+    let text = `═══════════════════════════════════════════════════\n`;
+    text += `                    ${type || 'REPORT'}                       \n`;
+    text += `═══════════════════════════════════════════════════\n`;
+    text += `Date: ${date}\n`;
+    text += `Generated: ${new Date(generated).toLocaleString()}\n`;
+    text += `═══════════════════════════════════════════════════\n\n`;
+    text += `DAILY TOTALS\n`;
+    text += `───────────────────────────────────────────────────\n`;
+    text += `Total Sales:          $${parseFloat(totals.total_sales).toFixed(2)}\n`;
+    text += `Total Taxes:          $${parseFloat(totals.total_taxes).toFixed(2)}\n`;
+    text += `Total Orders:         ${totals.total_orders}\n`;
+    text += `Total Items Sold:     ${totals.total_items}\n`;
+    text += `Average Order Value:  $${parseFloat(totals.avg_order_value).toFixed(2)}\n\n`;
+    text += `HOURLY SALES BREAKDOWN\n`;
+    text += `───────────────────────────────────────────────────\n`;
+    text += `Hour                Orders        Sales      Items\n`;
+    text += `───────────────────────────────────────────────────\n`;
+
+    if (hourlySales.length === 0) {
+      text += `No sales recorded today.\n`;
+    } else {
+      hourlySales.forEach((row: any) => {
+        const hour = parseInt(row.hour);
+        const nextHour = hour + 1;
+        const hourStr = `${hour.toString().padStart(2, '0')}:00 - ${nextHour.toString().padStart(2, '0')}:00`;
+        const orders = row.orders.toString().padStart(8);
+        const sales = parseFloat(row.sales).toFixed(2);
+        const items = row.items.toString().padStart(10);
+        text += `${hourStr}      ${orders}  $ ${sales.padStart(10)}   ${items}\n`;
+      });
+    }
+
+    text += `\nTOP 10 SELLING ITEMS\n`;
+    text += `───────────────────────────────────────────────────\n`;
+    text += `Item                                  Qty      Revenue\n`;
+    text += `───────────────────────────────────────────────────\n`;
+
+    if (topItems.length === 0) {
+      text += `No items sold today.\n`;
+    } else {
+      topItems.forEach((item: any) => {
+        const itemName = item.item_name.padEnd(35);
+        const qty = item.quantity.toString().padStart(5);
+        const revenue = parseFloat(item.revenue).toFixed(2);
+        text += `${itemName}  ${qty}  $ ${revenue.padStart(10)}\n`;
+      });
+    }
+
+    text += `\n═══════════════════════════════════════════════════\n`;
+    text += `                 END OF REPORT                     \n`;
+    text += `═══════════════════════════════════════════════════\n`;
+
+    return text;
+  };
+
   const maxY = useMemo(() => {
     if (series.length === 0) return 1;
     const vals = series.map(s =>
@@ -95,6 +287,9 @@ export default function TrendsPage() {
               Back
             </Button>
             <h1 className="text-2xl font-semibold">Trends</h1>
+            <Button onClick={openHistoryDialog} variant="outline" className="gap-2">
+              <History className="h-4 w-4" /> Reports History
+            </Button>
           </div>
 
           <div className="flex items-center gap-2 flex-wrap">
@@ -198,6 +393,214 @@ export default function TrendsPage() {
             </div>
           </CardContent>
         </Card>
+
+        {/* X-Report and Z-Report Buttons */}
+        <Card>
+          <CardHeader><CardTitle>Daily Reports</CardTitle></CardHeader>
+          <CardContent>
+            <div className="flex items-center gap-4">
+              <Button
+                onClick={generateXReport}
+                disabled={dailyReportLoading}
+                className="gap-2"
+              >
+                Generate X-Report
+              </Button>
+              <Button
+                onClick={generateZReport}
+                disabled={dailyReportLoading}
+                variant="destructive"
+                className="gap-2"
+              >
+                Generate Z-Report
+              </Button>
+            </div>
+            <p className="text-sm text-muted-foreground mt-3">
+              <strong>X-Report:</strong> View current day's sales activity by hour (can be run multiple times). <br />
+              <strong>Z-Report:</strong> End-of-day report that saves to database (can only be run once per day).
+            </p>
+          </CardContent>
+        </Card>
+
+        {/* Reports History Dialog */}
+        <Dialog open={historyDialogOpen} onOpenChange={setHistoryDialogOpen}>
+          <DialogContent className="max-w-6xl max-h-[85vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>Reports History</DialogTitle>
+              <DialogDescription>
+                View all saved reports. Use the date filters to narrow down results.
+              </DialogDescription>
+            </DialogHeader>
+
+            <div className="space-y-4">
+              {/* Date Filters */}
+              <div className="flex items-center gap-4 flex-wrap">
+                <div className="flex items-center gap-2">
+                  <label className="text-sm font-medium">From:</label>
+                  <Input
+                    type="date"
+                    value={filterStartDate}
+                    onChange={(e) => setFilterStartDate(e.target.value)}
+                    className="w-44"
+                  />
+                </div>
+                <div className="flex items-center gap-2">
+                  <label className="text-sm font-medium">To:</label>
+                  <Input
+                    type="date"
+                    value={filterEndDate}
+                    onChange={(e) => setFilterEndDate(e.target.value)}
+                    className="w-44"
+                  />
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    setFilterStartDate("");
+                    setFilterEndDate("");
+                  }}
+                >
+                  Clear Filters
+                </Button>
+              </div>
+
+              {/* Reports List */}
+              {reportsLoading ? (
+                <div className="py-6 text-center text-muted-foreground">Loading reports...</div>
+              ) : reportsError ? (
+                <div className="text-sm text-destructive bg-destructive/10 p-3 rounded">
+                  {reportsError}
+                </div>
+              ) : selectedReport ? (
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h3 className="font-semibold">{selectedReport.report_name}</h3>
+                      <p className="text-sm text-muted-foreground">
+                        {selectedReport.report_type} • {new Date(selectedReport.date_created).toLocaleString()}
+                      </p>
+                    </div>
+                    <Button variant="outline" size="sm" onClick={() => setSelectedReport(null)}>
+                      Back to List
+                    </Button>
+                  </div>
+                  <div className="border rounded-lg p-4 bg-muted/30 max-h-[50vh] overflow-y-auto">
+                    <pre className="text-xs whitespace-pre-wrap font-mono">
+                      {selectedReport.report_text}
+                    </pre>
+                  </div>
+                </div>
+              ) : filteredReports.length === 0 ? (
+                <div className="py-6 text-center text-muted-foreground">
+                  {reports.length === 0 ? "No reports found" : "No reports match the selected date range"}
+                </div>
+              ) : (
+                <div className="border rounded-lg overflow-hidden">
+                  <table className="w-full text-sm">
+                    <thead className="bg-muted">
+                      <tr>
+                        <th className="text-left p-3">Report Name</th>
+                        <th className="text-left p-3">Type</th>
+                        <th className="text-left p-3">Date Created</th>
+                        <th className="text-left p-3">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {filteredReports.map((report) => (
+                        <tr key={report.report_id} className="border-t hover:bg-muted/50">
+                          <td className="p-3">{report.report_name}</td>
+                          <td className="p-3">{report.report_type}</td>
+                          <td className="p-3">{new Date(report.date_created).toLocaleString()}</td>
+                          <td className="p-3">
+                            <div className="flex items-center gap-2">
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => setSelectedReport(report)}
+                              >
+                                View
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="destructive"
+                                onClick={() => deleteReport(report.report_id)}
+                              >
+                                Delete
+                              </Button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setHistoryDialogOpen(false)}>
+                Close
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* X-Report Dialog */}
+        <Dialog open={xReportDialogOpen} onOpenChange={setXReportDialogOpen}>
+          <DialogContent className="max-w-4xl max-h-[85vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>X-Report - Current Day Sales</DialogTitle>
+              <DialogDescription>
+                This is a temporary report showing today's sales activity. It is not saved to the database.
+              </DialogDescription>
+            </DialogHeader>
+
+            <div className="space-y-4">
+              {dailyReportData && (
+                <div className="border rounded-lg p-4 bg-muted/30 max-h-[60vh] overflow-y-auto">
+                  <pre className="text-xs whitespace-pre-wrap font-mono">
+                    {formatReportText(dailyReportData)}
+                  </pre>
+                </div>
+              )}
+            </div>
+
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setXReportDialogOpen(false)}>
+                Close
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Z-Report Dialog */}
+        <Dialog open={zReportDialogOpen} onOpenChange={setZReportDialogOpen}>
+          <DialogContent className="max-w-4xl max-h-[85vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>Z-Report - End of Day Report</DialogTitle>
+              <DialogDescription>
+                This report has been saved to the database and marks the end of the business day.
+              </DialogDescription>
+            </DialogHeader>
+
+            <div className="space-y-4">
+              {dailyReportData && (
+                <div className="border rounded-lg p-4 bg-muted/30 max-h-[60vh] overflow-y-auto">
+                  <pre className="text-xs whitespace-pre-wrap font-mono">
+                    {dailyReportData.report_text || formatReportText(dailyReportData)}
+                  </pre>
+                </div>
+              )}
+            </div>
+
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setZReportDialogOpen(false)}>
+                Close
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
     </div>
   );
