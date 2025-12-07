@@ -13,6 +13,8 @@ export default function CheckoutPage() {
   const [cart, setCart] = useState<any[]>([]);
   const [translatedCart, setTranslatedCart] = useState<any[]>([]);
   const [paymentType, setPaymentType] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
 
   const { lang, setLang } = useLanguage();
 
@@ -116,8 +118,14 @@ export default function CheckoutPage() {
     );
 
     if (confirmed) {
+      setIsSubmitting(true);
+      setSubmitError(null);
+
       try {
-        // Submit order to database
+        // Submit order to database with timeout
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 15000); // 15 second timeout
+
         const response = await fetch("/api/orders", {
           method: "POST",
           headers: {
@@ -127,7 +135,19 @@ export default function CheckoutPage() {
             items: cart,
             // No employeeId for customer kiosk orders (will be NULL)
           }),
+          signal: controller.signal,
         });
+
+        clearTimeout(timeoutId);
+
+        if (!response.ok) {
+          if (response.status >= 500) {
+            throw new Error("Server error. Please try again or contact staff for assistance.");
+          } else if (response.status >= 400) {
+            const result = await response.json();
+            throw new Error(result.error || "Invalid order data. Please check your cart and try again.");
+          }
+        }
 
         const result = await response.json();
 
@@ -151,7 +171,9 @@ export default function CheckoutPage() {
           if (typeof window !== "undefined") {
             window.localStorage.removeItem("cart");
           }
-        } catch (e) {}
+        } catch (e) {
+          console.warn('Failed to clear cart from localStorage', e);
+        }
 
         // Save order to localStorage and navigate to confirmation page without putting large JSON in the URL.
         try {
@@ -163,9 +185,20 @@ export default function CheckoutPage() {
         }
 
         router.push('/kiosk/order-confirmation');
-      } catch (error) {
+      } catch (error: any) {
         console.error("Error creating order:", error);
-        alert(failedOrderAlertLabel);
+
+        let errorMessage = failedOrderAlertLabel;
+        if (error.name === 'AbortError') {
+          errorMessage = "Request timeout. Please check your connection and try again.";
+        } else if (error.message) {
+          errorMessage = error.message;
+        }
+
+        setSubmitError(errorMessage);
+        alert(errorMessage);
+      } finally {
+        setIsSubmitting(false);
       }
     }
   }
@@ -176,13 +209,26 @@ export default function CheckoutPage() {
                 setTranslatedCart([]);
                 return;
             }
-            const translated = await Promise.all(
-                cart.map(async item => ({
-                    ...item,
-                    name: await translateText(item.name, lang)
-                }))
-            );
-            setTranslatedCart(translated);
+            try {
+                const translated = await Promise.all(
+                    cart.map(async item => {
+                        try {
+                            const translatedName = await translateText(item.name, lang);
+                            return {
+                                ...item,
+                                name: translatedName
+                            };
+                        } catch (error) {
+                            console.warn(`Failed to translate "${item.name}", using original`, error);
+                            return item; // Fallback to original if translation fails
+                        }
+                    })
+                );
+                setTranslatedCart(translated);
+            } catch (error) {
+                console.error('Cart translation error:', error);
+                setTranslatedCart(cart); // Fallback to untranslated cart
+            }
         }
         translateCartNames();
     }, [cart, lang]);
@@ -283,13 +329,27 @@ export default function CheckoutPage() {
           </Button>
         </div>
 
+        {/* Error Display */}
+        {submitError && (
+          <div className="p-4 bg-red-50 border-2 border-red-300 rounded-lg mb-4">
+            <p className="text-red-700 font-semibold">{submitError}</p>
+          </div>
+        )}
+
         <div className="flex justify-end">
           <Button
             className="w-full sm:w-auto"
             onClick={handleCompleteCheckout}
-            disabled={cart.length === 0}
+            disabled={cart.length === 0 || isSubmitting}
           >
-            {completeCheckoutLabel}
+            {isSubmitting ? (
+              <>
+                <span className="inline-block animate-spin mr-2">⏳</span>
+                Processing...
+              </>
+            ) : (
+              completeCheckoutLabel
+            )}
           </Button>
         </div>
       </div>

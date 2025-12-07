@@ -6,7 +6,7 @@ import Link from "next/link";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { CheckCircle2, Clock, RefreshCw, Archive } from "lucide-react";
+import { CheckCircle2, Clock, RefreshCw, Archive, Timer } from "lucide-react";
 
 interface OrderItem {
     id: number;
@@ -33,6 +33,15 @@ export default function KitchenPage() {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [archivedOrderIds, setArchivedOrderIds] = useState<Set<number>>(new Set());
+    const [currentTime, setCurrentTime] = useState(new Date());
+
+    // Update current time every minute for elapsed time calculations
+    useEffect(() => {
+        const timer = setInterval(() => {
+            setCurrentTime(new Date());
+        }, 60000); // Update every minute
+        return () => clearInterval(timer);
+    }, []);
 
     // Load archived orders from localStorage on mount
     useEffect(() => {
@@ -119,6 +128,32 @@ export default function KitchenPage() {
         });
     }
 
+    // Calculate estimated preparation time based on number of items
+    // Base time: 3 minutes, + 2 minutes per item
+    function calculatePrepTime(itemCount: number): number {
+        return 3 + (itemCount * 2);
+    }
+
+    // Calculate elapsed time since order was placed
+    function getElapsedMinutes(orderTime: string): number {
+        const [hours, minutes] = orderTime.split(':').map(Number);
+        const orderDate = new Date();
+        orderDate.setHours(hours, minutes, 0, 0);
+
+        const diffMs = currentTime.getTime() - orderDate.getTime();
+        return Math.floor(diffMs / 60000);
+    }
+
+    // Format time for display
+    function formatPrepTime(minutes: number): string {
+        if (minutes < 60) {
+            return `${minutes} min`;
+        }
+        const hours = Math.floor(minutes / 60);
+        const mins = minutes % 60;
+        return mins > 0 ? `${hours}h ${mins}m` : `${hours}h`;
+    }
+
     const pendingOrders = orders.filter((o) => o.status === "pending");
     const completedOrdersList = orders
         .filter((o) => o.status === "completed" && !archivedOrderIds.has(o.order_id))
@@ -177,31 +212,70 @@ export default function KitchenPage() {
                         Pending Orders ({pendingOrders.length})
                     </h2>
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                        {pendingOrders.map((order) => (
-                            <Card
-                                key={order.order_id}
-                                className="bg-white/90 backdrop-blur-md shadow-xl border-4 border-orange-400 hover:border-orange-500 transition-all hover:scale-105"
-                            >
-                                <CardHeader className="bg-gradient-to-r from-orange-100 to-orange-200 pb-4">
-                                    <CardTitle className="flex justify-between items-center">
-                                        <span className="text-4xl font-bold text-gray-900">
-                                            #{order.order_id}
-                                        </span>
-                                        <span className="text-lg font-semibold text-gray-700">
-                                            {order.order_time.substring(0, 5)}
-                                        </span>
-                                    </CardTitle>
-                                    {order.employee !== null && (
-                                        <div className="text-sm font-medium text-gray-700 mt-1">
-                                            Employee: {order.employee}
+                        {pendingOrders.map((order) => {
+                            const prepTime = calculatePrepTime(order.items.length);
+                            const elapsed = getElapsedMinutes(order.order_time);
+                            const isOverdue = elapsed > prepTime;
+
+                            return (
+                                <Card
+                                    key={order.order_id}
+                                    className={`bg-white/90 backdrop-blur-md shadow-xl border-4 transition-all hover:scale-105 ${
+                                        isOverdue
+                                            ? 'border-red-500 hover:border-red-600'
+                                            : 'border-orange-400 hover:border-orange-500'
+                                    }`}
+                                >
+                                    <CardHeader className={`pb-4 ${
+                                        isOverdue
+                                            ? 'bg-gradient-to-r from-red-100 to-red-200'
+                                            : 'bg-gradient-to-r from-orange-100 to-orange-200'
+                                    }`}>
+                                        <CardTitle className="flex justify-between items-center">
+                                            <span className="text-4xl font-bold text-gray-900">
+                                                #{order.order_id}
+                                            </span>
+                                            <span className="text-lg font-semibold text-gray-700">
+                                                {order.order_time.substring(0, 5)}
+                                            </span>
+                                        </CardTitle>
+                                        {order.employee !== null && (
+                                            <div className="text-sm font-medium text-gray-700 mt-1">
+                                                Employee: {order.employee}
+                                            </div>
+                                        )}
+                                        {order.employee === null && (
+                                            <div className="text-sm font-medium text-blue-700 mt-1">
+                                                Customer (Kiosk)
+                                            </div>
+                                        )}
+
+                                        {/* Preparation Time Estimate */}
+                                        <div className="mt-3 space-y-2">
+                                            <div className="flex items-center justify-between bg-white/60 rounded-lg px-3 py-2">
+                                                <div className="flex items-center gap-2">
+                                                    <Timer className={`h-4 w-4 ${isOverdue ? 'text-red-600' : 'text-blue-600'}`} />
+                                                    <span className="text-xs font-semibold text-gray-700">
+                                                        Est. Prep Time
+                                                    </span>
+                                                </div>
+                                                <span className="text-sm font-bold text-gray-900">
+                                                    {formatPrepTime(prepTime)}
+                                                </span>
+                                            </div>
+                                            <div className="flex items-center justify-between bg-white/60 rounded-lg px-3 py-2">
+                                                <div className="flex items-center gap-2">
+                                                    <Clock className={`h-4 w-4 ${isOverdue ? 'text-red-600' : 'text-orange-600'}`} />
+                                                    <span className="text-xs font-semibold text-gray-700">
+                                                        Waiting
+                                                    </span>
+                                                </div>
+                                                <span className={`text-sm font-bold ${isOverdue ? 'text-red-600' : 'text-gray-900'}`}>
+                                                    {formatPrepTime(elapsed)}
+                                                </span>
+                                            </div>
                                         </div>
-                                    )}
-                                    {order.employee === null && (
-                                        <div className="text-sm font-medium text-blue-700 mt-1">
-                                            Customer (Kiosk)
-                                        </div>
-                                    )}
-                                </CardHeader>
+                                    </CardHeader>
                                 <CardContent className="pt-6">
                                     <div className="space-y-3 mb-6">
                                         {order.items.map((item, idx) => (
@@ -229,7 +303,8 @@ export default function KitchenPage() {
                                     </Button>
                                 </CardContent>
                             </Card>
-                        ))}
+                            );
+                        })}
                     </div>
                     {pendingOrders.length === 0 && !loading && (
                         <div className="text-center text-2xl font-semibold text-gray-600 py-12 bg-white/60 rounded-lg">

@@ -33,9 +33,16 @@ export default function Home() {
 
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const [retryCount, setRetryCount] = useState(0);
 
     const [tab, setTab] = useState<string>("all");
     const [search, setSearch] = useState<string>("");
+
+    // Error message labels
+    const [errorLoadingMenuLabel, setErrorLoadingMenuLabel] = useState('Error loading menu');
+    const [retryButtonLabel, setRetryButtonLabel] = useState('Retry');
+    const [networkErrorLabel, setNetworkErrorLabel] = useState('Network error. Please check your connection and try again.');
+    const [serverErrorLabel, setServerErrorLabel] = useState('Server error. Please try again later.');
 
 
     // translating UI elements
@@ -59,6 +66,7 @@ export default function Home() {
     const [iceLabel, setIceLabel] = useState('Ice');
     const [sugarLabel, setSugarLabel] = useState('Sugar');
     const [emptyCartLabel, setEmptyCartLabel] = useState('Your cart is empty');
+    const [clearCartLabel, setClearCartLabel] = useState('Clear Cart');
 
 
     // Accessibility: text size (root font-size in px). Persist in localStorage under 'textSize'
@@ -156,10 +164,25 @@ export default function Home() {
         setLoading(true);
         setError(null);
         try {
-            const res = await fetch("/api/menu");
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+
+            const res = await fetch("/api/menu", {
+                signal: controller.signal,
+            });
+            clearTimeout(timeoutId);
+
+            if (!res.ok) {
+                if (res.status >= 500) {
+                    throw new Error("server_error");
+                } else if (res.status >= 400) {
+                    throw new Error("client_error");
+                }
+            }
+
             const data = await res.json();
 
-            if (res.ok && data.ok) {
+            if (data.ok && data.items) {
                 // Title-case menu item names and sort alphabetically (case-insensitive)
                 const items = (data.items || []).map((it: any) => ({
                     ...it,
@@ -175,20 +198,42 @@ export default function Home() {
                     )
                 );
                 setMenuItems(items);
+                setError(null);
+                setRetryCount(0); // Reset retry count on success
                 setLoading(false);
                 return { ok: true };
             }
 
-            setError(data?.error || "Failed to load menu");
-            setLoading(false);
-            return { ok: false };
-        } catch (err) {
-            console.error("Menu request", err);
-            setError("Network error");
+            throw new Error(data?.error || "Failed to load menu");
+        } catch (err: any) {
+            console.error("Menu request error:", err);
+
+            let errorMessage = networkErrorLabel;
+            if (err.name === 'AbortError') {
+                errorMessage = networkErrorLabel;
+            } else if (err.message === 'server_error') {
+                errorMessage = serverErrorLabel;
+            } else if (err.message?.includes('Failed to fetch') || err.message?.includes('NetworkError')) {
+                errorMessage = networkErrorLabel;
+            }
+
+            setError(errorMessage);
             setLoading(false);
             return { ok: false };
         }
     }
+
+    // Auto-retry logic for menu loading
+    useEffect(() => {
+        if (error && retryCount < 3) {
+            const timer = setTimeout(() => {
+                console.log(`Auto-retrying menu fetch (attempt ${retryCount + 1}/3)`);
+                setRetryCount(prev => prev + 1);
+                getMenuItems();
+            }, 3000); // Retry after 3 seconds
+            return () => clearTimeout(timer);
+        }
+    }, [error, retryCount]);
 
     useEffect(() => {
         getMenuItems();
@@ -209,47 +254,69 @@ export default function Home() {
             .join(" ");
     }
 
-    // translation for UI labels
+    // translation for UI labels with error handling
     useEffect(() => {
       async function translateLabels() {
-          setHomeLabel(await translateText('Home', lang));
-          setAllDrinksLabel(await translateText('All Drinks', lang));
-          setMilkTeaLabel(await translateText('Milk Tea', lang));
-          setGreenTeaLabel(await translateText('Green Tea', lang));
-          setBlackTeaLabel(await translateText('Black Tea', lang));
-          setSeasonalLabel(await translateText('Seasonal', lang));
-          setSearchPlaceholderLabel(await translateText('Search items...', lang));
-          setSubtotalLabel(await translateText('Subtotal', lang));
-        setTotalLabel(await translateText('Total', lang));
-          setViewCartLabel(await translateText('View Cart', lang));
-          setYourCartLabel(await translateText('Your Cart', lang));
-          setRemoveLabel(await translateText('Remove', lang));
-        setTaxLabel(await translateText('Tax', lang));
-        setProceedToCheckoutLabel(await translateText('Proceed to Checkout', lang));
-        setBobaLabel(await translateText('Boba', lang));
-        setIceLabel(await translateText('Ice', lang));
-        setSugarLabel(await translateText('Sugar', lang));
-        setEmptyCartLabel(await translateText('Your cart is empty', lang));
-
+          try {
+              setHomeLabel(await translateText('Home', lang).catch(() => 'Home'));
+              setAllDrinksLabel(await translateText('All Drinks', lang).catch(() => 'All Drinks'));
+              setMilkTeaLabel(await translateText('Milk Tea', lang).catch(() => 'Milk Tea'));
+              setGreenTeaLabel(await translateText('Green Tea', lang).catch(() => 'Green Tea'));
+              setBlackTeaLabel(await translateText('Black Tea', lang).catch(() => 'Black Tea'));
+              setSeasonalLabel(await translateText('Seasonal', lang).catch(() => 'Seasonal'));
+              setSearchPlaceholderLabel(await translateText('Search items...', lang).catch(() => 'Search items...'));
+              setSubtotalLabel(await translateText('Subtotal', lang).catch(() => 'Subtotal'));
+              setTotalLabel(await translateText('Total', lang).catch(() => 'Total'));
+              setViewCartLabel(await translateText('View Cart', lang).catch(() => 'View Cart'));
+              setYourCartLabel(await translateText('Your Cart', lang).catch(() => 'Your Cart'));
+              setRemoveLabel(await translateText('Remove', lang).catch(() => 'Remove'));
+              setTaxLabel(await translateText('Tax', lang).catch(() => 'Tax'));
+              setProceedToCheckoutLabel(await translateText('Proceed to Checkout', lang).catch(() => 'Proceed to Checkout'));
+              setBobaLabel(await translateText('Boba', lang).catch(() => 'Boba'));
+              setIceLabel(await translateText('Ice', lang).catch(() => 'Ice'));
+              setSugarLabel(await translateText('Sugar', lang).catch(() => 'Sugar'));
+              setEmptyCartLabel(await translateText('Your cart is empty', lang).catch(() => 'Your cart is empty'));
+              setClearCartLabel(await translateText('Clear Cart', lang).catch(() => 'Clear Cart'));
+              setErrorLoadingMenuLabel(await translateText('Error loading menu', lang).catch(() => 'Error loading menu'));
+              setRetryButtonLabel(await translateText('Retry', lang).catch(() => 'Retry'));
+              setNetworkErrorLabel(await translateText('Network error. Please check your connection and try again.', lang).catch(() => 'Network error. Please check your connection and try again.'));
+              setServerErrorLabel(await translateText('Server error. Please try again later.', lang).catch(() => 'Server error. Please try again later.'));
+          } catch (error) {
+              console.error('Translation error:', error);
+              // Labels will remain in their default English state
+          }
       }
       translateLabels();
     }, [lang]);
 
 
-    // translation for menu item names
+    // translation for menu item names with error handling
     useEffect(() => {
         async function translateMenuNames() {
             if (!menuItems.length) {
                 setTranslatedMenuItems([]);
                 return;
             }
-            const translated = await Promise.all(
-                menuItems.map(async item => ({
-                    ...item,
-                    name: await translateText(item.name, lang)
-                }))
-            );
-            setTranslatedMenuItems(translated);
+            try {
+                const translated = await Promise.all(
+                    menuItems.map(async item => {
+                        try {
+                            const translatedName = await translateText(item.name, lang);
+                            return {
+                                ...item,
+                                name: translatedName
+                            };
+                        } catch (error) {
+                            console.warn(`Failed to translate "${item.name}", using original`, error);
+                            return item; // Fallback to original item if translation fails
+                        }
+                    })
+                );
+                setTranslatedMenuItems(translated);
+            } catch (error) {
+                console.error('Menu translation error:', error);
+                setTranslatedMenuItems(menuItems); // Fallback to untranslated menu
+            }
         }
         translateMenuNames();
     }, [menuItems, lang]);
@@ -321,6 +388,45 @@ export default function Home() {
                 </div>
 
                 <div className="flex-1 min-h-0 rounded-lg border bg-white/10 backdrop-blur-sm overflow-hidden">
+                    {/* Error Display */}
+                    {error && (
+                        <div className="p-6 m-4 bg-red-50 border-2 border-red-300 rounded-lg">
+                            <div className="flex flex-col items-center gap-4">
+                                <div className="text-center">
+                                    <h3 className="text-xl font-bold text-red-800 mb-2">
+                                        {errorLoadingMenuLabel}
+                                    </h3>
+                                    <p className="text-red-600">{error}</p>
+                                    {retryCount > 0 && retryCount < 3 && (
+                                        <p className="text-sm text-red-500 mt-2">
+                                            Retrying... (Attempt {retryCount}/3)
+                                        </p>
+                                    )}
+                                </div>
+                                <Button
+                                    onClick={() => {
+                                        setRetryCount(0);
+                                        getMenuItems();
+                                    }}
+                                    variant="destructive"
+                                    className="shadow-lg"
+                                >
+                                    {retryButtonLabel}
+                                </Button>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Loading Display */}
+                    {loading && !error && (
+                        <div className="flex items-center justify-center h-full">
+                            <div className="text-center">
+                                <div className="animate-spin rounded-full h-16 w-16 border-b-4 border-primary mx-auto mb-4"></div>
+                                <p className="text-xl font-deco text-gray-700">Loading menu...</p>
+                            </div>
+                        </div>
+                    )}
+
                     <ScrollArea className="h-full p-4">
                         {["all", "milk", "green", "black", "seasonal"].map(
                             (catValue) => (
@@ -425,14 +531,27 @@ export default function Home() {
                             <h2 className="text-2xl font-bold font-deco">
                                 {yourCartLabel}
                             </h2>
-                            <Button
-                                onClick={() => setCartOpen(false)}
-                                variant="ghost"
-                                size="icon"
-                                className="rounded-full"
-                            >
-                                <X className="h-6 w-6" />
-                            </Button>
+                            <div className="flex items-center gap-2">
+                                <Button
+                                    onClick={() => {
+                                        setCart([]);
+                                    }}
+                                    variant="outline"
+                                    size="sm"
+                                    className="text-sm"
+                                    disabled={cart.length === 0}
+                                >
+                                    {clearCartLabel}
+                                </Button>
+                                <Button
+                                    onClick={() => setCartOpen(false)}
+                                    variant="ghost"
+                                    size="icon"
+                                    className="rounded-full"
+                                >
+                                    <X className="h-6 w-6" />
+                                </Button>
+                            </div>
                         </div>
 
                         <div className="flex-1 overflow-y-auto p-6 space-y-6">
