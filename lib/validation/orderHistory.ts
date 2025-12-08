@@ -116,6 +116,7 @@ export const orderHistoryQuerySchema = z.object({
 /**
  * Frontend form schema (stricter, all fields required)
  * Note: Cannot use .extend() on schemas with .superRefine(), so we define it separately
+ * Note: Using z.number() instead of z.coerce.number() to avoid type inference issues with react-hook-form
  */
 export const orderHistoryFormSchema = z.object({
   // Required fields on frontend
@@ -139,27 +140,25 @@ export const orderHistoryFormSchema = z.object({
     .regex(timeRegex, "Time must be in HH:MM format")
     .refine(validateTime24Hour, "Time must be valid 24-hour format (00:00-23:59)"),
 
-  employee: z.coerce.number()
+  employee: z.number()
     .int("Employee ID must be an integer")
     .positive("Employee ID must be positive")
     .optional(),
 
-  menu: z.coerce.number()
+  menu: z.number()
     .int("Menu item ID must be an integer")
     .positive("Menu item ID must be positive")
     .optional(),
 
-  limit: z.coerce.number()
+  limit: z.number()
     .int("Limit must be an integer")
     .min(ORDER_HISTORY_LIMITS.MIN_LIMIT, `Limit must be at least ${ORDER_HISTORY_LIMITS.MIN_LIMIT}`)
-    .max(ORDER_HISTORY_LIMITS.MAX_LIMIT, `Limit cannot exceed ${ORDER_HISTORY_LIMITS.MAX_LIMIT}`)
-    .default(ORDER_HISTORY_LIMITS.DEFAULT_LIMIT),
+    .max(ORDER_HISTORY_LIMITS.MAX_LIMIT, `Limit cannot exceed ${ORDER_HISTORY_LIMITS.MAX_LIMIT}`),
 
-  offset: z.coerce.number()
+  offset: z.number()
     .int("Offset must be an integer")
     .min(0, "Offset cannot be negative")
-    .max(ORDER_HISTORY_LIMITS.MAX_OFFSET, "Offset exceeds maximum allowed")
-    .default(0),
+    .max(ORDER_HISTORY_LIMITS.MAX_OFFSET, "Offset exceeds maximum allowed"),
 }).superRefine((data, ctx) => {
   // Same cross-field validations as backend schema
   const today = new Date();

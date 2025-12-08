@@ -42,7 +42,7 @@ export default function OrdersHistoryPage() {
   const form = useForm<OrderHistoryFormData>({
     resolver: zodResolver(orderHistoryFormSchema),
     defaultValues: getDefaultQueryValues(),
-    mode: "onChange", // Validate on change for real-time feedback
+    mode: "onChange", 
   });
 
   const [loading, setLoading] = useState<boolean>(true);
@@ -196,11 +196,13 @@ export default function OrdersHistoryPage() {
             <h1 className="text-2xl font-semibold">Order History</h1>
           </div>
 
-          <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2">
             <Button variant="outline" className="gap-2" onClick={exportCSV}>
               <Download className="h-4 w-4" /> CSV
             </Button>
-            <Button className="gap-2" onClick={() => load(form.getValues())}>
+            {/* 2. UPDATE this button to use handleSubmit(onSubmit) 
+                This ensures values are converted (coerced) to numbers before loading */}
+            <Button className="gap-2" onClick={form.handleSubmit(onSubmit)}>
               <RefreshCw className="h-4 w-4" /> Refresh
             </Button>
           </div>

@@ -20,13 +20,38 @@ export async function POST(req: Request) {
         // Start transaction
         await client.query("BEGIN");
 
-        const orderDate = new Date();
-        // Use local date instead of UTC to avoid timezone issues
-        const year = orderDate.getFullYear();
-        const month = String(orderDate.getMonth() + 1).padStart(2, "0");
-        const day = String(orderDate.getDate()).padStart(2, "0");
-        const date = `${year}-${month}-${day}`; // YYYY-MM-DD in local time
-        const time = orderDate.toTimeString().split(" ")[0]; // HH:MM:SS
+        // --- TIMEZONE FIX START ---
+        // Force Date and Time to be Central Time (CST/CDT)
+        const now = new Date();
+        const timeZone = "America/Chicago";
+        
+        // Get Date parts in CST
+        const dateFormatter = new Intl.DateTimeFormat("en-US", {
+            timeZone,
+            year: "numeric",
+            month: "2-digit",
+            day: "2-digit",
+        });
+        const dateParts = dateFormatter.formatToParts(now);
+        const year = dateParts.find(p => p.type === 'year')?.value;
+        const month = dateParts.find(p => p.type === 'month')?.value;
+        const day = dateParts.find(p => p.type === 'day')?.value;
+        const date = `${year}-${month}-${day}`; // YYYY-MM-DD in CST
+
+        // Get Time parts in CST
+        const timeFormatter = new Intl.DateTimeFormat("en-US", {
+            timeZone,
+            hour: "2-digit",
+            minute: "2-digit",
+            second: "2-digit",
+            hour12: false,
+        });
+        const timeParts = timeFormatter.formatToParts(now);
+        const hour = timeParts.find(p => p.type === 'hour')?.value;
+        const minute = timeParts.find(p => p.type === 'minute')?.value;
+        const second = timeParts.find(p => p.type === 'second')?.value;
+        const time = `${hour}:${minute}:${second}`; // HH:MM:SS in CST
+        // --- TIMEZONE FIX END ---
 
         // Get the next order_id from both orders and cancelled_orders to avoid ID reuse
         const maxOrderIdResult = await client.query(

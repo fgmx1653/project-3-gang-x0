@@ -12,14 +12,23 @@ export async function GET(req: Request) {
             )
         `);
 
-        // Get all orders from today, grouped by order_id
-        const today = new Date();
-        const year = today.getFullYear();
-        const month = String(today.getMonth() + 1).padStart(2, "0");
-        const day = String(today.getDate()).padStart(2, "0");
+        // --- TIMEZONE FIX START ---
+        // Get "Today" in Central Time
+        const now = new Date();
+        const formatter = new Intl.DateTimeFormat("en-US", {
+            timeZone: "America/Chicago",
+            year: "numeric",
+            month: "2-digit",
+            day: "2-digit",
+        });
+        const parts = formatter.formatToParts(now);
+        const year = parts.find(p => p.type === 'year')?.value;
+        const month = parts.find(p => p.type === 'month')?.value;
+        const day = parts.find(p => p.type === 'day')?.value;
         const todayDate = `${year}-${month}-${day}`;
+        // --- TIMEZONE FIX END ---
 
-        console.log("Fetching orders for date:", todayDate);
+        console.log("Fetching orders for date (CST):", todayDate);
 
         // Ensure cancelled_orders table exists
         await pool.query(`
