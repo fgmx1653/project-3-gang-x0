@@ -215,7 +215,8 @@ export default function Home() {
             .then((p) => {
               console.log("/api/popular response:", p);
               if (p?.ok && p.popular) setPopular(p.popular);
-              else console.warn("/api/popular did not return popular mapping", p);
+              else
+                console.warn("/api/popular did not return popular mapping", p);
             })
             .catch((err) => {
               console.error("Failed to fetch /api/popular", err);
@@ -527,10 +528,14 @@ export default function Home() {
                         className="relative bg-white/80 backdrop-blur-md hover:scale-105 hover:shadow-xl hover:bg-white transition-all duration-200 cursor-pointer border-2 border-transparent hover:border-primary/20 flex flex-col aspect-[4/5] w-full"
                       >
                         {/* top-left badge for category top-seller (show in tabs and in All view for any category top-seller) */}
-                        {((catValue !== "all" && Number(popular?.[catValue]) === Number(item.id)) ||
-                          (catValue === "all" && Object.values(popular || {}).some((v) => Number(v) === Number(item.id)))) && (
+                        {((catValue !== "all" &&
+                          Number(popular?.[catValue]) === Number(item.id)) ||
+                          (catValue === "all" &&
+                            Object.values(popular || {}).some(
+                              (v) => Number(v) === Number(item.id)
+                            ))) && (
                           <img
-                            src="/img/star_icon.png"
+                            src="/img/fire_icon.png"
                             alt="Top seller"
                             aria-hidden={true}
                             className="absolute top-3 left-3 w-8 h-8 drop-shadow-lg z-50 pointer-events-none"
@@ -548,8 +553,11 @@ export default function Home() {
                               className="object-contain drop-shadow-md max-w-full max-h-full"
                               loading="lazy"
                               decoding="async"
-                              onError={(e: React.SyntheticEvent<HTMLImageElement>) => {
-                                const target = e.currentTarget as HTMLImageElement;
+                              onError={(
+                                e: React.SyntheticEvent<HTMLImageElement>
+                              ) => {
+                                const target =
+                                  e.currentTarget as HTMLImageElement;
                                 if (!target.dataset.fallback) {
                                   target.dataset.fallback = "1";
                                   target.src = "/img/default_new_item.png";
@@ -598,7 +606,10 @@ export default function Home() {
                   className="block truncate"
                   title={(() => {
                     // Aggregate identical items and preserve first-seen order
-                    const seen = new Map<string, { item: any; count: number }>();
+                    const seen = new Map<
+                      string,
+                      { item: any; count: number }
+                    >();
                     const order: string[] = [];
                     for (const it of cart) {
                       const key = String(it?.id ?? JSON.stringify(it));
@@ -613,14 +624,19 @@ export default function Home() {
                       const translated = translatedMenuItems.find(
                         (m) => m.id === info.item.id
                       );
-                      const name = translated ? translated.name : info.item.name;
+                      const name = translated
+                        ? translated.name
+                        : info.item.name;
                       return info.count > 1 ? `${name} x${info.count}` : name;
                     });
                     return parts.join(" · ");
                   })()}
                 >
                   {(() => {
-                    const seen = new Map<string, { item: any; count: number }>();
+                    const seen = new Map<
+                      string,
+                      { item: any; count: number }
+                    >();
                     const order: string[] = [];
                     for (const it of cart) {
                       const key = String(it?.id ?? JSON.stringify(it));
@@ -635,7 +651,9 @@ export default function Home() {
                       const translated = translatedMenuItems.find(
                         (m) => m.id === info.item.id
                       );
-                      const name = translated ? translated.name : info.item.name;
+                      const name = translated
+                        ? translated.name
+                        : info.item.name;
                       return info.count > 1 ? `${name} x${info.count}` : name;
                     });
                     return parts.join(" · ");
