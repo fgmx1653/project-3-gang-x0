@@ -20,13 +20,30 @@ export async function POST(req: Request) {
         // Start transaction
         await client.query("BEGIN");
 
-        const orderDate = new Date();
-        // Use local date instead of UTC to avoid timezone issues
-        const year = orderDate.getFullYear();
-        const month = String(orderDate.getMonth() + 1).padStart(2, "0");
-        const day = String(orderDate.getDate()).padStart(2, "0");
-        const date = `${year}-${month}-${day}`; // YYYY-MM-DD in local time
-        const time = orderDate.toTimeString().split(" ")[0]; // HH:MM:SS
+        // Convert to CST (America/Chicago)
+        const now = new Date();
+        const formatter = new Intl.DateTimeFormat("en-US", {
+            timeZone: "America/Chicago",
+            year: "numeric",
+            month: "2-digit",
+            day: "2-digit",
+            hour: "2-digit",
+            minute: "2-digit",
+            second: "2-digit",
+            hour12: false
+        });
+        const parts = formatter.formatToParts(now);
+        const getPart = (type: string) => parts.find(p => p.type === type)?.value;
+
+        const year = getPart('year');
+        const month = getPart('month');
+        const day = getPart('day');
+        const date = `${year}-${month}-${day}`; // YYYY-MM-DD in CST
+
+        const hour = getPart('hour');
+        const minute = getPart('minute');
+        const second = getPart('second');
+        const time = `${hour}:${minute}:${second}`; // HH:MM:SS in CST
 
         // Get the next order_id
         const maxOrderIdResult = await client.query(
