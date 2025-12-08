@@ -64,7 +64,7 @@ async function verifyMenuItemExists(client: any, menuId: number): Promise<boolea
 /**
  * Apply default values for missing optional parameters
  */
-function applyDefaults(data: Partial<OrderHistoryQuery>): Required<OrderHistoryQuery> {
+function applyDefaults(data: Partial<OrderHistoryQuery>) {
   const today = new Date();
   const weekAgo = new Date(Date.now() - 6 * 24 * 3600 * 1000);
 
