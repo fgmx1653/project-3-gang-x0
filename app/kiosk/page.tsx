@@ -576,7 +576,8 @@ export default function Home() {
       </Tabs>
 
       <div className="flex-none bg-white/80 backdrop-blur-xl border-t border-black/5 shadow-[0_-10px_40px_rgba(0,0,0,0.1)] p-6 z-20">
-        <div className="max-w-7xl mx-auto flex items-center justify-between gap-8">
+        <div className="max-w-7xl mx-auto flex items-center gap-8">
+          {/* Left: subtotal */}
           <div className="flex flex-col">
             <span className="text-sm text-muted-foreground uppercase tracking-wider font-bold">
               {subtotalLabel}
@@ -586,13 +587,74 @@ export default function Home() {
             </span>
           </div>
 
-          <Button
-            size="lg"
-            className="text-xl px-10 py-8 rounded-full shadow-lg animate-in slide-in-from-right-10"
-            onClick={() => setCartOpen(true)}
-          >
-            {viewCartLabel} ({cart.length})
-          </Button>
+          {/* Center: inline, truncated cart preview (shrinks when space is tight) */}
+          <div className="flex-1 min-w-0 px-4">
+            <div className="text-sm text-gray-700 w-full">
+              {cart.length === 0 ? (
+                <span className="text-muted-foreground">{emptyCartLabel}</span>
+              ) : (
+                // Single truncatable element showing items separated by centered dot
+                <span
+                  className="block truncate"
+                  title={(() => {
+                    // Aggregate identical items and preserve first-seen order
+                    const seen = new Map<string, { item: any; count: number }>();
+                    const order: string[] = [];
+                    for (const it of cart) {
+                      const key = String(it?.id ?? JSON.stringify(it));
+                      if (!seen.has(key)) {
+                        seen.set(key, { item: it, count: 0 });
+                        order.push(key);
+                      }
+                      seen.get(key)!.count += 1;
+                    }
+                    const parts: string[] = order.map((k) => {
+                      const info = seen.get(k)!;
+                      const translated = translatedMenuItems.find(
+                        (m) => m.id === info.item.id
+                      );
+                      const name = translated ? translated.name : info.item.name;
+                      return info.count > 1 ? `${name} x${info.count}` : name;
+                    });
+                    return parts.join(" · ");
+                  })()}
+                >
+                  {(() => {
+                    const seen = new Map<string, { item: any; count: number }>();
+                    const order: string[] = [];
+                    for (const it of cart) {
+                      const key = String(it?.id ?? JSON.stringify(it));
+                      if (!seen.has(key)) {
+                        seen.set(key, { item: it, count: 0 });
+                        order.push(key);
+                      }
+                      seen.get(key)!.count += 1;
+                    }
+                    const parts: string[] = order.map((k) => {
+                      const info = seen.get(k)!;
+                      const translated = translatedMenuItems.find(
+                        (m) => m.id === info.item.id
+                      );
+                      const name = translated ? translated.name : info.item.name;
+                      return info.count > 1 ? `${name} x${info.count}` : name;
+                    });
+                    return parts.join(" · ");
+                  })()}
+                </span>
+              )}
+            </div>
+          </div>
+
+          {/* Right: view cart button */}
+          <div className="flex-none">
+            <Button
+              size="lg"
+              className="text-xl px-10 py-8 rounded-full shadow-lg animate-in slide-in-from-right-10"
+              onClick={() => setCartOpen(true)}
+            >
+              {viewCartLabel} ({cart.length})
+            </Button>
+          </div>
         </div>
       </div>
 
