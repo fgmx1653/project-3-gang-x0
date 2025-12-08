@@ -1,13 +1,12 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
-import Iridescence from "@/components/Iridescence";
 import Link from "next/link";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { X, Edit } from "lucide-react";
-import { getStoredUser } from '@/lib/clientAuth';
-import LogoutButton from '@/components/LogoutButton';
+import { getStoredUser } from "@/lib/clientAuth";
+import LogoutButton from "@/components/LogoutButton";
 
 import {
     Card,
@@ -203,14 +202,7 @@ export default function Home() {
 
     return (
         <div className="relative h-screen w-full flex flex-col overflow-hidden">
-            <div className="fixed inset-0 -z-20 bg-white/50">
-                <Iridescence
-                    color={[1.0, 0.7, 0.7]}
-                    mouseReact={true}
-                    amplitude={0.1}
-                    speed={1.0}
-                />
-            </div>
+            <div className="fixed inset-0 -z-20 bg-gradient-to-br from-slate-100 via-gray-100 to-slate-200"></div>
 
             <div className="flex-none p-4 flex gap-2 z-10 bg-white/30 backdrop-blur-sm border-b border-white/20">
                 <Link href="/">

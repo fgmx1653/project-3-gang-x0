@@ -30,6 +30,24 @@ export async function GET(req: Request) {
 
         console.log("Fetching orders for date (CST):", todayDate);
 
+        // Ensure cancelled_orders table exists
+        await pool.query(`
+            CREATE TABLE IF NOT EXISTS cancelled_orders (
+                order_id INTEGER NOT NULL,
+                order_date DATE NOT NULL,
+                order_time TIME NOT NULL,
+                menu_item_id INTEGER NOT NULL,
+                price DECIMAL(10, 2) NOT NULL,
+                employee INTEGER,
+                boba INTEGER DEFAULT 100,
+                ice INTEGER DEFAULT 100,
+                sugar INTEGER DEFAULT 100,
+                cancelled_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        `);
+
+        // Get orders from both orders table (active) and cancelled_orders table (cancelled)
+        // Use UNION to avoid duplicates if an order exists in both tables
         const result = await pool.query(
             `SELECT
         o.order_id,
@@ -51,8 +69,35 @@ export async function GET(req: Request) {
       LEFT JOIN menu_items m ON o.menu_item_id = m.id
       LEFT JOIN order_status os ON o.order_id = os.order_id
       WHERE o.order_date = $1
+        AND NOT EXISTS (
+          SELECT 1 FROM cancelled_orders co WHERE co.order_id = o.order_id
+        )
       GROUP BY o.order_id, os.status
-      ORDER BY o.order_id DESC`,
+      
+      UNION ALL
+      
+      SELECT
+        co.order_id,
+        MIN(co.order_date) as order_date,
+        MIN(co.order_time) as order_time,
+        MIN(co.employee) as employee,
+        'cancelled' as status,
+        json_agg(
+          json_build_object(
+            'menu_item_id', co.menu_item_id,
+            'menu_item_name', COALESCE(m.name, 'Unknown Item'),
+            'price', co.price,
+            'boba', COALESCE(co.boba, 100),
+            'ice', COALESCE(co.ice, 100),
+            'sugar', COALESCE(co.sugar, 100)
+          )
+        ) as items
+      FROM cancelled_orders co
+      LEFT JOIN menu_items m ON co.menu_item_id = m.id
+      WHERE co.order_date = $1
+      GROUP BY co.order_id
+      
+      ORDER BY order_id DESC`,
             [todayDate]
         );
 
@@ -93,11 +138,14 @@ export async function POST(req: Request) {
             );
         }
 
-        if (!status || !["pending", "completed"].includes(status)) {
+        if (
+            !status ||
+            !["pending", "completed", "cancelled"].includes(status)
+        ) {
             return NextResponse.json(
                 {
                     ok: false,
-                    error: "Invalid status. Must be 'pending' or 'completed'",
+                    error: "Invalid status. Must be 'pending', 'completed', or 'cancelled'",
                 },
                 { status: 400 }
             );
