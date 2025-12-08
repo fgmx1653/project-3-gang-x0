@@ -38,6 +38,7 @@ export default function Home() {
     const [cart, setCart] = useState<any[]>([]);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const [retryCount, setRetryCount] = useState(0);
     const [placingOrder, setPlacingOrder] = useState(false);
     const [orderSuccess, setOrderSuccess] = useState(false);
     const [editingItem, setEditingItem] = useState<any | null>(null);
@@ -49,21 +50,49 @@ export default function Home() {
         setLoading(true);
         setError(null);
         try {
-            const res = await fetch("/api/menu");
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+
+            const res = await fetch("/api/menu", {
+                signal: controller.signal,
+            });
+            clearTimeout(timeoutId);
+
+            if (!res.ok) {
+                if (res.status >= 500) {
+                    throw new Error("server_error");
+                } else if (res.status >= 400) {
+                    throw new Error("client_error");
+                }
+            }
+
             const data = await res.json();
 
-            if (res.ok && data.ok) {
+            if (data.ok && data.items) {
                 setMenuItems(data.items || []);
+                setError(null);
+                setRetryCount(0); // Reset retry count on success
                 setLoading(false);
                 return { ok: true };
             }
 
-            setError(data?.error || "Failed to load menu");
-            setLoading(false);
-            return { ok: false };
-        } catch (err) {
-            console.error("Menu request", err);
-            setError("Network error");
+            throw new Error(data?.error || "Failed to load menu");
+        } catch (err: any) {
+            console.error("Menu request error:", err);
+
+            let errorMessage = "Network error. Please check your connection and try again.";
+            if (err.name === "AbortError") {
+                errorMessage = "Request timeout. Please check your connection and try again.";
+            } else if (err.message === "server_error") {
+                errorMessage = "Server error. Please try again later.";
+            } else if (
+                err.message?.includes("Failed to fetch") ||
+                err.message?.includes("NetworkError")
+            ) {
+                errorMessage = "Network error. Please check your connection and try again.";
+            }
+
+            setError(errorMessage);
             setLoading(false);
             return { ok: false };
         }
@@ -72,7 +101,7 @@ export default function Home() {
     async function placeOrder() {
         const user = getStoredUser();
         if (!user) {
-            setError("User not logged in");
+            setError("User not logged in. Please log in and try again.");
             return;
         }
 
@@ -81,11 +110,19 @@ export default function Home() {
             return;
         }
 
+        if (cart.length === 0) {
+            setError("Cart is empty. Please add items before placing an order.");
+            return;
+        }
+
         setPlacingOrder(true);
         setError(null);
         setOrderSuccess(false);
 
         try {
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 15000); // 15 second timeout for order placement
+
             const res = await fetch("/api/orders", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
@@ -93,7 +130,17 @@ export default function Home() {
                     items: cart,
                     employeeId: user.id,
                 }),
+                signal: controller.signal,
             });
+            clearTimeout(timeoutId);
+
+            if (!res.ok) {
+                if (res.status >= 500) {
+                    throw new Error("server_error");
+                } else if (res.status >= 400) {
+                    throw new Error("client_error");
+                }
+            }
 
             const data = await res.json();
 
@@ -102,15 +149,44 @@ export default function Home() {
                 setCart([]);
                 setTimeout(() => setOrderSuccess(false), 3000);
             } else {
-                setError(data?.error || "Failed to place order");
+                throw new Error(data?.error || "Failed to place order");
             }
-        } catch (err) {
-            console.error("Order placement failed", err);
-            setError("Network error");
+        } catch (err: any) {
+            console.error("Order placement failed:", err);
+
+            let errorMessage = "Network error. Please check your connection and try again.";
+            if (err.name === "AbortError") {
+                errorMessage = "Order request timeout. Please check your connection and try again.";
+            } else if (err.message === "server_error") {
+                errorMessage = "Server error. Unable to process order. Please try again later.";
+            } else if (err.message === "client_error") {
+                errorMessage = "Invalid order data. Please check your cart and try again.";
+            } else if (
+                err.message?.includes("Failed to fetch") ||
+                err.message?.includes("NetworkError")
+            ) {
+                errorMessage = "Network error. Please check your connection and try again.";
+            } else if (err.message) {
+                errorMessage = err.message;
+            }
+
+            setError(errorMessage);
         } finally {
             setPlacingOrder(false);
         }
     }
+
+    // Auto-retry logic for menu loading
+    useEffect(() => {
+        if (error && retryCount < 3) {
+            const timer = setTimeout(() => {
+                console.log(`Auto-retrying menu fetch (attempt ${retryCount + 1}/3)`);
+                setRetryCount((prev) => prev + 1);
+                getMenuItems();
+            }, 3000); // Retry after 3 seconds
+            return () => clearTimeout(timer);
+        }
+    }, [error, retryCount]);
 
     useEffect(() => {
         const user = getStoredUser();
@@ -152,8 +228,31 @@ export default function Home() {
                     </CardHeader>
                     <CardContent className="flex-1 overflow-y-auto space-y-4 p-4">
                         {error && (
-                            <div className="p-3 bg-red-100 border border-red-400 text-red-700 rounded">
-                                {error}
+                            <div className="p-4 bg-red-50 border-2 border-red-300 rounded-lg">
+                                <div className="flex flex-col gap-3">
+                                    <div className="text-center">
+                                        <h3 className="text-lg font-bold text-red-800 mb-1">
+                                            Error
+                                        </h3>
+                                        <p className="text-red-600 text-sm">{error}</p>
+                                        {retryCount > 0 && retryCount < 3 && (
+                                            <p className="text-xs text-red-500 mt-2">
+                                                Retrying... (Attempt {retryCount}/3)
+                                            </p>
+                                        )}
+                                    </div>
+                                    <Button
+                                        onClick={() => {
+                                            setRetryCount(0);
+                                            getMenuItems();
+                                        }}
+                                        variant="destructive"
+                                        size="sm"
+                                        className="w-full"
+                                    >
+                                        Retry Now
+                                    </Button>
+                                </div>
                             </div>
                         )}
                         {orderSuccess && (
@@ -239,6 +338,16 @@ export default function Home() {
                 </Card>
 
                 <div className="flex-1 overflow-y-auto pr-2">
+                    {loading && menuItems.length === 0 ? (
+                        <div className="flex items-center justify-center h-full">
+                            <div className="text-center">
+                                <div className="animate-spin rounded-full h-16 w-16 border-b-4 border-yellow-500 mx-auto mb-4"></div>
+                                <p className="text-xl font-deco text-gray-700">
+                                    Loading menu...
+                                </p>
+                            </div>
+                        </div>
+                    ) : (
                     <div className="grid grid-cols-[repeat(auto-fill,minmax(220px,1fr))] gap-4 pb-20">
                         {menuItems.map((item) => (
                             <button
@@ -278,6 +387,7 @@ export default function Home() {
                             </button>
                         ))}
                     </div>
+                    )}
                 </div>
             </div>
 
