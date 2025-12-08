@@ -1,6 +1,7 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
+import Iridescence from "@/components/Iridescence";
 import Link from "next/link";
 import { useState, useEffect } from "react";
 import { useLanguage } from "@/lib/LanguageContext";
@@ -36,7 +37,6 @@ export default function Home() {
 
     const [tab, setTab] = useState<string>("all");
     const [search, setSearch] = useState<string>("");
-    const [popular, setPopular] = useState<Record<string, number | null>>({});
 
     // Error message labels
     const [errorLoadingMenuLabel, setErrorLoadingMenuLabel] =
@@ -48,22 +48,6 @@ export default function Home() {
     const [serverErrorLabel, setServerErrorLabel] = useState(
         "Server error. Please try again later."
     );
-
-    useEffect(() => {
-        if (!popular || Object.keys(popular).length === 0) return;
-        console.log("popular state updated:", popular);
-        try {
-            const resolved = Object.fromEntries(
-                Object.entries(popular).map(([cat, id]) => [
-                    cat,
-                    menuItems.find((m) => m.id === id)?.name ?? id,
-                ])
-            );
-            console.log("popular resolved to names:", resolved);
-        } catch (e) {
-            console.warn("Could not resolve popular ids to names yet", e);
-        }
-    }, [popular, menuItems]);
 
     // translating UI elements
     const [translatedMenuItems, setTranslatedMenuItems] = useState<any[]>([]);
@@ -220,25 +204,6 @@ export default function Home() {
                     )
                 );
                 setMenuItems(items);
-                // fetch popular/top sellers per category
-                try {
-                    fetch("/api/popular")
-                        .then((r) => r.json())
-                        .then((p) => {
-                            console.log("/api/popular response:", p);
-                            if (p?.ok && p.popular) setPopular(p.popular);
-                            else
-                                console.warn(
-                                    "/api/popular did not return popular mapping",
-                                    p
-                                );
-                        })
-                        .catch((err) => {
-                            console.error("Failed to fetch /api/popular", err);
-                        });
-                } catch (e) {
-                    console.error("Error initiating /api/popular fetch", e);
-                }
                 setError(null);
                 setRetryCount(0); // Reset retry count on success
                 setLoading(false);
@@ -454,7 +419,15 @@ export default function Home() {
 
     return (
         <div className="kiosk-text flex flex-col w-full h-screen overflow-hidden relative">
-            <div className="fixed inset-0 -z-20 bg-gradient-to-br from-slate-100 via-gray-100 to-slate-200"></div>{" "}
+            <div className="fixed inset-0 -z-20 bg-white/50">
+                <Iridescence
+                    color={[1.0, 0.7, 0.7]}
+                    mouseReact={true}
+                    amplitude={0.1}
+                    speed={1.0}
+                />
+            </div>
+
             <div className="flex-none p-6 z-10">
                 <Link href="/">
                     <Button variant="outline" className="shadow-md">
@@ -462,6 +435,7 @@ export default function Home() {
                     </Button>
                 </Link>
             </div>
+
             <Tabs
                 defaultValue="all"
                 value={tab}
@@ -559,7 +533,7 @@ export default function Home() {
                                     className="mt-0 h-full"
                                 >
                                     <div className="grid grid-cols-[repeat(auto-fill,minmax(220px,1fr))] gap-6 pb-6">
-                                        {translatedMenuItems
+                                        {menuItems
                                             .filter((item) => {
                                                 const matchesSearch = item.name
                                                     .toLowerCase()
@@ -572,97 +546,87 @@ export default function Home() {
                                                     return true;
                                                 if (catValue === "seasonal")
                                                     return item.seasonal === 1;
-                                                return item.name
-                                                    .toLowerCase()
-                                                    .includes(catValue);
+                                                // For tea categories, check if name contains both the category and "tea"
+                                                const lowerName =
+                                                    item.name.toLowerCase();
+                                                return (
+                                                    lowerName.includes(
+                                                        catValue
+                                                    ) &&
+                                                    lowerName.includes("tea")
+                                                );
                                             })
-                                            .map((item, idx) => (
-                                                <Card
-                                                    key={item.id}
-                                                    onClick={() =>
-                                                        addToCart(
-                                                            menuItems[idx]
-                                                        )
-                                                    }
-                                                    className="relative bg-white/80 backdrop-blur-md hover:scale-105 hover:shadow-xl hover:bg-white transition-all duration-200 cursor-pointer border-2 border-transparent hover:border-primary/20 flex flex-col aspect-[4/5] w-full"
-                                                >
-                                                    {/* top-left badge for category top-seller (show in tabs and in All view for any category top-seller) */}
-                                                    {((catValue !== "all" &&
-                                                        Number(
-                                                            popular?.[catValue]
-                                                        ) ===
-                                                            Number(item.id)) ||
-                                                        (catValue === "all" &&
-                                                            Object.values(
-                                                                popular || {}
-                                                            ).some(
-                                                                (v) =>
-                                                                    Number(
-                                                                        v
-                                                                    ) ===
-                                                                    Number(
-                                                                        item.id
-                                                                    )
-                                                            ))) && (
-                                                        <img
-                                                            src="/img/fire_icon.png"
-                                                            alt="Top seller"
-                                                            aria-hidden={true}
-                                                            className="absolute top-3 left-3 w-8 h-8 drop-shadow-lg z-50 pointer-events-none"
-                                                        />
-                                                    )}
-                                                    <CardContent className="flex-1 flex flex-col justify-between items-center p-4">
-                                                        <div className="relative w-full flex-none h-28 md:h-32 lg:h-36 mb-4 flex items-center justify-center">
-                                                            <img
-                                                                src={`/img/${menuItems[
-                                                                    idx
-                                                                ].name
-                                                                    .toLowerCase()
-                                                                    .replace(
-                                                                        /\s+/g,
-                                                                        "_"
-                                                                    )
-                                                                    .replace(
-                                                                        /[^a-z0-9_]/g,
-                                                                        ""
-                                                                    )}.png`}
-                                                                alt={item.name}
-                                                                className="object-contain drop-shadow-md max-w-full max-h-full"
-                                                                loading="lazy"
-                                                                decoding="async"
-                                                                onError={(
-                                                                    e: React.SyntheticEvent<HTMLImageElement>
-                                                                ) => {
-                                                                    const target =
-                                                                        e.currentTarget as HTMLImageElement;
-                                                                    if (
-                                                                        !target
-                                                                            .dataset
-                                                                            .fallback
-                                                                    ) {
-                                                                        target.dataset.fallback =
-                                                                            "1";
-                                                                        target.src =
-                                                                            "/img/default_new_item.png";
+                                            .map((item) => {
+                                                // Find translated name for display
+                                                const translatedItem =
+                                                    translatedMenuItems.find(
+                                                        (t) => t.id === item.id
+                                                    );
+                                                const displayName =
+                                                    translatedItem
+                                                        ? translatedItem.name
+                                                        : item.name;
+
+                                                return (
+                                                    <Card
+                                                        key={item.id}
+                                                        onClick={() =>
+                                                            addToCart(item)
+                                                        }
+                                                        className="bg-white/80 backdrop-blur-md hover:scale-105 hover:shadow-xl hover:bg-white transition-all duration-200 cursor-pointer border-2 border-transparent hover:border-primary/20 flex flex-col aspect-[4/5] w-full"
+                                                    >
+                                                        <CardContent className="flex-1 flex flex-col justify-between items-center p-4">
+                                                            <div className="relative w-full flex-none h-28 md:h-32 lg:h-36 mb-4 flex items-center justify-center">
+                                                                <img
+                                                                    src={`/img/${item.name
+                                                                        .toLowerCase()
+                                                                        .replace(
+                                                                            /\s+/g,
+                                                                            "_"
+                                                                        )
+                                                                        .replace(
+                                                                            /[^a-z0-9_]/g,
+                                                                            ""
+                                                                        )}.png`}
+                                                                    alt={
+                                                                        item.name
                                                                     }
-                                                                }}
-                                                            />
-                                                        </div>
-                                                        <div className="text-center w-full space-y-1">
-                                                            <h1 className="font-deco font-bold text-lg leading-tight line-clamp-2 h-12 flex items-center justify-center">
-                                                                {
-                                                                    translatedMenuItems[
-                                                                        idx
-                                                                    ].name
-                                                                }
-                                                            </h1>
-                                                            <h1 className="font-deco text-xl text-primary font-semibold">
-                                                                ${item.price}
-                                                            </h1>
-                                                        </div>
-                                                    </CardContent>
-                                                </Card>
-                                            ))}
+                                                                    className="object-contain drop-shadow-md max-w-full max-h-full"
+                                                                    loading="lazy"
+                                                                    decoding="async"
+                                                                    onError={(
+                                                                        e: React.SyntheticEvent<HTMLImageElement>
+                                                                    ) => {
+                                                                        const target =
+                                                                            e.currentTarget as HTMLImageElement;
+                                                                        if (
+                                                                            !target
+                                                                                .dataset
+                                                                                .fallback
+                                                                        ) {
+                                                                            target.dataset.fallback =
+                                                                                "1";
+                                                                            target.src =
+                                                                                "/img/default_new_item.png";
+                                                                        }
+                                                                    }}
+                                                                />
+                                                            </div>
+                                                            <div className="text-center w-full space-y-1">
+                                                                <h1 className="font-deco font-bold text-lg leading-tight line-clamp-2 h-12 flex items-center justify-center">
+                                                                    {
+                                                                        displayName
+                                                                    }
+                                                                </h1>
+                                                                <h1 className="font-deco text-xl text-primary font-semibold">
+                                                                    $
+                                                                    {item.price}
+                                                                </h1>
+                                                            </div>
+                                                        </CardContent>
+                                                    </Card>
+                                                );
+                                            })}
                                     </div>
                                 </TabsContent>
                             )
@@ -670,6 +634,7 @@ export default function Home() {
                     </ScrollArea>
                 </div>
             </Tabs>
+
             <div className="flex-none bg-white/80 backdrop-blur-xl border-t border-black/5 shadow-[0_-10px_40px_rgba(0,0,0,0.1)] p-6 z-20">
                 <div className="max-w-7xl mx-auto flex items-center justify-between gap-8">
                     <div className="flex flex-col">
@@ -690,6 +655,7 @@ export default function Home() {
                     </Button>
                 </div>
             </div>
+
             {cartOpen && (
                 <div className="fixed inset-0 z-50 flex items-end justify-center sm:items-center">
                     <div
