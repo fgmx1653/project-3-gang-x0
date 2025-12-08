@@ -116,6 +116,36 @@ export default function KitchenPage() {
         }
     }
 
+    async function cancelOrder(orderId: number) {
+        if (
+            !confirm(
+                `Are you sure you want to cancel Order #${orderId}? This will restore inventory and cannot be undone.`
+            )
+        ) {
+            return;
+        }
+
+        try {
+            const res = await fetch("/api/orders/cancel", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ orderId }),
+            });
+
+            const data = await res.json();
+
+            if (res.ok && data.ok) {
+                // Refresh orders to show updated list
+                fetchOrders();
+            } else {
+                alert(data.error || "Failed to cancel order");
+            }
+        } catch (err) {
+            console.error("Failed to cancel order", err);
+            alert("Network error: Failed to cancel order");
+        }
+    }
+
     function archiveOrder(orderId: number) {
         setArchivedOrderIds((prev) => {
             const newSet = new Set(prev).add(orderId);
@@ -164,6 +194,11 @@ export default function KitchenPage() {
             (o) => o.status === "completed" && !archivedOrderIds.has(o.order_id)
         )
         .slice(0, 10); // Only show the last 10 completed orders
+    const cancelledOrdersList = orders
+        .filter(
+            (o) => o.status === "cancelled" && !archivedOrderIds.has(o.order_id)
+        )
+        .slice(0, 5); // Show last 5 cancelled orders
 
     return (
         <div className="relative flex flex-col w-full min-h-screen overflow-x-hidden bg-gradient-to-br from-slate-100 via-gray-100 to-slate-200">
@@ -325,15 +360,28 @@ export default function KitchenPage() {
                                                 </div>
                                             ))}
                                         </div>
-                                        <Button
-                                            onClick={() =>
-                                                markAsCompleted(order.order_id)
-                                            }
-                                            className="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-6 text-lg shadow-lg"
-                                        >
-                                            <CheckCircle2 className="mr-2 h-5 w-5" />
-                                            Mark Complete
-                                        </Button>
+                                        <div className="space-y-2">
+                                            <Button
+                                                onClick={() =>
+                                                    markAsCompleted(
+                                                        order.order_id
+                                                    )
+                                                }
+                                                className="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-4 text-lg shadow-lg"
+                                            >
+                                                <CheckCircle2 className="mr-2 h-5 w-5" />
+                                                Mark Complete
+                                            </Button>
+                                            <Button
+                                                onClick={() =>
+                                                    cancelOrder(order.order_id)
+                                                }
+                                                variant="outline"
+                                                className="w-full border-2 border-red-500 text-red-600 hover:bg-red-50 font-bold py-4 text-lg shadow-lg"
+                                            >
+                                                Cancel Order
+                                            </Button>
+                                        </div>
                                     </CardContent>
                                 </Card>
                             );
@@ -424,6 +472,71 @@ export default function KitchenPage() {
                                                 Archive
                                             </Button>
                                         </div>
+                                    </CardContent>
+                                </Card>
+                            ))}
+                        </div>
+                    </div>
+                )}
+
+                {/* Cancelled Orders */}
+                {cancelledOrdersList.length > 0 && (
+                    <div className="mt-16">
+                        <h2 className="text-3xl font-bold font-deco mb-6 flex items-center gap-3 text-gray-900">
+                            <span className="text-red-500 text-4xl">✕</span>
+                            Cancelled Orders ({cancelledOrdersList.length})
+                        </h2>
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                            {cancelledOrdersList.map((order) => (
+                                <Card
+                                    key={order.order_id}
+                                    className="bg-red-50/90 backdrop-blur-md shadow-xl border-4 border-red-300 opacity-75"
+                                >
+                                    <CardHeader className="pb-4 bg-gradient-to-r from-red-100 to-red-200">
+                                        <CardTitle className="flex justify-between items-center">
+                                            <span className="text-4xl font-bold text-gray-900 line-through">
+                                                #{order.order_id}
+                                            </span>
+                                            <span className="text-lg font-semibold text-gray-700">
+                                                {order.order_time.substring(
+                                                    0,
+                                                    5
+                                                )}
+                                            </span>
+                                        </CardTitle>
+                                        <div className="text-sm font-bold text-red-700 mt-2 uppercase">
+                                            Cancelled
+                                        </div>
+                                    </CardHeader>
+                                    <CardContent className="pt-6">
+                                        <div className="space-y-2 mb-4">
+                                            {order.items.map((item, idx) => (
+                                                <div
+                                                    key={idx}
+                                                    className="flex flex-col"
+                                                >
+                                                    <span className="text-base line-through text-gray-500">
+                                                        {item.menu_item_name}
+                                                    </span>
+                                                    <span className="text-xs text-gray-400">
+                                                        Boba: {item.boba}% |
+                                                        Ice: {item.ice}% |
+                                                        Sugar: {item.sugar}%
+                                                    </span>
+                                                </div>
+                                            ))}
+                                        </div>
+                                        <Button
+                                            onClick={() =>
+                                                archiveOrder(order.order_id)
+                                            }
+                                            variant="outline"
+                                            className="w-full border-2 border-gray-400 hover:bg-gray-100 text-gray-700 font-bold"
+                                            size="sm"
+                                        >
+                                            <Archive className="mr-2 h-4 w-4" />
+                                            Archive
+                                        </Button>
                                     </CardContent>
                                 </Card>
                             ))}
