@@ -1,7 +1,6 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
-import Iridescence from "@/components/Iridescence";
 import Link from "next/link";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
@@ -32,7 +31,9 @@ export default function KitchenPage() {
     const [orders, setOrders] = useState<Order[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
-    const [archivedOrderIds, setArchivedOrderIds] = useState<Set<number>>(new Set());
+    const [archivedOrderIds, setArchivedOrderIds] = useState<Set<number>>(
+        new Set()
+    );
     const [currentTime, setCurrentTime] = useState(new Date());
 
     // Update current time every minute for elapsed time calculations
@@ -46,13 +47,13 @@ export default function KitchenPage() {
     // Load archived orders from localStorage on mount
     useEffect(() => {
         try {
-            const stored = localStorage.getItem('archivedOrders');
+            const stored = localStorage.getItem("archivedOrders");
             if (stored) {
                 const parsed = JSON.parse(stored);
                 setArchivedOrderIds(new Set(parsed));
             }
         } catch (e) {
-            console.error('Failed to load archived orders', e);
+            console.error("Failed to load archived orders", e);
         }
     }, []);
 
@@ -120,9 +121,12 @@ export default function KitchenPage() {
             const newSet = new Set(prev).add(orderId);
             // Save to localStorage
             try {
-                localStorage.setItem('archivedOrders', JSON.stringify(Array.from(newSet)));
+                localStorage.setItem(
+                    "archivedOrders",
+                    JSON.stringify(Array.from(newSet))
+                );
             } catch (e) {
-                console.error('Failed to save archived orders', e);
+                console.error("Failed to save archived orders", e);
             }
             return newSet;
         });
@@ -131,12 +135,12 @@ export default function KitchenPage() {
     // Calculate estimated preparation time based on number of items
     // Base time: 3 minutes, + 2 minutes per item
     function calculatePrepTime(itemCount: number): number {
-        return 3 + (itemCount * 2);
+        return 3 + itemCount * 2;
     }
 
     // Calculate elapsed time since order was placed
     function getElapsedMinutes(orderTime: string): number {
-        const [hours, minutes] = orderTime.split(':').map(Number);
+        const [hours, minutes] = orderTime.split(":").map(Number);
         const orderDate = new Date();
         orderDate.setHours(hours, minutes, 0, 0);
 
@@ -156,7 +160,9 @@ export default function KitchenPage() {
 
     const pendingOrders = orders.filter((o) => o.status === "pending");
     const completedOrdersList = orders
-        .filter((o) => o.status === "completed" && !archivedOrderIds.has(o.order_id))
+        .filter(
+            (o) => o.status === "completed" && !archivedOrderIds.has(o.order_id)
+        )
         .slice(0, 10); // Only show the last 10 completed orders
 
     return (
@@ -213,7 +219,9 @@ export default function KitchenPage() {
                     </h2>
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
                         {pendingOrders.map((order) => {
-                            const prepTime = calculatePrepTime(order.items.length);
+                            const prepTime = calculatePrepTime(
+                                order.items.length
+                            );
                             const elapsed = getElapsedMinutes(order.order_time);
                             const isOverdue = elapsed > prepTime;
 
@@ -222,21 +230,26 @@ export default function KitchenPage() {
                                     key={order.order_id}
                                     className={`bg-white/90 backdrop-blur-md shadow-xl border-4 transition-all hover:scale-105 ${
                                         isOverdue
-                                            ? 'border-red-500 hover:border-red-600'
-                                            : 'border-orange-400 hover:border-orange-500'
+                                            ? "border-red-500 hover:border-red-600"
+                                            : "border-orange-400 hover:border-orange-500"
                                     }`}
                                 >
-                                    <CardHeader className={`pb-4 ${
-                                        isOverdue
-                                            ? 'bg-gradient-to-r from-red-100 to-red-200'
-                                            : 'bg-gradient-to-r from-orange-100 to-orange-200'
-                                    }`}>
+                                    <CardHeader
+                                        className={`pb-4 ${
+                                            isOverdue
+                                                ? "bg-gradient-to-r from-red-100 to-red-200"
+                                                : "bg-gradient-to-r from-orange-100 to-orange-200"
+                                        }`}
+                                    >
                                         <CardTitle className="flex justify-between items-center">
                                             <span className="text-4xl font-bold text-gray-900">
                                                 #{order.order_id}
                                             </span>
                                             <span className="text-lg font-semibold text-gray-700">
-                                                {order.order_time.substring(0, 5)}
+                                                {order.order_time.substring(
+                                                    0,
+                                                    5
+                                                )}
                                             </span>
                                         </CardTitle>
                                         {order.employee !== null && (
@@ -254,7 +267,13 @@ export default function KitchenPage() {
                                         <div className="mt-3 space-y-2">
                                             <div className="flex items-center justify-between bg-white/60 rounded-lg px-3 py-2">
                                                 <div className="flex items-center gap-2">
-                                                    <Timer className={`h-4 w-4 ${isOverdue ? 'text-red-600' : 'text-blue-600'}`} />
+                                                    <Timer
+                                                        className={`h-4 w-4 ${
+                                                            isOverdue
+                                                                ? "text-red-600"
+                                                                : "text-blue-600"
+                                                        }`}
+                                                    />
                                                     <span className="text-xs font-semibold text-gray-700">
                                                         Est. Prep Time
                                                     </span>
@@ -265,44 +284,58 @@ export default function KitchenPage() {
                                             </div>
                                             <div className="flex items-center justify-between bg-white/60 rounded-lg px-3 py-2">
                                                 <div className="flex items-center gap-2">
-                                                    <Clock className={`h-4 w-4 ${isOverdue ? 'text-red-600' : 'text-orange-600'}`} />
+                                                    <Clock
+                                                        className={`h-4 w-4 ${
+                                                            isOverdue
+                                                                ? "text-red-600"
+                                                                : "text-orange-600"
+                                                        }`}
+                                                    />
                                                     <span className="text-xs font-semibold text-gray-700">
                                                         Waiting
                                                     </span>
                                                 </div>
-                                                <span className={`text-sm font-bold ${isOverdue ? 'text-red-600' : 'text-gray-900'}`}>
+                                                <span
+                                                    className={`text-sm font-bold ${
+                                                        isOverdue
+                                                            ? "text-red-600"
+                                                            : "text-gray-900"
+                                                    }`}
+                                                >
                                                     {formatPrepTime(elapsed)}
                                                 </span>
                                             </div>
                                         </div>
                                     </CardHeader>
-                                <CardContent className="pt-6">
-                                    <div className="space-y-3 mb-6">
-                                        {order.items.map((item, idx) => (
-                                            <div
-                                                key={idx}
-                                                className="border-b pb-3 border-gray-200 last:border-0"
-                                            >
-                                                <span className="font-semibold text-xl text-gray-800">
-                                                    {item.menu_item_name}
-                                                </span>
-                                                <div className="text-sm text-gray-600 mt-1">
-                                                    Boba: {item.boba}% | Ice: {item.ice}% | Sugar: {item.sugar}%
+                                    <CardContent className="pt-6">
+                                        <div className="space-y-3 mb-6">
+                                            {order.items.map((item, idx) => (
+                                                <div
+                                                    key={idx}
+                                                    className="border-b pb-3 border-gray-200 last:border-0"
+                                                >
+                                                    <span className="font-semibold text-xl text-gray-800">
+                                                        {item.menu_item_name}
+                                                    </span>
+                                                    <div className="text-sm text-gray-600 mt-1">
+                                                        Boba: {item.boba}% |
+                                                        Ice: {item.ice}% |
+                                                        Sugar: {item.sugar}%
+                                                    </div>
                                                 </div>
-                                            </div>
-                                        ))}
-                                    </div>
-                                    <Button
-                                        onClick={() =>
-                                            markAsCompleted(order.order_id)
-                                        }
-                                        className="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-6 text-lg shadow-lg"
-                                    >
-                                        <CheckCircle2 className="mr-2 h-5 w-5" />
-                                        Mark Complete
-                                    </Button>
-                                </CardContent>
-                            </Card>
+                                            ))}
+                                        </div>
+                                        <Button
+                                            onClick={() =>
+                                                markAsCompleted(order.order_id)
+                                            }
+                                            className="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-6 text-lg shadow-lg"
+                                        >
+                                            <CheckCircle2 className="mr-2 h-5 w-5" />
+                                            Mark Complete
+                                        </Button>
+                                    </CardContent>
+                                </Card>
                             );
                         })}
                     </div>
@@ -336,7 +369,10 @@ export default function KitchenPage() {
                                             </span>
                                             <div className="flex flex-col items-end gap-1">
                                                 <span className="text-base font-semibold text-gray-600">
-                                                    {order.order_time.substring(0, 5)}
+                                                    {order.order_time.substring(
+                                                        0,
+                                                        5
+                                                    )}
                                                 </span>
                                                 <CheckCircle2
                                                     className="text-green-600"
@@ -356,7 +392,9 @@ export default function KitchenPage() {
                                                         {item.menu_item_name}
                                                     </span>
                                                     <span className="text-xs text-gray-400">
-                                                        Boba: {item.boba}% | Ice: {item.ice}% | Sugar: {item.sugar}%
+                                                        Boba: {item.boba}% |
+                                                        Ice: {item.ice}% |
+                                                        Sugar: {item.sugar}%
                                                     </span>
                                                 </div>
                                             ))}
@@ -364,7 +402,9 @@ export default function KitchenPage() {
                                         <div className="flex gap-2">
                                             <Button
                                                 onClick={() =>
-                                                    markAsInProgress(order.order_id)
+                                                    markAsInProgress(
+                                                        order.order_id
+                                                    )
                                                 }
                                                 variant="outline"
                                                 className="flex-1 border-2 hover:bg-orange-50"
