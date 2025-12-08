@@ -19,6 +19,7 @@ type MenuItem = {
   price?: number | null;
   isavail?: boolean;
   seasonal?: boolean;
+  isexclusive?: boolean;
   ingredientIds?: number[];
   [key: string]: any;
 };
@@ -70,6 +71,10 @@ export default function Page() {
     setItems((prev) => prev.map((item) => ({ ...item, seasonal: value })));
   };
 
+  const toggleAllExclusive = (value: boolean) => {
+    setItems((prev) => prev.map((item) => ({ ...item, isexclusive: value })));
+  };
+
   const saveAllChanges = async () => {
     try {
       setError(null);
@@ -95,7 +100,7 @@ export default function Page() {
       const data = await res.json();
       if (!data.ok) throw new Error(data.error || "Failed to load");
 
-      // convert integer 0/1 to boolean for isavail and seasonal
+      // convert integer 0/1 to boolean for isavail, seasonal and isexclusive
       const normalizedItems = await Promise.all(
         (data.items || []).map(async (item: any) => {
           // Fetch ingredients for each item
@@ -108,6 +113,8 @@ export default function Page() {
             ...item,
             isavail: item.isavail === 1 || item.isavail === true,
             seasonal: item.seasonal === 1 || item.seasonal === true,
+            isexclusive:
+              item.isexclusive === 1 || item.isexclusive === true,
             ingredientIds: ingredientsData.ok
               ? ingredientsData.ingredientIds
               : [],
@@ -149,6 +156,7 @@ export default function Page() {
       price: 5.99,
       isavail: true,
       seasonal: false,
+      isexclusive: false,
     };
     try {
       const res = await fetch("/api/menu", {
@@ -164,6 +172,8 @@ export default function Page() {
         ...data.item,
         isavail: data.item.isavail === 1 || data.item.isavail === true,
         seasonal: data.item.seasonal === 1 || data.item.seasonal === true,
+        isexclusive:
+          data.item.isexclusive === 1 || data.item.isexclusive === true,
         ingredientIds: [], // Start with no ingredients
       };
       console.log("Normalized item:", normalizedItem);
@@ -198,6 +208,8 @@ export default function Page() {
         ...data.item,
         isavail: data.item.isavail === 1 || data.item.isavail === true,
         seasonal: data.item.seasonal === 1 || data.item.seasonal === true,
+        isexclusive:
+          data.item.isexclusive === 1 || data.item.isexclusive === true,
         ingredientIds: item.ingredientIds || [],
       };
       setItems((prev) => {
@@ -479,23 +491,41 @@ export default function Page() {
                           <span className="text-sm">Available</span>
                         </label>
                       </div>
-                      <div className="col-span-2 flex items-center gap-2">
-                        <label className="flex items-center gap-2 cursor-pointer">
-                          <input
-                            type="checkbox"
-                            checked={!!it.seasonal}
-                            onChange={(e) =>
-                              handleChange(
-                                originalIdx,
-                                "seasonal",
-                                e.target.checked
-                              )
-                            }
-                            className="cursor-pointer"
-                          />
-                          <span className="text-sm">Seasonal</span>
-                        </label>
-                      </div>
+                              <div className="col-span-1 flex items-center gap-2">
+                                <label className="flex items-center gap-2 cursor-pointer">
+                                  <input
+                                    type="checkbox"
+                                    checked={!!it.seasonal}
+                                    onChange={(e) =>
+                                      handleChange(
+                                        originalIdx,
+                                        "seasonal",
+                                        e.target.checked
+                                      )
+                                    }
+                                    className="cursor-pointer"
+                                  />
+                                  <span className="text-sm">Seasonal</span>
+                                </label>
+                              </div>
+
+                              <div className="col-span-1 flex items-center gap-2">
+                                <label className="flex items-center gap-2 cursor-pointer">
+                                  <input
+                                    type="checkbox"
+                                    checked={!!it.isexclusive}
+                                    onChange={(e) =>
+                                      handleChange(
+                                        originalIdx,
+                                        "isexclusive",
+                                        e.target.checked
+                                      )
+                                    }
+                                    className="cursor-pointer"
+                                  />
+                                  <span className="text-sm">Exclusive</span>
+                                </label>
+                              </div>
                       <div className="col-span-2 flex gap-1 flex-wrap">
                         <Button
                           size="sm"
