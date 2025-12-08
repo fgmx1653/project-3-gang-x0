@@ -134,14 +134,39 @@ export default function KitchenPage() {
         return 3 + (itemCount * 2);
     }
 
-    // Calculate elapsed time since order was placed
+// Calculate elapsed time since order was placed
     function getElapsedMinutes(orderTime: string): number {
-        const [hours, minutes] = orderTime.split(':').map(Number);
-        const orderDate = new Date();
-        orderDate.setHours(hours, minutes, 0, 0);
+        if (!orderTime) return 0;
 
-        const diffMs = currentTime.getTime() - orderDate.getTime();
-        return Math.floor(diffMs / 60000);
+        // Get current time in CST
+        const now = new Date();
+        const cstFormatter = new Intl.DateTimeFormat("en-US", {
+            timeZone: "America/Chicago",
+            hour: "numeric",
+            minute: "numeric",
+            hour12: false
+        });
+        
+        // Parse "HH:MM" from the current CST time
+        const parts = cstFormatter.formatToParts(now);
+        const nowH = parseInt(parts.find(p => p.type === 'hour')?.value || "0", 10);
+        const nowM = parseInt(parts.find(p => p.type === 'minute')?.value || "0", 10);
+        
+        // Parse order time (which we know is stored as CST HH:MM:SS)
+        const [orderH, orderM] = orderTime.split(':').map(Number);
+
+        // Convert both to minutes from midnight
+        const currentMinutes = (nowH * 60) + nowM;
+        const orderMinutes = (orderH * 60) + orderM;
+
+        // Handle day rollover (e.g. if order was 23:50 and now is 00:10)
+        // Note: This simple logic assumes orders don't stay pending for > 24 hours
+        let diff = currentMinutes - orderMinutes;
+        if (diff < -720) { // likely day rollover (e.g. -1400 minutes)
+             diff += 1440; // add 24 hours
+        }
+
+        return Math.max(0, diff);
     }
 
     // Format time for display
