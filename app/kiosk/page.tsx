@@ -10,7 +10,6 @@ import { X } from "lucide-react";
 
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import Image from "next/image";
 
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -34,6 +33,23 @@ export default function Home() {
 
   const [tab, setTab] = useState<string>("all");
   const [search, setSearch] = useState<string>("");
+  const [popular, setPopular] = useState<Record<string, number | null>>({});
+
+  useEffect(() => {
+    if (!popular || Object.keys(popular).length === 0) return;
+    console.log("popular state updated:", popular);
+    try {
+      const resolved = Object.fromEntries(
+        Object.entries(popular).map(([cat, id]) => [
+          cat,
+          menuItems.find((m) => m.id === id)?.name ?? id,
+        ])
+      );
+      console.log("popular resolved to names:", resolved);
+    } catch (e) {
+      console.warn("Could not resolve popular ids to names yet", e);
+    }
+  }, [popular, menuItems]);
 
   // Error message labels
   const [errorLoadingMenuLabel, setErrorLoadingMenuLabel] =
@@ -192,6 +208,21 @@ export default function Home() {
           })
         );
         setMenuItems(items);
+        // fetch popular/top sellers per category
+        try {
+          fetch("/api/popular")
+            .then((r) => r.json())
+            .then((p) => {
+              console.log("/api/popular response:", p);
+              if (p?.ok && p.popular) setPopular(p.popular);
+              else console.warn("/api/popular did not return popular mapping", p);
+            })
+            .catch((err) => {
+              console.error("Failed to fetch /api/popular", err);
+            });
+        } catch (e) {
+          console.error("Error initiating /api/popular fetch", e);
+        }
         setError(null);
         setRetryCount(0); // Reset retry count on success
         setLoading(false);
@@ -493,8 +524,19 @@ export default function Home() {
                       <Card
                         key={item.id}
                         onClick={() => addToCart(menuItems[idx])}
-                        className="bg-white/80 backdrop-blur-md hover:scale-105 hover:shadow-xl hover:bg-white transition-all duration-200 cursor-pointer border-2 border-transparent hover:border-primary/20 flex flex-col aspect-[4/5] w-full"
+                        className="relative bg-white/80 backdrop-blur-md hover:scale-105 hover:shadow-xl hover:bg-white transition-all duration-200 cursor-pointer border-2 border-transparent hover:border-primary/20 flex flex-col aspect-[4/5] w-full"
                       >
+                        {/* top-left badge for category top-seller (show in tabs and in All view for any category top-seller) */}
+                        {((catValue !== "all" && Number(popular?.[catValue]) === Number(item.id)) ||
+                          (catValue === "all" && Object.values(popular || {}).some((v) => Number(v) === Number(item.id)))) && (
+                          <img
+                            src="/img/star_icon.png"
+                            alt="Top seller"
+                            aria-hidden={true}
+                            className="absolute top-3 left-3 w-8 h-8 drop-shadow-lg z-50 pointer-events-none"
+                          />
+                        )}
+
                         <CardContent className="flex-1 flex flex-col justify-between items-center p-4">
                           <div className="relative w-full flex-none h-28 md:h-32 lg:h-36 mb-4 flex items-center justify-center">
                             <img
