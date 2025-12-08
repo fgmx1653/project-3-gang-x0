@@ -12,21 +12,21 @@ export async function GET(req: Request) {
             )
         `);
 
-        // Get all orders from today (CST), grouped by order_id
+        // --- TIMEZONE FIX START ---
+        // Get "Today" in Central Time
         const now = new Date();
         const formatter = new Intl.DateTimeFormat("en-US", {
             timeZone: "America/Chicago",
             year: "numeric",
             month: "2-digit",
-            day: "2-digit"
+            day: "2-digit",
         });
         const parts = formatter.formatToParts(now);
-        const getPart = (type: string) => parts.find(p => p.type === type)?.value;
-        
-        const year = getPart('year');
-        const month = getPart('month');
-        const day = getPart('day');
+        const year = parts.find(p => p.type === 'year')?.value;
+        const month = parts.find(p => p.type === 'month')?.value;
+        const day = parts.find(p => p.type === 'day')?.value;
         const todayDate = `${year}-${month}-${day}`;
+        // --- TIMEZONE FIX END ---
 
         console.log("Fetching orders for date (CST):", todayDate);
 
