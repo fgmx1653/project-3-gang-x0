@@ -39,10 +39,11 @@ export default function OrdersHistoryPage() {
   const abortControllerRef = useRef<AbortController | null>(null);
 
   // React Hook Form setup
-  const form = useForm<OrderHistoryFormData>({
+  // FIX: Remove <OrderHistoryFormData> generic to allow type inference from the resolver
+  const form = useForm({
     resolver: zodResolver(orderHistoryFormSchema),
     defaultValues: getDefaultQueryValues(),
-    mode: "onChange", // Validate on change for real-time feedback
+    mode: "onChange", 
   });
 
   const [loading, setLoading] = useState<boolean>(true);
