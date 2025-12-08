@@ -12,14 +12,23 @@ export async function GET(req: Request) {
             )
         `);
 
-        // Get all orders from today, grouped by order_id
-        const today = new Date();
-        const year = today.getFullYear();
-        const month = String(today.getMonth() + 1).padStart(2, "0");
-        const day = String(today.getDate()).padStart(2, "0");
+        // Get all orders from today (CST), grouped by order_id
+        const now = new Date();
+        const formatter = new Intl.DateTimeFormat("en-US", {
+            timeZone: "America/Chicago",
+            year: "numeric",
+            month: "2-digit",
+            day: "2-digit"
+        });
+        const parts = formatter.formatToParts(now);
+        const getPart = (type: string) => parts.find(p => p.type === type)?.value;
+        
+        const year = getPart('year');
+        const month = getPart('month');
+        const day = getPart('day');
         const todayDate = `${year}-${month}-${day}`;
 
-        console.log("Fetching orders for date:", todayDate);
+        console.log("Fetching orders for date (CST):", todayDate);
 
         const result = await pool.query(
             `SELECT
