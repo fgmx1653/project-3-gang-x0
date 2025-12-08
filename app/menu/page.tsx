@@ -1,7 +1,6 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
-import Iridescence from "@/components/Iridescence";
 import Weather from "@/components/Weather";
 import Link from "next/link";
 
@@ -55,14 +54,7 @@ export default function Home() {
 
     return (
         <div className="relative min-h-screen w-full flex flex-col overflow-hidden">
-            <div className="fixed inset-0 -z-20 bg-white/50">
-                <Iridescence
-                    color={[1.0, 0.7, 0.7]}
-                    mouseReact={false}
-                    amplitude={0.1}
-                    speed={1.0}
-                />
-            </div>
+            <div className="fixed inset-0 -z-20 bg-gradient-to-br from-slate-100 via-gray-100 to-slate-200"></div>
 
             <div className="flex-none p-6 z-10">
                 <div className="flex flex-row items-start justify-between w-full">

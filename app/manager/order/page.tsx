@@ -1,7 +1,6 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
-import Iridescence from "@/components/Iridescence";
 import Link from "next/link";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
@@ -67,12 +66,12 @@ export default function ManagerOrderPage() {
         const user = getStoredUser();
 
         if (!user) {
-            setError('User not logged in');
+            setError("User not logged in");
             return;
         }
 
         if (user.id === null || user.id === undefined) {
-            setError('User ID not found. Please log out and log back in.');
+            setError("User ID not found. Please log out and log back in.");
             return;
         }
 
@@ -81,12 +80,12 @@ export default function ManagerOrderPage() {
         setOrderSuccess(false);
 
         try {
-            const res = await fetch('/api/orders', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+            const res = await fetch("/api/orders", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
                     items: cart,
-                    employeeId: user.id
+                    employeeId: user.id,
                 }),
             });
 
@@ -97,11 +96,11 @@ export default function ManagerOrderPage() {
                 setCart([]);
                 setTimeout(() => setOrderSuccess(false), 3000);
             } else {
-                setError(data?.error || 'Failed to place order');
+                setError(data?.error || "Failed to place order");
             }
         } catch (err) {
-            console.error('Order placement failed', err);
-            setError('Network error');
+            console.error("Order placement failed", err);
+            setError("Network error");
         } finally {
             setPlacingOrder(false);
         }
@@ -128,14 +127,7 @@ export default function ManagerOrderPage() {
 
     return (
         <div className="relative h-screen w-full flex flex-col overflow-hidden">
-            <div className="fixed inset-0 -z-20 bg-white/50">
-                <Iridescence
-                    color={[1.0, 0.7, 0.7]}
-                    mouseReact={true}
-                    amplitude={0.1}
-                    speed={1.0}
-                />
-            </div>
+            <div className="fixed inset-0 -z-20 bg-gradient-to-br from-slate-100 via-gray-100 to-slate-200"></div>
 
             <div className="flex-none p-4 flex gap-2 z-10 bg-white/30 backdrop-blur-sm border-b border-white/20">
                 <Link href="/manager">
@@ -189,7 +181,9 @@ export default function ManagerOrderPage() {
                                                 {item.name}
                                             </h2>
                                             <div className="text-xs text-gray-600 font-deco">
-                                                Boba: {item.boba ?? 100}% | Ice: {item.ice ?? 100}% | Sugar: {item.sugar ?? 100}%
+                                                Boba: {item.boba ?? 100}% | Ice:{" "}
+                                                {item.ice ?? 100}% | Sugar:{" "}
+                                                {item.sugar ?? 100}%
                                             </div>
                                         </div>
                                         <div className="flex items-center gap-2">
@@ -202,9 +196,13 @@ export default function ManagerOrderPage() {
                                                 className="h-8 w-8 hover:bg-blue-100"
                                                 onClick={() => {
                                                     setEditingItem(item);
-                                                    setEditBoba(item.boba ?? 100);
+                                                    setEditBoba(
+                                                        item.boba ?? 100
+                                                    );
                                                     setEditIce(item.ice ?? 100);
-                                                    setEditSugar(item.sugar ?? 100);
+                                                    setEditSugar(
+                                                        item.sugar ?? 100
+                                                    );
                                                 }}
                                             >
                                                 <Edit className="h-4 w-4" />
@@ -213,7 +211,13 @@ export default function ManagerOrderPage() {
                                                 variant="ghost"
                                                 size="icon"
                                                 className="h-8 w-8 hover:bg-red-100 hover:text-red-600"
-                                                onClick={() => setCart((prev) => prev.filter((i) => i !== item))}
+                                                onClick={() =>
+                                                    setCart((prev) =>
+                                                        prev.filter(
+                                                            (i) => i !== item
+                                                        )
+                                                    )
+                                                }
                                             >
                                                 <X className="h-4 w-4" />
                                             </Button>
@@ -225,8 +229,14 @@ export default function ManagerOrderPage() {
                     </CardContent>
                     {cart.length > 0 && (
                         <CardFooter className="flex-none border-t border-white/20 p-4 bg-white/20">
-                            <Button className="w-full text-lg py-6 shadow-lg" onClick={placeOrder} disabled={placingOrder}>
-                                {placingOrder ? 'Placing Order...' : 'Place Order'}
+                            <Button
+                                className="w-full text-lg py-6 shadow-lg"
+                                onClick={placeOrder}
+                                disabled={placingOrder}
+                            >
+                                {placingOrder
+                                    ? "Placing Order..."
+                                    : "Place Order"}
                             </Button>
                         </CardFooter>
                     )}
@@ -243,14 +253,18 @@ export default function ManagerOrderPage() {
                                         typeof crypto !== "undefined" &&
                                         "randomUUID" in crypto
                                             ? (crypto as any).randomUUID()
-                                            : `${item.id}-${Date.now()}-${Math.floor(Math.random() * 10000)}`;
+                                            : `${
+                                                  item.id
+                                              }-${Date.now()}-${Math.floor(
+                                                  Math.random() * 10000
+                                              )}`;
 
                                     const newItem = {
                                         ...item,
                                         cartId,
                                         boba: 100,
                                         ice: 100,
-                                        sugar: 100
+                                        sugar: 100,
                                     };
                                     setCart((prev) => [...prev, newItem]);
                                 }}
@@ -272,22 +286,32 @@ export default function ManagerOrderPage() {
             </div>
 
             {/* Edit Customization Dialog */}
-            <Dialog open={editingItem !== null} onOpenChange={(open: boolean) => !open && setEditingItem(null)}>
+            <Dialog
+                open={editingItem !== null}
+                onOpenChange={(open: boolean) => !open && setEditingItem(null)}
+            >
                 <DialogContent className="bg-white">
                     <DialogHeader>
                         <DialogTitle>Customize {editingItem?.name}</DialogTitle>
                         <DialogDescription>
-                            Adjust boba, ice, and sugar levels (25%, 50%, 75%, or 100%)
+                            Adjust boba, ice, and sugar levels (25%, 50%, 75%,
+                            or 100%)
                         </DialogDescription>
                     </DialogHeader>
                     <div className="space-y-4 py-4">
                         <div className="space-y-2">
-                            <Label htmlFor="boba">Boba Level: {editBoba}%</Label>
+                            <Label htmlFor="boba">
+                                Boba Level: {editBoba}%
+                            </Label>
                             <div className="flex gap-2">
                                 {[25, 50, 75, 100].map((level) => (
                                     <Button
                                         key={level}
-                                        variant={editBoba === level ? "default" : "outline"}
+                                        variant={
+                                            editBoba === level
+                                                ? "default"
+                                                : "outline"
+                                        }
                                         onClick={() => setEditBoba(level)}
                                         className="flex-1"
                                     >
@@ -302,7 +326,11 @@ export default function ManagerOrderPage() {
                                 {[25, 50, 75, 100].map((level) => (
                                     <Button
                                         key={level}
-                                        variant={editIce === level ? "default" : "outline"}
+                                        variant={
+                                            editIce === level
+                                                ? "default"
+                                                : "outline"
+                                        }
                                         onClick={() => setEditIce(level)}
                                         className="flex-1"
                                     >
@@ -312,12 +340,18 @@ export default function ManagerOrderPage() {
                             </div>
                         </div>
                         <div className="space-y-2">
-                            <Label htmlFor="sugar">Sugar Level: {editSugar}%</Label>
+                            <Label htmlFor="sugar">
+                                Sugar Level: {editSugar}%
+                            </Label>
                             <div className="flex gap-2">
                                 {[25, 50, 75, 100].map((level) => (
                                     <Button
                                         key={level}
-                                        variant={editSugar === level ? "default" : "outline"}
+                                        variant={
+                                            editSugar === level
+                                                ? "default"
+                                                : "outline"
+                                        }
                                         onClick={() => setEditSugar(level)}
                                         className="flex-1"
                                     >
@@ -328,16 +362,26 @@ export default function ManagerOrderPage() {
                         </div>
                     </div>
                     <DialogFooter>
-                        <Button variant="outline" onClick={() => setEditingItem(null)}>
+                        <Button
+                            variant="outline"
+                            onClick={() => setEditingItem(null)}
+                        >
                             Cancel
                         </Button>
                         <Button
                             onClick={() => {
-                                setCart(prev => prev.map(i =>
-                                    i === editingItem
-                                        ? { ...i, boba: editBoba, ice: editIce, sugar: editSugar }
-                                        : i
-                                ));
+                                setCart((prev) =>
+                                    prev.map((i) =>
+                                        i === editingItem
+                                            ? {
+                                                  ...i,
+                                                  boba: editBoba,
+                                                  ice: editIce,
+                                                  sugar: editSugar,
+                                              }
+                                            : i
+                                    )
+                                );
                                 setEditingItem(null);
                             }}
                         >

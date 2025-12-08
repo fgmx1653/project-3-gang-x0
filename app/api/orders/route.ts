@@ -53,9 +53,12 @@ export async function POST(req: Request) {
         const time = `${hour}:${minute}:${second}`; // HH:MM:SS in CST
         // --- TIMEZONE FIX END ---
 
-        // Get the next order_id
+        // Get the next order_id from both orders and cancelled_orders to avoid ID reuse
         const maxOrderIdResult = await client.query(
-            "SELECT COALESCE(MAX(order_id), 0) + 1 as next_id FROM orders"
+            `SELECT GREATEST(
+                COALESCE((SELECT MAX(order_id) FROM orders), 0),
+                COALESCE((SELECT MAX(order_id) FROM cancelled_orders), 0)
+            ) + 1 as next_id`
         );
         const nextOrderId = maxOrderIdResult.rows[0].next_id;
 
@@ -74,7 +77,17 @@ export async function POST(req: Request) {
             // Insert order record for this item
             await client.query(
                 "INSERT INTO orders (order_id, order_date, order_time, menu_item_id, price, employee, boba, ice, sugar) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)",
-                [nextOrderId, date, time, menuItemId, price, employeeId, boba, ice, sugar]
+                [
+                    nextOrderId,
+                    date,
+                    time,
+                    menuItemId,
+                    price,
+                    employeeId,
+                    boba,
+                    ice,
+                    sugar,
+                ]
             );
 
             // Get ingredients for this menu item from menu_recipe
