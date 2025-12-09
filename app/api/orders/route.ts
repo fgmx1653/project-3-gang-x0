@@ -5,7 +5,7 @@ export async function POST(req: Request) {
     const client = await pool.connect();
 
     try {
-        const { items, employeeId = null } = await req.json();
+        const { items, employeeId = null, specialInstructions = null } = await req.json();
 
         if (!items || !Array.isArray(items) || items.length === 0) {
             return NextResponse.json(
@@ -157,10 +157,10 @@ export async function POST(req: Request) {
 
         // Add order to order_status table with 'pending' status for kitchen display
         await client.query(
-            `INSERT INTO order_status (order_id, status, updated_at)
-             VALUES ($1, 'pending', CURRENT_TIMESTAMP)
+            `INSERT INTO order_status (order_id, status, updated_at, instructions)
+             VALUES ($1, 'pending', CURRENT_TIMESTAMP, $2)
              ON CONFLICT (order_id) DO NOTHING`,
-            [nextOrderId]
+            [nextOrderId, specialInstructions]
         );
 
         // Commit transaction

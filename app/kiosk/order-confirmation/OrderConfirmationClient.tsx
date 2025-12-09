@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
+import { jsPDF } from "jspdf";
 
 import { translateText } from '@/lib/translate';
 import { useLanguage } from "@/lib/LanguageContext";
@@ -29,6 +30,8 @@ export default function OrderConfirmationClient({ encodedData }: Props) {
   const [subtotalLabel, setSubtotalLabel] = useState('Subtotal');
     const [totalLabel, setTotalLabel] = useState('Total');
     const [taxLabel, setTaxLabel] = useState('Tax');
+    const [specialInstructionsLabel, setSpecialInstructionsLabel] = useState('Special Instructions');
+    const [downloadReceiptLabel, setDownloadReceiptLabel] = useState('Download Receipt');
 
   const handleLangChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     setLang(e.target.value);
@@ -53,6 +56,8 @@ export default function OrderConfirmationClient({ encodedData }: Props) {
         setSubtotalLabel(await translateText('Subtotal', lang));
         setTotalLabel(await translateText('Total', lang));
         setTaxLabel(await translateText('Tax', lang));
+        setSpecialInstructionsLabel(await translateText('Special Instructions', lang));
+        setDownloadReceiptLabel(await translateText('Download Receipt', lang));
       }
       translateLabels();
     }, [lang]);
@@ -123,6 +128,155 @@ export default function OrderConfirmationClient({ encodedData }: Props) {
     minute: "2-digit",
   });
 
+  const downloadReceipt = () => {
+    const doc = new jsPDF();
+
+    // Set up fonts and styles
+    const pageWidth = doc.internal.pageSize.getWidth();
+    let yPosition = 20;
+
+    // Header
+    doc.setFontSize(20);
+    doc.setFont("helvetica", "bold");
+    doc.text("KUNG FU TEA", pageWidth / 2, yPosition, { align: "center" });
+    yPosition += 10;
+
+    doc.setFontSize(16);
+    doc.text("RECEIPT", pageWidth / 2, yPosition, { align: "center" });
+    yPosition += 15;
+
+    // Order Details
+    doc.setFontSize(11);
+    doc.setFont("helvetica", "normal");
+    doc.text(`Order #: ${orderData.orderId}`, 20, yPosition);
+    yPosition += 7;
+    doc.text(`Date: ${currentDate}`, 20, yPosition);
+    yPosition += 7;
+    doc.text(`Payment: ${orderData.paymentType}`, 20, yPosition);
+    yPosition += 12;
+
+    // Line separator
+    doc.setLineWidth(0.5);
+    doc.line(20, yPosition, pageWidth - 20, yPosition);
+    yPosition += 10;
+
+    // Items section
+    doc.setFontSize(12);
+    doc.setFont("helvetica", "bold");
+    doc.text("ITEMS", 20, yPosition);
+    yPosition += 8;
+
+    doc.setFontSize(10);
+    doc.setFont("helvetica", "normal");
+
+    orderData.items?.forEach((item: any) => {
+      // Check if we need a new page
+      if (yPosition > 270) {
+        doc.addPage();
+        yPosition = 20;
+      }
+
+      doc.setFont("helvetica", "bold");
+      doc.text(item.name, 20, yPosition);
+      yPosition += 6;
+
+      doc.setFont("helvetica", "normal");
+      doc.text(`Price: $${Number(item.price).toFixed(2)}`, 25, yPosition);
+      yPosition += 5;
+
+      if (item.boba !== undefined) {
+        doc.text(`Boba: ${item.boba}%`, 25, yPosition);
+        yPosition += 5;
+      }
+      if (item.ice !== undefined) {
+        doc.text(`Ice: ${item.ice}%`, 25, yPosition);
+        yPosition += 5;
+      }
+      if (item.sugar !== undefined) {
+        doc.text(`Sugar: ${item.sugar}%`, 25, yPosition);
+        yPosition += 5;
+      }
+      yPosition += 3;
+    });
+
+    yPosition += 5;
+
+    // Special Instructions
+    if (orderData.specialInstructions) {
+      if (yPosition > 240) {
+        doc.addPage();
+        yPosition = 20;
+      }
+
+      doc.setLineWidth(0.5);
+      doc.line(20, yPosition, pageWidth - 20, yPosition);
+      yPosition += 10;
+
+      doc.setFontSize(12);
+      doc.setFont("helvetica", "bold");
+      doc.text("SPECIAL INSTRUCTIONS", 20, yPosition);
+      yPosition += 8;
+
+      doc.setFontSize(10);
+      doc.setFont("helvetica", "normal");
+
+      // Split long instructions text
+      const splitInstructions = doc.splitTextToSize(orderData.specialInstructions, pageWidth - 40);
+      splitInstructions.forEach((line: string) => {
+        if (yPosition > 270) {
+          doc.addPage();
+          yPosition = 20;
+        }
+        doc.text(line, 20, yPosition);
+        yPosition += 5;
+      });
+      yPosition += 5;
+    }
+
+    // Payment Summary
+    if (yPosition > 220) {
+      doc.addPage();
+      yPosition = 20;
+    }
+
+    doc.setLineWidth(0.5);
+    doc.line(20, yPosition, pageWidth - 20, yPosition);
+    yPosition += 10;
+
+    doc.setFontSize(12);
+    doc.setFont("helvetica", "bold");
+    doc.text("PAYMENT SUMMARY", 20, yPosition);
+    yPosition += 10;
+
+    doc.setFontSize(11);
+    doc.setFont("helvetica", "normal");
+    doc.text("Subtotal:", 20, yPosition);
+    doc.text(`$${orderData.subtotal?.toFixed(2)}`, pageWidth - 20, yPosition, { align: "right" });
+    yPosition += 7;
+
+    doc.text("Tax (8.5%):", 20, yPosition);
+    doc.text(`$${orderData.tax?.toFixed(2)}`, pageWidth - 20, yPosition, { align: "right" });
+    yPosition += 10;
+
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(13);
+    doc.text("Total:", 20, yPosition);
+    doc.text(`$${orderData.total?.toFixed(2)}`, pageWidth - 20, yPosition, { align: "right" });
+    yPosition += 15;
+
+    // Footer
+    doc.setLineWidth(0.5);
+    doc.line(20, yPosition, pageWidth - 20, yPosition);
+    yPosition += 10;
+
+    doc.setFontSize(12);
+    doc.setFont("helvetica", "italic");
+    doc.text("Thank you for your order!", pageWidth / 2, yPosition, { align: "center" });
+
+    // Save the PDF
+    doc.save(`receipt-${orderData.orderId}.pdf`);
+  };
+
   return (
     <div className="min-h-screen p-8 bg-background text-foreground">
       <div className="max-w-2xl mx-auto bg-white/70 backdrop-blur-md rounded-lg p-8">
@@ -149,6 +303,13 @@ export default function OrderConfirmationClient({ encodedData }: Props) {
             </div>
           </div>
         </div>
+
+        {orderData.specialInstructions && (
+          <div className="mb-6 p-4 bg-yellow-50 border-2 border-yellow-400 rounded-lg">
+            <h2 className="text-lg font-semibold text-yellow-900 mb-2">{specialInstructionsLabel}</h2>
+            <p className="text-sm text-yellow-800 break-words">{orderData.specialInstructions}</p>
+          </div>
+        )}
 
         <div className="mb-6">
           <h2 className="text-xl font-semibold mb-4">{itemsLabel}</h2>
@@ -186,7 +347,10 @@ export default function OrderConfirmationClient({ encodedData }: Props) {
           </div>
         </div>
 
-        <div className="flex justify-center">
+        <div className="flex flex-col sm:flex-row justify-center gap-3">
+          <Button onClick={downloadReceipt} variant="outline" className="w-full sm:w-auto">
+            {downloadReceiptLabel}
+          </Button>
           <Link href="/kiosk">
             <Button className="w-full sm:w-auto">{backToKioskLabel}</Button>
           </Link>

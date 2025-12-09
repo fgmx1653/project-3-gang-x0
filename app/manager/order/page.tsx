@@ -38,6 +38,8 @@ export default function ManagerOrderPage() {
     const [editIce, setEditIce] = useState(100);
     const [editSugar, setEditSugar] = useState(100);
     const [editSize, setEditSize] = useState<number>(1);
+    const [showInstructionsDialog, setShowInstructionsDialog] = useState(false);
+    const [specialInstructions, setSpecialInstructions] = useState("");
 
     async function getMenuItems() {
         setLoading(true);
@@ -87,6 +89,7 @@ export default function ManagerOrderPage() {
                 body: JSON.stringify({
                     items: cart,
                     employeeId: user.id,
+                    specialInstructions: specialInstructions.trim() || null,
                 }),
             });
 
@@ -95,6 +98,7 @@ export default function ManagerOrderPage() {
             if (res.ok && data.ok) {
                 setOrderSuccess(true);
                 setCart([]);
+                setSpecialInstructions("");
                 setTimeout(() => setOrderSuccess(false), 3000);
             } else {
                 setError(data?.error || "Failed to place order");
@@ -182,14 +186,30 @@ export default function ManagerOrderPage() {
                                                 {item.name}
                                             </h2>
                                             <div className="text-xs text-gray-600 font-deco">
-                                                Size: {Number(item.size || 1) === 1 ? 'Small' : Number(item.size || 1) === 2 ? 'Medium' : 'Large'}
+                                                Size:{" "}
+                                                {Number(item.size || 1) === 1
+                                                    ? "Small"
+                                                    : Number(item.size || 1) ===
+                                                      2
+                                                    ? "Medium"
+                                                    : "Large"}
                                                 <br />
-                                                Boba: {item.boba ?? 100}% | Ice: {item.ice ?? 100}% | Sugar: {item.sugar ?? 100}%
+                                                Boba: {item.boba ?? 100}% | Ice:{" "}
+                                                {item.ice ?? 100}% | Sugar:{" "}
+                                                {item.sugar ?? 100}%
                                             </div>
                                         </div>
                                         <div className="flex items-center gap-2">
                                             <span className="font-deco font-bold text-black/50">
-                                                ${(Number(item.price || 0) + Math.max(0, Number(item.size || 1) - 1)).toFixed(2)}
+                                                $
+                                                {(
+                                                    Number(item.price || 0) +
+                                                    Math.max(
+                                                        0,
+                                                        Number(item.size || 1) -
+                                                            1
+                                                    )
+                                                ).toFixed(2)}
                                             </span>
                                             <Button
                                                 variant="ghost"
@@ -204,7 +224,9 @@ export default function ManagerOrderPage() {
                                                     setEditSugar(
                                                         item.sugar ?? 100
                                                     );
-                                                    setEditSize(Number(item.size || 1));
+                                                    setEditSize(
+                                                        Number(item.size || 1)
+                                                    );
                                                 }}
                                             >
                                                 <Edit className="h-4 w-4" />
@@ -230,7 +252,16 @@ export default function ManagerOrderPage() {
                         )}
                     </CardContent>
                     {cart.length > 0 && (
-                        <CardFooter className="flex-none border-t border-white/20 p-4 bg-white/20">
+                        <CardFooter className="flex-none border-t border-white/20 p-4 bg-white/20 flex-col gap-3">
+                            <Button
+                                variant="outline"
+                                className="w-full"
+                                onClick={() => setShowInstructionsDialog(true)}
+                            >
+                                {specialInstructions
+                                    ? "Edit Special Instructions"
+                                    : "Add Special Instructions"}
+                            </Button>
                             <Button
                                 className="w-full text-lg py-6 shadow-lg"
                                 onClick={placeOrder}
@@ -364,16 +395,36 @@ export default function ManagerOrderPage() {
                             </div>
                         </div>
                         <div className="space-y-2">
-                            <Label htmlFor="size">Size: {editSize === 1 ? 'Small' : editSize === 2 ? 'Medium' : 'Large'}</Label>
+                            <Label htmlFor="size">
+                                Size:{" "}
+                                {editSize === 1
+                                    ? "Small"
+                                    : editSize === 2
+                                    ? "Medium"
+                                    : "Large"}
+                            </Label>
                             <div className="flex gap-2">
-                                {[1,2,3].map((s) => (
+                                {[1, 2, 3].map((s) => (
                                     <Button
                                         key={s}
-                                        variant={editSize === s ? 'default' : 'outline'}
+                                        variant={
+                                            editSize === s
+                                                ? "default"
+                                                : "outline"
+                                        }
                                         onClick={() => setEditSize(s)}
                                         className="flex-1"
                                     >
-                                        {s === 1 ? 'Small' : s === 2 ? 'Medium' : 'Large'}{s === 2 ? ' (+$1)' : s === 3 ? ' (+$2)' : ''}
+                                        {s === 1
+                                            ? "Small"
+                                            : s === 2
+                                            ? "Medium"
+                                            : "Large"}
+                                        {s === 2
+                                            ? " (+$1)"
+                                            : s === 3
+                                            ? " (+$2)"
+                                            : ""}
                                     </Button>
                                 ))}
                             </div>
@@ -387,7 +438,7 @@ export default function ManagerOrderPage() {
                             Cancel
                         </Button>
                         <Button
-                                onClick={() => {
+                            onClick={() => {
                                 setCart((prev) =>
                                     prev.map((i) =>
                                         i === editingItem
@@ -405,6 +456,50 @@ export default function ManagerOrderPage() {
                             }}
                         >
                             Save Changes
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
+            {/* Special Instructions Dialog */}
+            <Dialog
+                open={showInstructionsDialog}
+                onOpenChange={setShowInstructionsDialog}
+            >
+                <DialogContent className="bg-white">
+                    <DialogHeader>
+                        <DialogTitle>Special Instructions</DialogTitle>
+                        <DialogDescription>
+                            Add any special requests or dietary notes for this
+                            order (optional)
+                        </DialogDescription>
+                    </DialogHeader>
+                    <div className="py-4">
+                        <textarea
+                            className="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-primary resize-none"
+                            rows={5}
+                            placeholder="Add any special requests or dietary notes..."
+                            value={specialInstructions}
+                            onChange={(e) =>
+                                setSpecialInstructions(e.target.value)
+                            }
+                            maxLength={500}
+                        />
+                        <div className="text-xs text-gray-500 mt-1 text-right">
+                            {specialInstructions.length}/500
+                        </div>
+                    </div>
+                    <DialogFooter>
+                        <Button
+                            variant="outline"
+                            onClick={() => setShowInstructionsDialog(false)}
+                        >
+                            Cancel
+                        </Button>
+                        <Button
+                            onClick={() => setShowInstructionsDialog(false)}
+                        >
+                            Save
                         </Button>
                     </DialogFooter>
                 </DialogContent>

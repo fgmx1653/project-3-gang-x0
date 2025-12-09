@@ -56,6 +56,7 @@ export async function GET(req: Request) {
         MIN(o.order_time) as order_time,
         MIN(o.employee) as employee,
         COALESCE(os.status, 'pending') as status,
+        os.instructions,
         json_agg(
           json_build_object(
                         'menu_item_id', o.menu_item_id,
@@ -74,7 +75,7 @@ export async function GET(req: Request) {
         AND NOT EXISTS (
           SELECT 1 FROM cancelled_orders co WHERE co.order_id = o.order_id
         )
-      GROUP BY o.order_id, os.status
+      GROUP BY o.order_id, os.status, os.instructions
       
       UNION ALL
       
@@ -84,6 +85,7 @@ export async function GET(req: Request) {
         MIN(co.order_time) as order_time,
         MIN(co.employee) as employee,
         'cancelled' as status,
+        NULL as instructions,
         json_agg(
           json_build_object(
                         'menu_item_id', co.menu_item_id,
