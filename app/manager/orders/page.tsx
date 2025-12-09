@@ -42,7 +42,7 @@ export default function OrdersHistoryPage() {
   const form = useForm<OrderHistoryFormData>({
     resolver: zodResolver(orderHistoryFormSchema),
     defaultValues: getDefaultQueryValues(),
-    mode: "onChange", 
+    mode: "onChange",
   });
 
   const [loading, setLoading] = useState<boolean>(true);
@@ -89,12 +89,15 @@ export default function OrdersHistoryPage() {
 
       // Handle validation errors from backend
       if (!res.ok) {
-        if (res.status === 400 && 'field' in responseData) {
+        if (res.status === 400 && "field" in responseData) {
           const validationError = responseData as ValidationErrorResponse;
 
           // Set field-specific error
           if (validationError.field) {
-            setFieldErrors({ [validationError.field]: validationError.error });
+            setFieldErrors(prev => ({
+              ...prev,
+              [validationError.field]: validationError.error,
+            }));
             form.setError(validationError.field as any, {
               message: validationError.error,
             });
@@ -103,8 +106,8 @@ export default function OrdersHistoryPage() {
           // Set general error with all details
           if (validationError.details && validationError.details.length > 1) {
             const errorSummary = validationError.details
-              .map(d => `${d.path.join('.')}: ${d.message}`)
-              .join('; ');
+              .map(d => `${d.path.join(".")}: ${d.message}`)
+              .join("; ");
             setError(errorSummary);
           } else {
             setError(validationError.error);
@@ -133,9 +136,8 @@ export default function OrdersHistoryPage() {
         corrections.push(`End date adjusted to ${responseData.end}`);
       }
       setAutoCorrections(corrections);
-
     } catch (e: any) {
-      if (e.name === 'AbortError') {
+      if (e.name === "AbortError") {
         return; // Silently ignore aborted requests
       }
       setError(e?.message || "Error loading orders");
@@ -144,18 +146,97 @@ export default function OrdersHistoryPage() {
     }
   }
 
-  // Form submission handler
+  // Form submission handler with extra client-side validation
   const onSubmit = (data: OrderHistoryFormData) => {
+    setError(null);
+    setFieldErrors({});
+
+    // Dates
+    if (!data.start || !data.end) {
+      setError("Start and end dates are required.");
+      return;
+    }
+    if (data.start > data.end) {
+      setError("Start date cannot be after end date.");
+      setFieldErrors({
+        start: "Invalid date range",
+        end: "Invalid date range",
+      });
+      return;
+    }
+
+    // Times
+    if (!data.timeStart || !data.timeEnd) {
+      setError("Start time and end time are required.");
+      return;
+    }
+    if (data.timeStart > data.timeEnd) {
+      setError("Start time cannot be after end time.");
+      setFieldErrors({
+        timeStart: "Invalid time range",
+        timeEnd: "Invalid time range",
+      });
+      return;
+    }
+
+    // Employee ID
+    if (data.employee !== undefined && data.employee !== null) {
+      if (isNaN(Number(data.employee)) || Number(data.employee) < 0) {
+        setError("Employee ID must be a non-negative number.");
+        setFieldErrors({
+          employee: "Invalid employee ID",
+        });
+        return;
+      }
+    }
+
+    // Menu Item ID
+    if (data.menu !== undefined && data.menu !== null) {
+      if (isNaN(Number(data.menu)) || Number(data.menu) < 0) {
+        setError("Menu item ID must be a non-negative number.");
+        setFieldErrors({
+          menu: "Invalid menu item ID",
+        });
+        return;
+      }
+    }
+
+    // Pagination: limit and offset
+    if (data.limit <= 0) {
+      setError("Limit must be a positive number.");
+      setFieldErrors({
+        limit: "Must be positive",
+      });
+      return;
+    }
+    if (data.offset < 0) {
+      setError("Offset cannot be negative.");
+      setFieldErrors({
+        offset: "Cannot be negative",
+      });
+      return;
+    }
+
+    // If client-side validation passes, load
     load(data);
   };
 
   // Initial load
   useEffect(() => {
     load(form.getValues());
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   function exportCSV() {
-    const header = ["order_id","order_date","order_time","menu_item_id","menu_item_name","price","employee"];
+    const header = [
+      "order_id",
+      "order_date",
+      "order_time",
+      "menu_item_id",
+      "menu_item_name",
+      "price",
+      "employee",
+    ];
     const rows = items.map(r => [
       r.order_id,
       r.order_date,
@@ -166,10 +247,16 @@ export default function OrdersHistoryPage() {
       r.employee,
     ]);
     const csv = [header, ...rows]
-      .map(line => line.map(v => {
-        const s = String(v ?? "");
-        return s.includes(",") || s.includes('"') ? `"${s.replace(/"/g, '""')}"` : s;
-      }).join(","))
+      .map(line =>
+        line
+          .map(v => {
+            const s = String(v ?? "");
+            return s.includes(",") || s.includes('"')
+              ? `"${s.replace(/"/g, '""')}"`
+              : s;
+          })
+          .join(","),
+      )
       .join("\n");
 
     const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
@@ -182,34 +269,44 @@ export default function OrdersHistoryPage() {
     URL.revokeObjectURL(url);
   }
 
-  const pageFrom = form.getValues('offset') + 1;
-  const pageTo = Math.min(form.getValues('offset') + form.getValues('limit'), count);
+  const pageFrom = form.getValues("offset") + 1;
+  const pageTo = Math.min(
+    form.getValues("offset") + form.getValues("limit"),
+    count,
+  );
 
   return (
     <div className="min-h-screen">
       <div className="max-w-7xl mx-auto px-6 py-6 space-y-6">
         <div className="flex items-center justify-between gap-4 flex-wrap">
           <div className="flex items-center gap-3">
-            <Button variant="ghost" onClick={() => router.back()} className="gap-2">
+            <Button
+              variant="ghost"
+              onClick={() => router.back()}
+              className="gap-2"
+            >
               <ArrowLeft className="h-4 w-4" /> Back
             </Button>
             <h1 className="text-2xl font-semibold">Order History</h1>
           </div>
 
-            <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2">
             <Button variant="outline" className="gap-2" onClick={exportCSV}>
               <Download className="h-4 w-4" /> CSV
             </Button>
-            {/* 2. UPDATE this button to use handleSubmit(onSubmit) 
-                This ensures values are converted (coerced) to numbers before loading */}
-            <Button className="gap-2" onClick={form.handleSubmit(onSubmit)}>
+            <Button
+              className="gap-2"
+              onClick={form.handleSubmit(onSubmit)}
+            >
               <RefreshCw className="h-4 w-4" /> Refresh
             </Button>
           </div>
         </div>
 
         <Card>
-          <CardHeader><CardTitle>Filters</CardTitle></CardHeader>
+          <CardHeader>
+            <CardTitle>Filters</CardTitle>
+          </CardHeader>
           <CardContent>
             <Form {...form}>
               <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
@@ -243,6 +340,11 @@ export default function OrdersHistoryPage() {
                           />
                         </FormControl>
                         <FormMessage />
+                        {fieldErrors.start && (
+                          <p className="text-sm text-destructive">
+                            {fieldErrors.start}
+                          </p>
+                        )}
                       </FormItem>
                     )}
                   />
@@ -261,6 +363,11 @@ export default function OrdersHistoryPage() {
                           />
                         </FormControl>
                         <FormMessage />
+                        {fieldErrors.end && (
+                          <p className="text-sm text-destructive">
+                            {fieldErrors.end}
+                          </p>
+                        )}
                       </FormItem>
                     )}
                   />
@@ -275,6 +382,11 @@ export default function OrdersHistoryPage() {
                           <Input type="time" {...field} />
                         </FormControl>
                         <FormMessage />
+                        {fieldErrors.timeStart && (
+                          <p className="text-sm text-destructive">
+                            {fieldErrors.timeStart}
+                          </p>
+                        )}
                       </FormItem>
                     )}
                   />
@@ -289,6 +401,11 @@ export default function OrdersHistoryPage() {
                           <Input type="time" {...field} />
                         </FormControl>
                         <FormMessage />
+                        {fieldErrors.timeEnd && (
+                          <p className="text-sm text-destructive">
+                            {fieldErrors.timeEnd}
+                          </p>
+                        )}
                       </FormItem>
                     )}
                   />
@@ -308,13 +425,20 @@ export default function OrdersHistoryPage() {
                             placeholder="e.g., 3"
                             {...field}
                             value={field.value ?? ""}
-                            onChange={(e) => {
+                            onChange={e => {
                               const val = e.target.value;
-                              field.onChange(val === "" ? undefined : Number(val));
+                              field.onChange(
+                                val === "" ? undefined : Number(val),
+                              );
                             }}
                           />
                         </FormControl>
                         <FormMessage />
+                        {fieldErrors.employee && (
+                          <p className="text-sm text-destructive">
+                            {fieldErrors.employee}
+                          </p>
+                        )}
                       </FormItem>
                     )}
                   />
@@ -331,13 +455,20 @@ export default function OrdersHistoryPage() {
                             placeholder="e.g., 17"
                             {...field}
                             value={field.value ?? ""}
-                            onChange={(e) => {
+                            onChange={e => {
                               const val = e.target.value;
-                              field.onChange(val === "" ? undefined : Number(val));
+                              field.onChange(
+                                val === "" ? undefined : Number(val),
+                              );
                             }}
                           />
                         </FormControl>
                         <FormMessage />
+                        {fieldErrors.menu && (
+                          <p className="text-sm text-destructive">
+                            {fieldErrors.menu}
+                          </p>
+                        )}
                       </FormItem>
                     )}
                   />
@@ -358,10 +489,15 @@ export default function OrdersHistoryPage() {
                             min={ORDER_HISTORY_LIMITS.MIN_LIMIT}
                             max={ORDER_HISTORY_LIMITS.MAX_LIMIT}
                             {...field}
-                            onChange={(e) => field.onChange(Number(e.target.value))}
+                            onChange={e => field.onChange(Number(e.target.value))}
                           />
                         </FormControl>
                         <FormMessage />
+                        {fieldErrors.limit && (
+                          <p className="text-sm text-destructive">
+                            {fieldErrors.limit}
+                          </p>
+                        )}
                       </FormItem>
                     )}
                   />
@@ -378,10 +514,15 @@ export default function OrdersHistoryPage() {
                             className="w-32"
                             min={0}
                             {...field}
-                            onChange={(e) => field.onChange(Number(e.target.value))}
+                            onChange={e => field.onChange(Number(e.target.value))}
                           />
                         </FormControl>
                         <FormMessage />
+                        {fieldErrors.offset && (
+                          <p className="text-sm text-destructive">
+                            {fieldErrors.offset}
+                          </p>
+                        )}
                       </FormItem>
                     )}
                   />
@@ -398,6 +539,9 @@ export default function OrdersHistoryPage() {
                       variant="outline"
                       onClick={() => {
                         form.reset(getDefaultQueryValues());
+                        setError(null);
+                        setFieldErrors({});
+                        setAutoCorrections([]);
                         load(getDefaultQueryValues());
                       }}
                     >
@@ -409,7 +553,18 @@ export default function OrdersHistoryPage() {
                 {/* Error banner */}
                 {error && (
                   <div className="bg-destructive/10 border border-destructive/20 rounded-md p-3">
-                    <p className="text-sm text-destructive font-medium">{error}</p>
+                    <p className="text-sm text-destructive font-medium">
+                      {error}
+                    </p>
+                    {Object.entries(fieldErrors).length > 0 && (
+                      <ul className="mt-2 text-xs list-disc list-inside text-destructive">
+                        {Object.entries(fieldErrors).map(([field, msg]) => (
+                          <li key={field}>
+                            {field}: {msg}
+                          </li>
+                        ))}
+                      </ul>
+                    )}
                   </div>
                 )}
               </form>
@@ -418,23 +573,36 @@ export default function OrdersHistoryPage() {
         </Card>
 
         <Card>
-          <CardHeader><CardTitle>Summary</CardTitle></CardHeader>
+          <CardHeader>
+            <CardTitle>Summary</CardTitle>
+          </CardHeader>
           <CardContent>
             <div className="flex gap-8 text-sm">
-              <div><span className="font-semibold">Orders:</span> {count}</div>
-              <div><span className="font-semibold">Revenue:</span> ${revenue.toFixed(2)}</div>
-              <div className="opacity-70">Showing {items.length ? `${pageFrom}-${pageTo}` : "0"} of {count}</div>
+              <div>
+                <span className="font-semibold">Orders:</span> {count}
+              </div>
+              <div>
+                <span className="font-semibold">Revenue:</span> $
+                {revenue.toFixed(2)}
+              </div>
+              <div className="opacity-70">
+                Showing {items.length ? `${pageFrom}-${pageTo}` : "0"} of {count}
+              </div>
             </div>
           </CardContent>
         </Card>
 
         <Card>
-          <CardHeader><CardTitle>Orders (detail)</CardTitle></CardHeader>
+          <CardHeader>
+            <CardTitle>Orders (detail)</CardTitle>
+          </CardHeader>
           <CardContent>
             {loading ? (
               <div>Loading...</div>
             ) : items.length === 0 ? (
-              <div className="text-sm text-muted-foreground">No orders found for the selected filters.</div>
+              <div className="text-sm text-muted-foreground">
+                No orders found for the selected filters.
+              </div>
             ) : (
               <div className="overflow-x-auto">
                 <table className="w-full text-sm">
@@ -450,14 +618,18 @@ export default function OrdersHistoryPage() {
                     </tr>
                   </thead>
                   <tbody>
-                    {items.map((r) => (
-                      <tr key={`${r.order_id}-${r.order_time}-${r.menu_item_id}`}>
+                    {items.map(r => (
+                      <tr
+                        key={`${r.order_id}-${r.order_time}-${r.menu_item_id}`}
+                      >
                         <td className="pr-4">{r.order_id}</td>
                         <td className="pr-4">{r.order_date}</td>
                         <td className="pr-4">{r.order_time}</td>
                         <td className="pr-4">{r.menu_item_id}</td>
                         <td className="pr-4">{r.menu_item_name ?? "-"}</td>
-                        <td className="pr-4">${(r.price ?? 0).toFixed(2)}</td>
+                        <td className="pr-4">
+                          ${(r.price ?? 0).toFixed(2)}
+                        </td>
                         <td className="pr-4">{r.employee}</td>
                       </tr>
                     ))}
