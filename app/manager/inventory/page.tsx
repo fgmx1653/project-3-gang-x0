@@ -70,9 +70,29 @@ export default function InventoryPage() {
 
   const saveRow = async (id: number) => {
     setError(null);
+
+    const patch = edit[id];
+    if (!patch) return;
+
+    // Validation
+    if (patch.name !== undefined && !patch.name.trim()) {
+      setError("Ingredient name cannot be empty.");
+      return;
+    }
+    if (patch.quantity !== undefined) {
+      if (isNaN(Number(patch.quantity)) || Number(patch.quantity) < 0) {
+        setError("Quantity must be a non-negative number.");
+        return;
+      }
+    }
+    if (patch.price !== undefined) {
+      if (isNaN(Number(patch.price)) || Number(patch.price) < 0) {
+        setError("Unit cost must be a non-negative number.");
+        return;
+      }
+    }
+
     try {
-      const patch = edit[id];
-      if (!patch) return;
       const res = await fetch(`/api/inventory/${id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
@@ -89,6 +109,18 @@ export default function InventoryPage() {
 
   const restock = async (id: number, delta: number) => {
     setError(null);
+
+    const item = items.find(i => i.id === id);
+    if (!item) {
+      setError("Item not found.");
+      return;
+    }
+
+    if (item.quantity + delta < 0) {
+      setError("Quantity cannot go below zero.");
+      return;
+    }
+
     try {
       const res = await fetch(`/api/inventory/${id}`, {
         method: "PATCH",
@@ -105,11 +137,26 @@ export default function InventoryPage() {
 
   const addItem = async () => {
     setError(null);
+
+    // Input validation
+    if (!nName.trim()) {
+      setError("Ingredient name cannot be empty.");
+      return;
+    }
+    if (nQty === "" || isNaN(Number(nQty)) || Number(nQty) < 0) {
+      setError("Quantity must be a non-negative number.");
+      return;
+    }
+    if (nPrice === "" || isNaN(Number(nPrice)) || Number(nPrice) < 0) {
+      setError("Unit cost must be a non-negative number.");
+      return;
+    }
+
     try {
       const payload = {
         name: nName.trim(),
-        quantity: nQty === "" ? 0 : Number(nQty),
-        price: nPrice === "" ? 0 : Number(nPrice),
+        quantity: Number(nQty),
+        price: Number(nPrice),
       };
       const res = await fetch("/api/inventory", {
         method: "POST",
@@ -265,8 +312,19 @@ export default function InventoryPage() {
           <CardContent>
             <div className="grid grid-cols-1 md:grid-cols-5 gap-3">
               <Input placeholder="Ingredient name" value={nName} onChange={(e) => setNName(e.target.value)} />
-              <Input placeholder="Quantity" type="number" value={nQty} onChange={(e) => setNQty(e.target.value === "" ? "" : Number(e.target.value))} />
-              <Input placeholder="Unit cost" type="number" step="0.01" value={nPrice} onChange={(e) => setNPrice(e.target.value === "" ? "" : Number(e.target.value))} />
+              <Input
+                placeholder="Quantity"
+                type="number"
+                value={nQty}
+                onChange={(e) => setNQty(e.target.value === "" ? "" : Number(e.target.value))}
+              />
+              <Input
+                placeholder="Unit cost"
+                type="number"
+                step="0.01"
+                value={nPrice}
+                onChange={(e) => setNPrice(e.target.value === "" ? "" : Number(e.target.value))}
+              />
               <div className="md:col-span-2">
                 <Button className="gap-2" onClick={addItem}><Plus className="h-4 w-4" /> Add</Button>
               </div>
