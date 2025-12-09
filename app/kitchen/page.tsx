@@ -15,6 +15,7 @@ interface OrderItem {
     boba: number;
     ice: number;
     sugar: number;
+    size?: number;
 }
 
 interface Order {
@@ -376,7 +377,13 @@ export default function KitchenPage() {
                                     </CardHeader>
                                     <CardContent className="pt-6">
                                         <div className="space-y-3 mb-6">
-                                            {order.items.map((item, idx) => (
+                                            {order.items.map((item, idx) => {
+                                                const sizeNum = Number(item.size || 1);
+                                                const sizeLabel = sizeNum === 1 ? 'Small' : sizeNum === 2 ? 'Medium' : 'Large';
+                                                // `item.price` is already stored in the DB as adjusted price (base + size extra).
+                                                // Don't add size extra again here or prices will double-count.
+                                                const adjPrice = Number(item.price || 0).toFixed(2);
+                                                return (
                                                 <div
                                                     key={idx}
                                                     className="border-b pb-3 border-gray-200 last:border-0"
@@ -385,12 +392,13 @@ export default function KitchenPage() {
                                                         {item.menu_item_name}
                                                     </span>
                                                     <div className="text-sm text-gray-600 mt-1">
-                                                        Boba: {item.boba}% |
-                                                        Ice: {item.ice}% |
-                                                        Sugar: {item.sugar}%
+                                                        Size: {sizeLabel} • ${adjPrice}
+                                                        <br />
+                                                        Boba: {item.boba}% | Ice: {item.ice}% | Sugar: {item.sugar}%
                                                     </div>
                                                 </div>
-                                            ))}
+                                                );
+                                            })}
                                         </div>
                                         <div className="space-y-2">
                                             <Button

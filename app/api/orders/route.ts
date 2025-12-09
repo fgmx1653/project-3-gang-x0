@@ -66,17 +66,21 @@ export async function POST(req: Request) {
         let totalCost = 0;
 
         // Process each item in the order
+
         for (const item of items) {
             const menuItemId = item.id;
-            const price = parseFloat(item.price);
+            const sizeNum = Number(item.size || 1);
+            const priceBase = parseFloat(item.price);
+            const extra = Math.max(0, sizeNum - 1);
+            const price = priceBase + extra; // adjusted price for size
             const boba = item.boba ?? 100;
             const ice = item.ice ?? 100;
             const sugar = item.sugar ?? 100;
             totalRevenue += price;
 
-            // Insert order record for this item
+            // Insert order record for this item (include size)
             await client.query(
-                "INSERT INTO orders (order_id, order_date, order_time, menu_item_id, price, employee, boba, ice, sugar) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)",
+                "INSERT INTO orders (order_id, order_date, order_time, menu_item_id, price, employee, boba, ice, sugar, size) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)",
                 [
                     nextOrderId,
                     date,
@@ -87,6 +91,7 @@ export async function POST(req: Request) {
                     boba,
                     ice,
                     sugar,
+                    sizeNum,
                 ]
             );
 
@@ -96,11 +101,11 @@ export async function POST(req: Request) {
                 [menuItemId]
             );
 
-            // Subtract ingredients from inventory
+            // Subtract ingredients from inventory (multiply by size)
             for (const recipeRow of recipeResult.rows) {
                 const ingredientId = recipeRow.ingredient_id;
 
-                // Get ingredient cost
+                // Get ingredient cost and quantity
                 const ingredientResult = await client.query(
                     "SELECT price, quantity FROM inventory WHERE id = $1",
                     [ingredientId]
@@ -109,10 +114,10 @@ export async function POST(req: Request) {
                 if (ingredientResult.rows.length > 0) {
                     const ingredient = ingredientResult.rows[0];
                     const ingredientCost = parseFloat(ingredient.price || 0);
-                    totalCost += ingredientCost;
+                    totalCost += ingredientCost * sizeNum;
 
-                    // Check if we have enough inventory
-                    if (ingredient.quantity <= 0) {
+                    // Check if we have enough inventory for the requested size
+                    if (ingredient.quantity < sizeNum) {
                         await client.query("ROLLBACK");
                         return NextResponse.json(
                             {
@@ -123,10 +128,10 @@ export async function POST(req: Request) {
                         );
                     }
 
-                    // Decrement inventory quantity by 1
+                    // Decrement inventory quantity by sizeNum
                     await client.query(
-                        "UPDATE inventory SET quantity = quantity - 1 WHERE id = $1",
-                        [ingredientId]
+                        "UPDATE inventory SET quantity = quantity - $1 WHERE id = $2",
+                        [sizeNum, ingredientId]
                     );
                 }
             }

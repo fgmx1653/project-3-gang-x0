@@ -91,7 +91,12 @@ export default function CheckoutPage() {
   }, []);
 
   const TAX_RATE = 0.085;
-  const subtotal = cart.reduce((s, it) => s + Number(it.price || 0), 0);
+  const subtotal = cart.reduce((s, it) => {
+    const base = Number(it.price || 0);
+    const size = Number(it.size || 1);
+    const extra = Math.max(0, size - 1);
+    return s + base + extra;
+  }, 0);
   const tax = subtotal * TAX_RATE;
   const grandTotal = subtotal + tax;
 
@@ -257,14 +262,17 @@ export default function CheckoutPage() {
               >
                 <div>
                   <div className="font-medium">{translatedCart[idx]?.name || item.name}</div>
-                  <div className="text-sm text-gray-500">${item.price}</div>
-                  <div className="text-sm text-gray-500">
-                    {item.boba}% {bobaLabel}
-                    <br />
-                    {item.ice}% {iceLabel}
-                    <br />
-                    {item.sugar}% {sugarLabel}
-                  </div>
+                      <div className="text-sm text-gray-500">${(Number(item.price || 0) + Math.max(0, Number(item.size || 1) - 1)).toFixed(2)}</div>
+                      <div className="text-sm text-gray-500">
+                        Size: {Number(item.size || 1) === 1 ? 'Small' : Number(item.size || 1) === 2 ? 'Medium' : 'Large'}
+                      </div>
+                      <div className="text-sm text-gray-500">
+                        {item.boba}% {bobaLabel}
+                        <br />
+                        {item.ice}% {iceLabel}
+                        <br />
+                        {item.sugar}% {sugarLabel}
+                      </div>
                 </div>
                 <div className="flex items-center gap-2">
                   <Button

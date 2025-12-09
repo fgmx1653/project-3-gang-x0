@@ -69,6 +69,7 @@ export async function POST(req: Request) {
                 boba INTEGER DEFAULT 100,
                 ice INTEGER DEFAULT 100,
                 sugar INTEGER DEFAULT 100,
+                size INTEGER DEFAULT 1,
                 cancelled_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
         `);
@@ -76,7 +77,7 @@ export async function POST(req: Request) {
         // Get all order items for this order_id
         const orderItems = await client.query(
             `SELECT order_id, order_date, order_time, menu_item_id, price, 
-                    employee, boba, ice, sugar
+                    employee, boba, ice, sugar, size
              FROM orders 
              WHERE order_id = $1`,
             [orderId]
@@ -100,10 +101,12 @@ export async function POST(req: Request) {
             totalRevenue += price;
 
             // Move order item to cancelled_orders
+            const sizeNum = Number(item.size || 1);
+
             await client.query(
                 `INSERT INTO cancelled_orders 
-                 (order_id, order_date, order_time, menu_item_id, price, employee, boba, ice, sugar, cancelled_at)
-                 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, CURRENT_TIMESTAMP)`,
+                 (order_id, order_date, order_time, menu_item_id, price, employee, boba, ice, sugar, size, cancelled_at)
+                 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, CURRENT_TIMESTAMP)`,
                 [
                     item.order_id,
                     item.order_date,
@@ -114,6 +117,7 @@ export async function POST(req: Request) {
                     item.boba,
                     item.ice,
                     item.sugar,
+                    sizeNum,
                 ]
             );
 
@@ -134,15 +138,16 @@ export async function POST(req: Request) {
                 );
 
                 if (ingredientResult.rows.length > 0) {
+                    const sizeNum = Number(item.size || 1);
                     const ingredientCost = parseFloat(
                         ingredientResult.rows[0].price || 0
                     );
-                    totalCost += ingredientCost;
+                    totalCost += ingredientCost * sizeNum;
 
-                    // Restore inventory quantity by incrementing by 1
+                    // Restore inventory quantity by incrementing by sizeNum
                     await client.query(
-                        "UPDATE inventory SET quantity = quantity + 1 WHERE id = $1",
-                        [ingredientId]
+                        "UPDATE inventory SET quantity = quantity + $1 WHERE id = $2",
+                        [sizeNum, ingredientId]
                     );
                 }
             }

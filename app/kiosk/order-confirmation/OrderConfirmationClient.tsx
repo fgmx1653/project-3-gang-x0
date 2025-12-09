@@ -161,8 +161,11 @@ export default function OrderConfirmationClient({ encodedData }: Props) {
                       ? translatedOrderData[idx].name
                       : item.name}
                   </div>
+                  <div className="text-sm text-gray-500">
+                    Size: {Number(item.size || 1) === 1 ? 'Small' : Number(item.size || 1) === 2 ? 'Medium' : 'Large'}
+                  </div>
                 </div>
-                <div className="font-medium">${Number(item.price).toFixed(2)}</div>
+                <div className="font-medium">${(Number(item.price || 0) + Math.max(0, Number(item.size || 1) - 1)).toFixed(2)}</div>
               </div>
             ))}
           </div>

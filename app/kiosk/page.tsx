@@ -24,7 +24,12 @@ export default function Home() {
   const [hydrated, setHydrated] = useState(false);
 
   const TAX_RATE = 0.085;
-  const subtotal = cart.reduce((sum, item) => sum + Number(item.price || 0), 0);
+  const subtotal = cart.reduce((sum, item) => {
+    const base = Number(item.price || 0);
+    const size = Number(item.size || 1);
+    const extra = Math.max(0, size - 1); // medium +1, large +2
+    return sum + base + extra;
+  }, 0);
   const tax = subtotal * TAX_RATE;
   const grandTotal = subtotal + tax;
 
@@ -269,7 +274,7 @@ export default function Home() {
   }, []);
 
   function addToCart(item: any) {
-    const withMods = { ...item, boba: 100, ice: 100, sugar: 100 };
+    const withMods = { ...item, boba: 100, ice: 100, sugar: 100, size: 1 };
     setCart((prev) => [...prev, withMods]);
   }
 
@@ -743,6 +748,8 @@ export default function Home() {
               </div>
             </div>
 
+            {/* NOTE: per-item size controls rendered inside each cart item now */}
+
             <div className="flex-1 overflow-y-auto p-6 space-y-6">
               {cart.length === 0 ? (
                 <div className="h-full flex flex-col items-center justify-center text-muted-foreground opacity-50">
@@ -772,7 +779,10 @@ export default function Home() {
                             {itemName}
                           </span>
                           <span className="text-primary font-medium">
-                            ${item.price}
+                            ${(
+                              Number(item.price || 0) +
+                              Math.max(0, Number(item.size || 1) - 1)
+                            ).toFixed(2)}
                           </span>
                         </div>
                         <Button
@@ -788,6 +798,38 @@ export default function Home() {
                       </div>
 
                       <div className="grid grid-cols-1 gap-3 bg-gray-50 p-3 rounded-lg">
+                        {/* Size row — same container as Boba/Ice/Sugar */}
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs font-bold text-gray-500 uppercase w-12">Size</span>
+                          <div className="flex gap-1 flex-1 justify-end">
+                            {[[1, "Small", ""], [2, "Medium", "+$1"], [3, "Large", "+$2"]].map(([val, label, suffix]) => (
+                              <button
+                                key={`size-${idx}-${String(val)}`}
+                                onClick={() => {
+                                  const sizeNum = Number(val);
+                                  setCart((prev) => {
+                                    const copy = [...prev];
+                                    copy[idx] = { ...copy[idx], size: sizeNum };
+                                    return copy;
+                                  });
+                                }}
+                                className={`px-4 py-2 text-sm rounded-md transition-all w-[84px] ${
+                                  Number(item.size || 1) === Number(val)
+                                    ? "bg-black text-white shadow-sm"
+                                    : "bg-white text-gray-600 border hover:bg-gray-200"
+                                }`}
+                                aria-pressed={Number(item.size || 1) === Number(val)}
+                              >
+                                <div className="flex flex-col items-center justify-center">
+                                  <span className="font-medium leading-snug">{label}</span>
+                                  {String(suffix || "").trim() !== "" && (
+                                    <span className="text-xs text-muted-foreground mt-0.5">{suffix}</span>
+                                  )}
+                                </div>
+                              </button>
+                            ))}
+                          </div>
+                        </div>
                         <div className="flex items-center justify-between">
                           <span className="text-xs font-bold text-gray-500 uppercase w-12">
                             {bobaLabel}
@@ -806,7 +848,7 @@ export default function Home() {
                                     return copy;
                                   });
                                 }}
-                                className={`px-2 py-1 text-xs rounded-md transition-all ${
+                                className={`px-4 py-2 text-sm rounded-md transition-all min-w-[84px] ${
                                   boba === pct
                                     ? "bg-black text-white shadow-sm"
                                     : "bg-white text-gray-600 border hover:bg-gray-200"
@@ -836,7 +878,7 @@ export default function Home() {
                                     return copy;
                                   });
                                 }}
-                                className={`px-2 py-1 text-xs rounded-md transition-all ${
+                                className={`px-4 py-2 text-sm rounded-md transition-all min-w-[84px] ${
                                   ice === pct
                                     ? "bg-blue-500 text-white shadow-sm"
                                     : "bg-white text-gray-600 border hover:bg-gray-200"
@@ -866,7 +908,7 @@ export default function Home() {
                                     return copy;
                                   });
                                 }}
-                                className={`px-2 py-1 text-xs rounded-md transition-all ${
+                                className={`px-4 py-2 text-sm rounded-md transition-all min-w-[84px] ${
                                   sugar === pct
                                     ? "bg-pink-500 text-white shadow-sm"
                                     : "bg-white text-gray-600 border hover:bg-gray-200"
