@@ -42,6 +42,7 @@ export async function GET(req: Request) {
                 boba INTEGER DEFAULT 100,
                 ice INTEGER DEFAULT 100,
                 sugar INTEGER DEFAULT 100,
+                size INTEGER DEFAULT 1,
                 cancelled_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
         `);
@@ -57,12 +58,13 @@ export async function GET(req: Request) {
         COALESCE(os.status, 'pending') as status,
         json_agg(
           json_build_object(
-            'menu_item_id', o.menu_item_id,
-            'menu_item_name', COALESCE(m.name, 'Unknown Item'),
-            'price', o.price,
-            'boba', COALESCE(o.boba, 100),
-            'ice', COALESCE(o.ice, 100),
-            'sugar', COALESCE(o.sugar, 100)
+                        'menu_item_id', o.menu_item_id,
+                        'menu_item_name', COALESCE(m.name, 'Unknown Item'),
+                        'price', o.price,
+                        'boba', COALESCE(o.boba, 100),
+                        'ice', COALESCE(o.ice, 100),
+                        'sugar', COALESCE(o.sugar, 100),
+                        'size', COALESCE(o.size, 1)
           )
         ) as items
       FROM orders o
@@ -84,12 +86,13 @@ export async function GET(req: Request) {
         'cancelled' as status,
         json_agg(
           json_build_object(
-            'menu_item_id', co.menu_item_id,
-            'menu_item_name', COALESCE(m.name, 'Unknown Item'),
-            'price', co.price,
-            'boba', COALESCE(co.boba, 100),
-            'ice', COALESCE(co.ice, 100),
-            'sugar', COALESCE(co.sugar, 100)
+                        'menu_item_id', co.menu_item_id,
+                        'menu_item_name', COALESCE(m.name, 'Unknown Item'),
+                        'price', co.price,
+                        'boba', COALESCE(co.boba, 100),
+                        'ice', COALESCE(co.ice, 100),
+                        'sugar', COALESCE(co.sugar, 100),
+                        'size', COALESCE(co.size, 1)
           )
         ) as items
       FROM cancelled_orders co

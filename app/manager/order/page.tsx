@@ -37,6 +37,7 @@ export default function ManagerOrderPage() {
     const [editBoba, setEditBoba] = useState(100);
     const [editIce, setEditIce] = useState(100);
     const [editSugar, setEditSugar] = useState(100);
+    const [editSize, setEditSize] = useState<number>(1);
 
     async function getMenuItems() {
         setLoading(true);
@@ -181,14 +182,14 @@ export default function ManagerOrderPage() {
                                                 {item.name}
                                             </h2>
                                             <div className="text-xs text-gray-600 font-deco">
-                                                Boba: {item.boba ?? 100}% | Ice:{" "}
-                                                {item.ice ?? 100}% | Sugar:{" "}
-                                                {item.sugar ?? 100}%
+                                                Size: {Number(item.size || 1) === 1 ? 'Small' : Number(item.size || 1) === 2 ? 'Medium' : 'Large'}
+                                                <br />
+                                                Boba: {item.boba ?? 100}% | Ice: {item.ice ?? 100}% | Sugar: {item.sugar ?? 100}%
                                             </div>
                                         </div>
                                         <div className="flex items-center gap-2">
                                             <span className="font-deco font-bold text-black/50">
-                                                ${item.price}
+                                                ${(Number(item.price || 0) + Math.max(0, Number(item.size || 1) - 1)).toFixed(2)}
                                             </span>
                                             <Button
                                                 variant="ghost"
@@ -203,6 +204,7 @@ export default function ManagerOrderPage() {
                                                     setEditSugar(
                                                         item.sugar ?? 100
                                                     );
+                                                    setEditSize(Number(item.size || 1));
                                                 }}
                                             >
                                                 <Edit className="h-4 w-4" />
@@ -265,6 +267,7 @@ export default function ManagerOrderPage() {
                                         boba: 100,
                                         ice: 100,
                                         sugar: 100,
+                                        size: 1,
                                     };
                                     setCart((prev) => [...prev, newItem]);
                                 }}
@@ -360,6 +363,21 @@ export default function ManagerOrderPage() {
                                 ))}
                             </div>
                         </div>
+                        <div className="space-y-2">
+                            <Label htmlFor="size">Size: {editSize === 1 ? 'Small' : editSize === 2 ? 'Medium' : 'Large'}</Label>
+                            <div className="flex gap-2">
+                                {[1,2,3].map((s) => (
+                                    <Button
+                                        key={s}
+                                        variant={editSize === s ? 'default' : 'outline'}
+                                        onClick={() => setEditSize(s)}
+                                        className="flex-1"
+                                    >
+                                        {s === 1 ? 'Small' : s === 2 ? 'Medium' : 'Large'}{s === 2 ? ' (+$1)' : s === 3 ? ' (+$2)' : ''}
+                                    </Button>
+                                ))}
+                            </div>
+                        </div>
                     </div>
                     <DialogFooter>
                         <Button
@@ -369,7 +387,7 @@ export default function ManagerOrderPage() {
                             Cancel
                         </Button>
                         <Button
-                            onClick={() => {
+                                onClick={() => {
                                 setCart((prev) =>
                                     prev.map((i) =>
                                         i === editingItem
@@ -378,6 +396,7 @@ export default function ManagerOrderPage() {
                                                   boba: editBoba,
                                                   ice: editIce,
                                                   sugar: editSugar,
+                                                  size: editSize,
                                               }
                                             : i
                                     )

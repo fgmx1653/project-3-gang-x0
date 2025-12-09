@@ -268,14 +268,14 @@ export default function Home() {
                                                 {item.name}
                                             </h2>
                                             <div className="text-xs text-gray-600 font-deco">
-                                                Boba: {item.boba ?? 100}% | Ice:{" "}
-                                                {item.ice ?? 100}% | Sugar:{" "}
-                                                {item.sugar ?? 100}%
+                                                Size: {Number(item.size || 1) === 1 ? 'Small' : Number(item.size || 1) === 2 ? 'Medium' : 'Large'}
+                                                <br />
+                                                Boba: {item.boba ?? 100}% | Ice: {item.ice ?? 100}% | Sugar: {item.sugar ?? 100}%
                                             </div>
                                         </div>
                                         <div className="flex items-center gap-2">
                                             <span className="font-deco font-bold text-black/50">
-                                                ${item.price}
+                                                ${(Number(item.price || 0) + Math.max(0, Number(item.size || 1) - 1)).toFixed(2)}
                                             </span>
                                             <Button
                                                 variant="ghost"
