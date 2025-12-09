@@ -29,6 +29,7 @@ export default function Page() {
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [searchTerm, setSearchTerm] = useState("");
 
   useEffect(() => {
@@ -38,6 +39,7 @@ export default function Page() {
   const fetchEmployees = async () => {
     setLoading(true);
     setError(null);
+    setFieldErrors({});
     try {
       const res = await fetch("/api/employees");
       const data = await res.json();
@@ -68,17 +70,21 @@ export default function Page() {
     if (!searchTerm.trim()) return true;
     const s = searchTerm.toLowerCase();
     return (
-      String(emp.username || "")
-        .toLowerCase()
-        .includes(s) ||
-      String(emp.name || "")
-        .toLowerCase()
-        .includes(s) ||
-      String(emp.email || "")
-        .toLowerCase()
-        .includes(s)
+      String(emp.username || "").toLowerCase().includes(s) ||
+      String(emp.name || "").toLowerCase().includes(s) ||
+      String(emp.email || "").toLowerCase().includes(s)
     );
   });
+
+  const clearFieldError = (idx: number, key: string) => {
+    const fieldKey = `${idx}.${key}`;
+    setFieldErrors((prev) => {
+      if (!prev[fieldKey]) return prev;
+      const copy = { ...prev };
+      delete copy[fieldKey];
+      return copy;
+    });
+  };
 
   const handleChange = (idx: number, key: string, value: any) => {
     setEmployees((prev) => {
@@ -86,9 +92,12 @@ export default function Page() {
       copy[idx] = { ...copy[idx], [key]: value };
       return copy;
     });
+    clearFieldError(idx, key);
   };
 
   const addEmployee = async () => {
+    setError(null);
+    setFieldErrors({});
     const newEmp: Employee = {
       username: "new_user",
       password: "",
@@ -128,7 +137,68 @@ export default function Page() {
     }
   };
 
+  const validateEmployee = (emp: Employee, idx: number): boolean => {
+    const errs: Record<string, string> = {};
+
+    const fieldKey = (field: string) => `${idx}.${field}`;
+
+    // Username required
+    if (!emp.username || !emp.username.trim()) {
+      errs[fieldKey("username")] = "Username is required.";
+    }
+
+    // Password required (for this UI)
+    if (emp.password === undefined || emp.password === null || emp.password === "") {
+      errs[fieldKey("password")] = "Password is required.";
+    }
+
+    // Employment date required
+    if (!emp.employdate || !emp.employdate.trim()) {
+      errs[fieldKey("employdate")] = "Employment date is required.";
+    }
+
+    // Hourly salary must be non-negative if provided
+    if (emp.hrsalary !== null && emp.hrsalary !== undefined) {
+      if (isNaN(Number(emp.hrsalary)) || Number(emp.hrsalary) < 0) {
+        errs[fieldKey("hrsalary")] = "Hourly salary must be a non-negative number.";
+      }
+    }
+
+    // Email basic format check (if provided)
+    if (emp.email && emp.email.trim()) {
+      const email = emp.email.trim();
+      const emailRegex = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
+      if (!emailRegex.test(email)) {
+        errs[fieldKey("email")] = "Email format looks invalid.";
+      }
+    }
+
+    if (Object.keys(errs).length > 0) {
+      setFieldErrors((prev) => ({ ...prev, ...errs }));
+      setError("Please correct the highlighted fields before saving.");
+      return false;
+    }
+
+    return true;
+  };
+
   const saveEmployee = async (emp: Employee, idx: number) => {
+    setError(null);
+    setFieldErrors((prev) => {
+      // Clear errors related to this index before re-validating
+      const copy = { ...prev };
+      Object.keys(copy).forEach((key) => {
+        if (key.startsWith(`${idx}.`)) {
+          delete copy[key];
+        }
+      });
+      return copy;
+    });
+
+    // Client-side validation
+    const isValid = validateEmployee(emp, idx);
+    if (!isValid) return;
+
     try {
       const payload: any = { ...emp };
       const res = await fetch("/api/employees", {
@@ -153,6 +223,7 @@ export default function Page() {
 
   const deleteEmployee = async (id?: number, idx?: number) => {
     if (id === undefined || id === null) return;
+    setError(null);
     try {
       const res = await fetch(`/api/employees?id=${id}`, { method: "DELETE" });
       const data = await res.json();
@@ -166,6 +237,9 @@ export default function Page() {
       setError(err?.message || "Error deleting employee");
     }
   };
+
+  const getFieldError = (idx: number, key: string) =>
+    fieldErrors[`${idx}.${key}`];
 
   return (
     <div className="p-6 h-screen flex flex-col">
@@ -208,7 +282,11 @@ export default function Page() {
               )}
             </div>
 
-            {error && <div className="text-destructive">{error}</div>}
+            {error && (
+              <div className="bg-destructive/10 border border-destructive/20 rounded-md p-3 text-sm text-destructive">
+                {error}
+              </div>
+            )}
           </div>
 
           <div className="flex-1 overflow-y-auto border rounded-md p-4">
@@ -234,19 +312,37 @@ export default function Page() {
                         <Input
                           value={emp.username ?? ""}
                           onChange={(e) =>
-                            handleChange(listIndex, "username", e.target.value)
+                            handleChange(
+                              listIndex,
+                              "username",
+                              e.target.value
+                            )
                           }
                           placeholder="username"
                         />
+                        {getFieldError(listIndex, "username") && (
+                          <p className="mt-1 text-xs text-destructive">
+                            {getFieldError(listIndex, "username")}
+                          </p>
+                        )}
                       </div>
                       <div className="col-span-2">
                         <Input
                           value={emp.password ?? ""}
                           onChange={(e) =>
-                            handleChange(listIndex, "password", e.target.value)
+                            handleChange(
+                              listIndex,
+                              "password",
+                              e.target.value
+                            )
                           }
                           placeholder="password"
                         />
+                        {getFieldError(listIndex, "password") && (
+                          <p className="mt-1 text-xs text-destructive">
+                            {getFieldError(listIndex, "password")}
+                          </p>
+                        )}
                       </div>
                       <div className="col-span-1 flex items-center gap-2">
                         <label className="flex items-center gap-2 cursor-pointer">
@@ -277,6 +373,11 @@ export default function Page() {
                             )
                           }
                         />
+                        {getFieldError(listIndex, "employdate") && (
+                          <p className="mt-1 text-xs text-destructive">
+                            {getFieldError(listIndex, "employdate")}
+                          </p>
+                        )}
                       </div>
                       <div className="col-span-1">
                         <Input
@@ -291,6 +392,11 @@ export default function Page() {
                             )
                           }
                         />
+                        {getFieldError(listIndex, "hrsalary") && (
+                          <p className="mt-1 text-xs text-destructive">
+                            {getFieldError(listIndex, "hrsalary")}
+                          </p>
+                        )}
                       </div>
                       <div className="col-span-3 flex gap-1 flex-wrap">
                         <Button
@@ -310,27 +416,52 @@ export default function Page() {
                     </div>
 
                     <div className="mt-3 pt-3 border-t grid grid-cols-2 gap-2">
-                      <Input
-                        value={emp.name ?? ""}
-                        onChange={(e) =>
-                          handleChange(listIndex, "name", e.target.value)
-                        }
-                        placeholder="Full name"
-                      />
-                      <Input
-                        value={emp.email ?? ""}
-                        onChange={(e) =>
-                          handleChange(listIndex, "email", e.target.value)
-                        }
-                        placeholder="email"
-                      />
-                      <Input
-                        value={emp.google_id ?? ""}
-                        onChange={(e) =>
-                          handleChange(listIndex, "google_id", e.target.value)
-                        }
-                        placeholder="google id"
-                      />
+                      <div>
+                        <Input
+                          value={emp.name ?? ""}
+                          onChange={(e) =>
+                            handleChange(listIndex, "name", e.target.value)
+                          }
+                          placeholder="Full name"
+                        />
+                        {getFieldError(listIndex, "name") && (
+                          <p className="mt-1 text-xs text-destructive">
+                            {getFieldError(listIndex, "name")}
+                          </p>
+                        )}
+                      </div>
+                      <div>
+                        <Input
+                          value={emp.email ?? ""}
+                          onChange={(e) =>
+                            handleChange(listIndex, "email", e.target.value)
+                          }
+                          placeholder="email"
+                        />
+                        {getFieldError(listIndex, "email") && (
+                          <p className="mt-1 text-xs text-destructive">
+                            {getFieldError(listIndex, "email")}
+                          </p>
+                        )}
+                      </div>
+                      <div>
+                        <Input
+                          value={emp.google_id ?? ""}
+                          onChange={(e) =>
+                            handleChange(
+                              listIndex,
+                              "google_id",
+                              e.target.value
+                            )
+                          }
+                          placeholder="google id"
+                        />
+                        {getFieldError(listIndex, "google_id") && (
+                          <p className="mt-1 text-xs text-destructive">
+                            {getFieldError(listIndex, "google_id")}
+                          </p>
+                        )}
+                      </div>
                     </div>
                   </div>
                 );
