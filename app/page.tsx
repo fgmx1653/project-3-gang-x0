@@ -30,7 +30,7 @@ export default function Home() {
             <div ref={contentRef} className="flex flex-col items-center gap-4">
                 {/* Clear any existing kiosk cart when landing on the home page */}
                 <ClearCartOnMount />
-                <div className="flex flex-row gap-4 items-center">
+                <div role="banner" className="flex flex-row gap-4 items-center">
                     <img src="/logo.png" alt="Boba Shop Logo" width={50} />
                     <h1 className="font-bold text-xl font-mono">
                         gang_x0 dev portal
