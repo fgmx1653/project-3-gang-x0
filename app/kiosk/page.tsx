@@ -6,7 +6,7 @@ import Link from "next/link";
 import { useState, useEffect } from "react";
 import { useLanguage } from "@/lib/LanguageContext";
 import { useRouter } from "next/navigation";
-import { X } from "lucide-react";
+import { X, History } from "lucide-react";
 import { signIn, signOut, useSession } from "next-auth/react";
 
 import { Card, CardContent } from "@/components/ui/card";
@@ -32,6 +32,9 @@ export default function Home() {
   const [cartOpen, setCartOpen] = useState(false);
   const [hydrated, setHydrated] = useState(false);
   const [availableToppings, setAvailableToppings] = useState<any[]>([]);
+  const [orderHistoryOpen, setOrderHistoryOpen] = useState(false);
+  const [orderHistory, setOrderHistory] = useState<any[]>([]);
+  const [loadingHistory, setLoadingHistory] = useState(false);
 
   const TAX_RATE = 0.085;
   const subtotal = cart.reduce((sum, item) => {
@@ -96,6 +99,9 @@ export default function Home() {
   const [signedInAsLabel, setSignedInAsLabel] = useState("Signed in as");
   const [rewardPointsLabel, setRewardPointsLabel] = useState("Reward Points");
   const [signOutLabel, setSignOutLabel] = useState("Sign Out");
+  const [orderHistoryLabel, setOrderHistoryLabel] = useState("Order History");
+  const [noOrdersLabel, setNoOrdersLabel] = useState("No previous orders found");
+  const [orderLabel, setOrderLabel] = useState("Order");
 
   // Accessibility: text size (root font-size in px). Persist in localStorage under 'textSize'
   const [textSize, setTextSize] = useState<number | null>(null);
@@ -422,6 +428,15 @@ export default function Home() {
         setSignOutLabel(
           await translateText("Sign Out", lang).catch(() => "Sign Out")
         );
+        setOrderHistoryLabel(
+          await translateText("Order History", lang).catch(() => "Order History")
+        );
+        setNoOrdersLabel(
+          await translateText("No previous orders found", lang).catch(() => "No previous orders found")
+        );
+        setOrderLabel(
+          await translateText("Order", lang).catch(() => "Order")
+        );
 
         setErrorLoadingMenuLabel(
           await translateText("Error loading menu", lang).catch(
@@ -503,6 +518,24 @@ export default function Home() {
     }
   }, [popular, menuItems]);
 
+  // Fetch order history for logged-in customer
+  async function fetchOrderHistory() {
+    if (!session?.user || !(session.user as any).id) return;
+    
+    setLoadingHistory(true);
+    try {
+      const res = await fetch(`/api/orders/history?customerId=${(session.user as any).id}`);
+      const data = await res.json();
+      if (data.ok) {
+        setOrderHistory(data.orders || []);
+      }
+    } catch (err) {
+      console.error("Failed to fetch order history:", err);
+    } finally {
+      setLoadingHistory(false);
+    }
+  }
+
   return (
     <div className="kiosk-text flex flex-col w-full h-screen overflow-hidden relative">
       <div className="fixed inset-0 -z-20 bg-white/50">
@@ -535,6 +568,17 @@ export default function Home() {
                   {rewardPointsLabel}: {(session.user as any).points ?? 0}
                 </p>
               </div>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  fetchOrderHistory();
+                  setOrderHistoryOpen(true);
+                }}
+              >
+                <History className="h-4 w-4 mr-1" />
+                {orderHistoryLabel}
+              </Button>
               <Button
                 variant="outline"
                 size="sm"
@@ -1150,6 +1194,101 @@ export default function Home() {
               >
                 {proceedToCheckoutLabel}
               </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Order History Modal */}
+      {orderHistoryOpen && (
+        <div className="fixed inset-0 z-50 flex items-end justify-center sm:items-center">
+          <div
+            className="absolute inset-0 bg-black/40 backdrop-blur-sm animate-in fade-in"
+            onClick={() => setOrderHistoryOpen(false)}
+          />
+
+          <div className="relative bg-white w-full max-w-lg h-[85vh] sm:h-[80vh] sm:rounded-2xl shadow-2xl flex flex-col animate-in slide-in-from-bottom-10">
+            <div className="flex items-center justify-between p-6 border-b">
+              <h2 className="text-2xl font-bold font-deco">{orderHistoryLabel}</h2>
+              <Button
+                onClick={() => setOrderHistoryOpen(false)}
+                variant="ghost"
+                size="icon"
+                className="rounded-full"
+              >
+                <X className="h-6 w-6" />
+              </Button>
+            </div>
+
+            <div className="flex-1 overflow-y-auto p-6 space-y-4">
+              {loadingHistory ? (
+                <div className="h-full flex items-center justify-center">
+                  <div className="animate-spin rounded-full h-12 w-12 border-b-4 border-primary"></div>
+                </div>
+              ) : orderHistory.length === 0 ? (
+                <div className="h-full flex flex-col items-center justify-center text-muted-foreground opacity-50">
+                  <span className="text-6xl mb-4">📋</span>
+                  <p>{noOrdersLabel}</p>
+                </div>
+              ) : (
+                orderHistory.map((order: any) => {
+                  const orderTotal = order.items.reduce((sum: number, item: any) => {
+                    const base = Number(item.price || 0);
+                    const toppingCost = (item.toppings || []).reduce((t: number, top: any) => t + Number(top.price || 0), 0);
+                    return sum + base + toppingCost;
+                  }, 0);
+                  const statusColors: Record<string, string> = {
+                    pending: "bg-yellow-100 text-yellow-800",
+                    completed: "bg-green-100 text-green-800",
+                    cancelled: "bg-red-100 text-red-800",
+                  };
+                  return (
+                    <div
+                      key={order.order_id}
+                      className="bg-gray-50 rounded-lg p-4 border border-gray-200"
+                    >
+                      <div className="flex justify-between items-start mb-3">
+                        <div>
+                          <span className="font-bold text-lg">
+                            {orderLabel} #{order.order_id}
+                          </span>
+                          <p className="text-sm text-gray-500">
+                            {order.order_date} • {order.order_time?.substring(0, 5)}
+                          </p>
+                        </div>
+                        <span className={`px-2 py-1 rounded-full text-xs font-medium capitalize ${statusColors[order.status] || "bg-gray-100 text-gray-800"}`}>
+                          {order.status}
+                        </span>
+                      </div>
+                      <div className="space-y-2">
+                        {order.items.map((item: any, idx: number) => {
+                          const sizeLabel = Number(item.size || 1) === 1 ? "S" : Number(item.size || 1) === 2 ? "M" : "L";
+                          return (
+                            <div key={idx} className="flex justify-between text-sm">
+                              <div>
+                                <span>{item.menu_item_name}</span>
+                                <span className="text-gray-400 ml-1">({sizeLabel})</span>
+                                {item.toppings && item.toppings.length > 0 && (
+                                  <span className="text-xs text-gray-500 block ml-2">
+                                    + {item.toppings.map((t: any) => t.name).join(", ")}
+                                  </span>
+                                )}
+                              </div>
+                              <span className="text-gray-600">
+                                ${(Number(item.price || 0) + (item.toppings || []).reduce((t: number, top: any) => t + Number(top.price || 0), 0)).toFixed(2)}
+                              </span>
+                            </div>
+                          );
+                        })}
+                      </div>
+                      <div className="mt-3 pt-3 border-t border-gray-200 flex justify-between font-medium">
+                        <span>{totalLabel}</span>
+                        <span>${(orderTotal * 1.085).toFixed(2)}</span>
+                      </div>
+                    </div>
+                  );
+                })
+              )}
             </div>
           </div>
         </div>
