@@ -104,8 +104,8 @@ export default function Page() {
       ismanager: false,
       employdate: new Date().toISOString().slice(0, 10),
       hrsalary: 0,
-      email: "",
-      google_id: "",
+      email: null,
+      google_id: null,
       name: "",
     };
     try {
@@ -115,7 +115,11 @@ export default function Page() {
         body: JSON.stringify(newEmp),
       });
       const data = await res.json();
-      if (!data.ok) throw new Error(data.error || "Create failed");
+      if (!data.ok) {
+        // surface friendly message when available (e.g. email_in_use)
+        setError(data.message || data.error || "Create failed");
+        return;
+      }
       setEmployees((prev) => [
         ...prev,
         {
@@ -207,7 +211,10 @@ export default function Page() {
         body: JSON.stringify(payload),
       });
       const data = await res.json();
-      if (!data.ok) throw new Error(data.error || "Save failed");
+      if (!data.ok) {
+        setError(data.message || data.error || "Save failed");
+        return;
+      }
       setEmployees((prev) => {
         const copy = [...prev];
         copy[idx] = {
