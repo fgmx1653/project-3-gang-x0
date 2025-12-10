@@ -7,6 +7,7 @@ import { useState, useEffect } from "react";
 import { useLanguage } from "@/lib/LanguageContext";
 import { useRouter } from "next/navigation";
 import { X } from "lucide-react";
+import { signIn, signOut, useSession } from "next-auth/react";
 
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -17,18 +18,29 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 import { translateText } from "@/lib/translate";
 
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion"
+
 export default function Home() {
+  const { data: session, status } = useSession();
   const [menuItems, setMenuItems] = useState<any[]>([]);
   const [cart, setCart] = useState<any[]>([]);
   const [cartOpen, setCartOpen] = useState(false);
   const [hydrated, setHydrated] = useState(false);
+  const [availableToppings, setAvailableToppings] = useState<any[]>([]);
 
   const TAX_RATE = 0.085;
   const subtotal = cart.reduce((sum, item) => {
     const base = Number(item.price || 0);
     const size = Number(item.size || 1);
     const extra = Math.max(0, size - 1); // medium +1, large +2
-    return sum + base + extra;
+    // Add topping prices
+    const toppingTotal = (item.toppings || []).reduce((t: number, top: any) => t + Number(top.price || 0), 0);
+    return sum + base + extra + toppingTotal;
   }, 0);
   const tax = subtotal * TAX_RATE;
   const grandTotal = subtotal + tax;
@@ -61,6 +73,7 @@ export default function Home() {
   const [greenTeaLabel, setGreenTeaLabel] = useState("Green Tea");
   const [blackTeaLabel, setBlackTeaLabel] = useState("Black Tea");
   const [seasonalLabel, setSeasonalLabel] = useState("Seasonal");
+  const [exclusiveLabel, setExclusiveLabel] = useState("Exclusive");
   const [searchPlaceholderLabel, setSearchPlaceholderLabel] =
     useState("Search items...");
   const [subtotalLabel, setSubtotalLabel] = useState("Subtotal");
@@ -77,6 +90,12 @@ export default function Home() {
   const [sugarLabel, setSugarLabel] = useState("Sugar");
   const [emptyCartLabel, setEmptyCartLabel] = useState("Your cart is empty");
   const [clearCartLabel, setClearCartLabel] = useState("Clear Cart");
+  const [toppingsLabel, setToppingsLabel] = useState("Toppings");
+
+  const [signInForRewardsLabel, setSignInForRewardsLabel] = useState("Sign in with Google for rewards");
+  const [signedInAsLabel, setSignedInAsLabel] = useState("Signed in as");
+  const [rewardPointsLabel, setRewardPointsLabel] = useState("Reward Points");
+  const [signOutLabel, setSignOutLabel] = useState("Sign Out");
 
   // Accessibility: text size (root font-size in px). Persist in localStorage under 'textSize'
   const [textSize, setTextSize] = useState<number | null>(null);
@@ -157,6 +176,7 @@ export default function Home() {
                 boba: it?.boba ?? 100,
                 ice: it?.ice ?? 100,
                 sugar: it?.sugar ?? 100,
+                toppings: it?.toppings ?? [],
               }))
             );
         }
@@ -165,6 +185,22 @@ export default function Home() {
     } finally {
       setHydrated(true);
     }
+  }, []);
+
+  // Fetch available toppings
+  useEffect(() => {
+    async function fetchToppings() {
+      try {
+        const res = await fetch("/api/ingredients/toppings");
+        const data = await res.json();
+        if (data.ok && data.toppings) {
+          setAvailableToppings(data.toppings);
+        }
+      } catch (e) {
+        console.error("Failed to fetch toppings:", e);
+      }
+    }
+    fetchToppings();
   }, []);
 
   useEffect(() => {
@@ -274,8 +310,31 @@ export default function Home() {
   }, []);
 
   function addToCart(item: any) {
-    const withMods = { ...item, boba: 100, ice: 100, sugar: 100, size: 1 };
+    const withMods = { ...item, boba: 100, ice: 100, sugar: 100, size: 1, toppings: [] };
     setCart((prev) => [...prev, withMods]);
+  }
+
+  function toggleTopping(cartIndex: number, topping: any) {
+    setCart((prev) => {
+      const copy = [...prev];
+      const item = copy[cartIndex];
+      const currentToppings = item.toppings || [];
+      const exists = currentToppings.some((t: any) => t.id === topping.id);
+      if (exists) {
+        // Remove topping
+        copy[cartIndex] = {
+          ...item,
+          toppings: currentToppings.filter((t: any) => t.id !== topping.id),
+        };
+      } else {
+        // Add topping
+        copy[cartIndex] = {
+          ...item,
+          toppings: [...currentToppings, topping],
+        };
+      }
+      return copy;
+    });
   }
 
   function capitalizeWords(input: any) {
@@ -306,6 +365,9 @@ export default function Home() {
         );
         setSeasonalLabel(
           await translateText("Seasonal", lang).catch(() => "Seasonal")
+        );
+        setExclusiveLabel(
+          await translateText("Exclusive", lang).catch(() => "Exclusive")
         );
         setSearchPlaceholderLabel(
           await translateText("Search items...", lang).catch(
@@ -342,6 +404,25 @@ export default function Home() {
         setClearCartLabel(
           await translateText("Clear Cart", lang).catch(() => "Clear Cart")
         );
+        setToppingsLabel(
+          await translateText("Toppings", lang).catch(() => "Toppings")
+        );
+
+        setSignInForRewardsLabel(
+          await translateText("Sign in with Google for rewards", lang).catch(
+            () => "Sign in with Google for rewards"
+          )
+        );
+        setSignedInAsLabel(
+          await translateText("Signed in as", lang).catch(() => "Signed in as")
+        );
+        setRewardPointsLabel(
+          await translateText("Reward Points", lang).catch(() => "Reward Points")
+        );
+        setSignOutLabel(
+          await translateText("Sign Out", lang).catch(() => "Sign Out")
+        );
+
         setErrorLoadingMenuLabel(
           await translateText("Error loading menu", lang).catch(
             () => "Error loading menu"
@@ -433,12 +514,55 @@ export default function Home() {
         />
       </div>
 
-      <div className="flex-none p-6 z-10">
+      <div className="flex-none p-6 z-10 flex items-center justify-between flex-wrap gap-4">
         <Link href="/">
           <Button variant="outline" className="shadow-md">
             {homeLabel}
           </Button>
         </Link>
+
+        {/* Customer Google Sign-in Section */}
+        <div className="bg-white/70 backdrop-blur-md p-3 rounded-lg shadow-md">
+          {status === "loading" ? (
+            <div className="text-sm text-gray-500">Loading...</div>
+          ) : session?.user ? (
+            <div className="flex items-center gap-3 flex-wrap">
+              <div>
+                <p className="font-medium text-sm">
+                  {signedInAsLabel}: {session.user.name}
+                </p>
+                <p className="text-xs text-gray-600">
+                  {rewardPointsLabel}: {(session.user as any).points ?? 0}
+                </p>
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => signOut({ redirect: false })}
+              >
+                {signOutLabel}
+              </Button>
+            </div>
+          ) : (
+            <div className="flex items-center gap-3 flex-wrap">
+              <p className="text-sm text-gray-600">
+                {signInForRewardsLabel}
+              </p>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => signIn("google", { 
+                  callbackUrl: "/kiosk",
+                  prompt: "select_account"
+                })}
+              >
+                Sign in with Google
+              </Button>
+            </div>
+          )}
+        </div>
+
+
       </div>
 
       <Tabs
@@ -448,7 +572,7 @@ export default function Home() {
       >
         <div className="flex-none bg-white/60 backdrop-blur-md p-2 rounded-xl flex flex-wrap gap-2 items-center shadow-sm">
           <TabsList className="bg-transparent h-auto flex flex-wrap gap-2 p-0">
-            {["all", "milk", "green", "black", "seasonal"].map((cat) => (
+            {["all", "milk", "green", "black", "seasonal", "exclusive"].map((cat) => (
               <TabsTrigger
                 key={cat}
                 onClick={() => setTab(cat)}
@@ -461,7 +585,8 @@ export default function Home() {
                       .replace("milk", milkTeaLabel)
                       .replace("green", greenTeaLabel)
                       .replace("black", blackTeaLabel)
-                      .replace("seasonal", seasonalLabel)}
+                      .replace("seasonal", seasonalLabel)
+                      .replace("exclusive", exclusiveLabel)}
               </TabsTrigger>
             ))}
           </TabsList>
@@ -525,99 +650,129 @@ export default function Home() {
           )}
 
           <ScrollArea className="h-full p-4">
-            {["all", "milk", "green", "black", "seasonal"].map((catValue) => (
+            {["all", "milk", "green", "black", "seasonal", "exclusive"].map((catValue) => (
               <TabsContent
                 key={catValue}
                 value={catValue}
                 className="mt-0 h-full"
               >
-                <div className="grid grid-cols-[repeat(auto-fill,minmax(220px,1fr))] gap-6 pb-6">
-                  {menuItems
-                    .filter((item) => {
-                      const matchesSearch = item.name
-                        .toLowerCase()
-                        .includes(search.toLowerCase());
-                      if (!matchesSearch) return false;
-                      if (catValue === "all") return true;
-                      if (catValue === "seasonal") return item.seasonal === 1;
-                      // For tea categories, check if name contains both the category and "tea"
-                      const lowerName = item.name.toLowerCase();
-                      return (
-                        lowerName.includes(catValue) &&
-                        lowerName.includes("tea")
-                      );
-                    })
-                    .map((item) => {
-                      // Find translated name for display
-                      const translatedItem = translatedMenuItems.find(
-                        (t) => t.id === item.id
-                      );
-                      const displayName = translatedItem
-                        ? translatedItem.name
-                        : item.name;
-
-                      return (
-                        <Card
-                          key={item.id}
-                          onClick={() => addToCart(item)}
-                          className="relative bg-white/80 backdrop-blur-md hover:scale-105 hover:shadow-xl hover:bg-white transition-all duration-200 cursor-pointer border-2 border-transparent hover:border-primary/20 flex flex-col aspect-[4/5] w-full"
+                {/* Show sign-in prompt for exclusive tab when not logged in */}
+                {catValue === "exclusive" && !session?.user ? (
+                  <div className="flex items-center justify-center h-full min-h-[400px]">
+                    <Card className="bg-white/80 backdrop-blur-md shadow-xl border-2 border-transparent flex flex-col items-center text-center max-w-md">
+                      <CardContent className="p-8 flex flex-col items-center">
+                        <span className="text-6xl mb-4">🔒</span>
+                        <h2 className="text-2xl font-bold font-deco mb-2">Exclusive Items</h2>
+                        <p className="text-gray-600 mb-4">Sign in to access exclusive menu items and earn rewards!</p>
+                        <Button
+                          variant="default"
+                          onClick={() => signIn("google", { 
+                            callbackUrl: "/kiosk",
+                            prompt: "select_account"
+                          })}
                         >
-                          {/* top-left badge for category top-seller (show in tabs and in All view for any category top-seller) */}
-                          {(() => {
-                            const isPopularAnywhere = Object.values(
-                              popular || {}
-                            ).some((v) => Number(v) === Number(item.id));
-                            const isPopularInCategory =
-                              Number(popular?.[catValue]) === Number(item.id);
-                            return (
-                              (catValue !== "all" &&
-                                (isPopularInCategory || isPopularAnywhere)) ||
-                              (catValue === "all" && isPopularAnywhere)
-                            );
-                          })() && (
-                            <img
-                              src="/img/fire_icon.png"
-                              alt="Top seller"
-                              aria-hidden={true}
-                              className="absolute top-3 left-3 w-8 h-8 drop-shadow-lg z-50 pointer-events-none"
-                            />
-                          )}
-                          <CardContent className="flex-1 flex flex-col justify-between items-center p-4">
-                            <div className="relative w-full flex-none h-28 md:h-32 lg:h-36 mb-4 flex items-center justify-center">
+                          Sign in with Google
+                        </Button>
+                      </CardContent>
+                    </Card>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-[repeat(auto-fill,minmax(220px,1fr))] gap-6 pb-6">
+                    {menuItems
+                      .filter((item) => {
+                        const matchesSearch = item.name
+                          .toLowerCase()
+                          .includes(search.toLowerCase());
+                        if (!matchesSearch) return false;
+                        
+                        // Filter out exclusive items if user is not logged in (except on exclusive tab which shows placeholder)
+                        const isExclusive = item.isexclusive === 1 || item.isexclusive === true;
+                        if (isExclusive && !session?.user) return false;
+                        
+                        // Exclusive tab - show only exclusive items
+                        if (catValue === "exclusive") return isExclusive;
+                        
+                        if (catValue === "all") return true;
+                        if (catValue === "seasonal") return item.seasonal === 1;
+                        // For tea categories, check if name contains both the category and "tea"
+                        const lowerName = item.name.toLowerCase();
+                        return (
+                          lowerName.includes(catValue) &&
+                          lowerName.includes("tea")
+                        );
+                      })
+                      .map((item) => {
+                        // Find translated name for display
+                        const translatedItem = translatedMenuItems.find(
+                          (t) => t.id === item.id
+                        );
+                        const displayName = translatedItem
+                          ? translatedItem.name
+                          : item.name;
+
+                        return (
+                          <Card
+                            key={item.id}
+                            onClick={() => addToCart(item)}
+                            className="relative bg-white/80 backdrop-blur-md hover:scale-105 hover:shadow-xl hover:bg-white transition-all duration-200 cursor-pointer border-2 border-transparent hover:border-primary/20 flex flex-col aspect-[4/5] w-full"
+                          >
+                            {/* top-left badge for category top-seller (show in tabs and in All view for any category top-seller) */}
+                            {(() => {
+                              const isPopularAnywhere = Object.values(
+                                popular || {}
+                              ).some((v) => Number(v) === Number(item.id));
+                              const isPopularInCategory =
+                                Number(popular?.[catValue]) === Number(item.id);
+                              return (
+                                (catValue !== "all" &&
+                                  (isPopularInCategory || isPopularAnywhere)) ||
+                                (catValue === "all" && isPopularAnywhere)
+                              );
+                            })() && (
                               <img
-                                src={`/img/${item.name
-                                  .toLowerCase()
-                                  .replace(/\s+/g, "_")
-                                  .replace(/[^a-z0-9_]/g, "")}.png`}
-                                alt={item.name}
-                                className="object-contain drop-shadow-md max-w-full max-h-full"
-                                loading="lazy"
-                                decoding="async"
-                                onError={(
-                                  e: React.SyntheticEvent<HTMLImageElement>
-                                ) => {
-                                  const target =
-                                    e.currentTarget as HTMLImageElement;
-                                  if (!target.dataset.fallback) {
-                                    target.dataset.fallback = "1";
-                                    target.src = "/img/default_new_item.png";
-                                  }
-                                }}
+                                src="/img/fire_icon.png"
+                                alt="Top seller"
+                                aria-hidden={true}
+                                className="absolute top-3 left-3 w-8 h-8 drop-shadow-lg z-50 pointer-events-none"
                               />
-                            </div>
-                            <div className="text-center w-full space-y-1">
-                              <h1 className="font-deco font-bold text-lg leading-tight line-clamp-2 h-12 flex items-center justify-center">
-                                {displayName}
-                              </h1>
-                              <h1 className="font-deco text-xl text-primary font-semibold">
-                                ${item.price}
-                              </h1>
-                            </div>
-                          </CardContent>
-                        </Card>
-                      );
-                    })}
-                </div>
+                            )}
+                            <CardContent className="flex-1 flex flex-col justify-between items-center p-4">
+                              <div className="relative w-full flex-none h-28 md:h-32 lg:h-36 mb-4 flex items-center justify-center">
+                                <img
+                                  src={`/img/${item.name
+                                    .toLowerCase()
+                                    .replace(/\s+/g, "_")
+                                    .replace(/[^a-z0-9_]/g, "")}.png`}
+                                  alt={item.name}
+                                  className="object-contain drop-shadow-md max-w-full max-h-full"
+                                  loading="lazy"
+                                  decoding="async"
+                                  onError={(
+                                    e: React.SyntheticEvent<HTMLImageElement>
+                                  ) => {
+                                    const target =
+                                      e.currentTarget as HTMLImageElement;
+                                    if (!target.dataset.fallback) {
+                                      target.dataset.fallback = "1";
+                                      target.src = "/img/default_new_item.png";
+                                    }
+                                  }}
+                                />
+                              </div>
+                              <div className="text-center w-full space-y-1">
+                                <h1 className="font-deco font-bold text-lg leading-tight line-clamp-2 h-12 flex items-center justify-center">
+                                  {displayName}
+                                </h1>
+                                <h1 className="font-deco text-xl text-primary font-semibold">
+                                  ${item.price}
+                                </h1>
+                              </div>
+                            </CardContent>
+                          </Card>
+                        );
+                      })}
+                  </div>
+                )}
               </TabsContent>
             ))}
           </ScrollArea>
@@ -761,6 +916,8 @@ export default function Home() {
                   const boba = item?.boba ?? 100;
                   const ice = item?.ice ?? 100;
                   const sugar = item?.sugar ?? 100;
+                  const itemToppings = item?.toppings || [];
+                  const toppingTotal = itemToppings.reduce((sum: number, t: any) => sum + Number(t.price || 0), 0);
                   const currItemID = item?.id;
                   const translatedItemWithID = translatedMenuItems.find(
                     (it) => it.id === currItemID
@@ -781,9 +938,15 @@ export default function Home() {
                           <span className="text-primary font-medium">
                             ${(
                               Number(item.price || 0) +
-                              Math.max(0, Number(item.size || 1) - 1)
+                              Math.max(0, Number(item.size || 1) - 1) +
+                              toppingTotal
                             ).toFixed(2)}
                           </span>
+                            {itemToppings.length > 0 && (
+                              <span className="text-xs text-gray-500 block">
+                                + {itemToppings.map((t: any) => t.name).join(", ")}
+                              </span>
+                            )}
                         </div>
                         <Button
                           variant="destructive"
@@ -919,6 +1082,38 @@ export default function Home() {
                             ))}
                           </div>
                         </div>
+
+                        {/* Toppings row */}
+                        {availableToppings.length > 0 && (
+                          <div className="flex flex-col gap-2">
+
+                            <Accordion type='single' collapsible defaultValue=''>
+                              <AccordionItem value='x'>
+                                <AccordionTrigger className='text-xs font-bold text-gray-500 uppercase'>{toppingsLabel}</AccordionTrigger>
+                                <AccordionContent>
+                                  <div className="flex flex-wrap gap-2">
+                                {availableToppings.map((topping) => {
+                                  const isSelected = itemToppings.some((t: any) => t.id === topping.id);
+                                  return (
+                                    <button
+                                      key={`topping-${idx}-${topping.id}`}
+                                      onClick={() => toggleTopping(idx, topping)}
+                                      className={`px-3 py-1.5 text-sm rounded-md transition-all ${
+                                        isSelected
+                                          ? "bg-green-500 text-white shadow-sm"
+                                          : "bg-white text-gray-600 border hover:bg-gray-200"
+                                      }`}
+                                    >
+                                      {topping.name} (+${Number(topping.price).toFixed(2)})
+                                    </button>
+                                  );
+                                })}
+                              </div>
+                                </AccordionContent>
+                              </AccordionItem>
+                            </Accordion>
+                          </div>
+                        )}
                       </div>
                     </div>
                   );

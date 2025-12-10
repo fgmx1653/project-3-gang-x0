@@ -5,7 +5,7 @@ export async function POST(req: Request) {
     const client = await pool.connect();
 
     try {
-        const { items, employeeId = null, specialInstructions = null } = await req.json();
+        const { items, employeeId = null, specialInstructions = null, customerId = null } = await req.json();
 
         if (!items || !Array.isArray(items) || items.length === 0) {
             return NextResponse.json(
@@ -16,6 +16,8 @@ export async function POST(req: Request) {
 
         // Allow NULL employeeId for customer kiosk orders
         // Employee orders will have a valid employeeId
+        // customerId: use provided value if signed in on kiosk, otherwise -1
+        const resolvedCustomerId = customerId ?? -1;
 
         // Start transaction
         await client.query("BEGIN");
@@ -64,6 +66,7 @@ export async function POST(req: Request) {
 
         let totalRevenue = 0;
         let totalCost = 0;
+        let orderItemId = 0; // Track order_item_id for each item in the order
 
         // Process each item in the order
 
@@ -72,15 +75,23 @@ export async function POST(req: Request) {
             const sizeNum = Number(item.size || 1);
             const priceBase = parseFloat(item.price);
             const extra = Math.max(0, sizeNum - 1);
-            const price = priceBase + extra; // adjusted price for size
+            
+            // Calculate topping prices
+            const toppings = item.toppings || [];
+            let toppingTotal = 0;
+            for (const topping of toppings) {
+                toppingTotal += parseFloat(topping.price || 0);
+            }
+            
+            const price = priceBase + extra + toppingTotal; // adjusted price for size and toppings
             const boba = item.boba ?? 100;
             const ice = item.ice ?? 100;
             const sugar = item.sugar ?? 100;
             totalRevenue += price;
 
-            // Insert order record for this item (include size)
+            // Insert order record for this item (include size and order_item_id)
             await client.query(
-                "INSERT INTO orders (order_id, order_date, order_time, menu_item_id, price, employee, boba, ice, sugar, size) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)",
+                "INSERT INTO orders (order_id, order_date, order_time, menu_item_id, price, employee, boba, ice, sugar, customer_id, size, order_item_id) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)",
                 [
                     nextOrderId,
                     date,
@@ -91,9 +102,52 @@ export async function POST(req: Request) {
                     boba,
                     ice,
                     sugar,
+                    resolvedCustomerId,
                     sizeNum,
+                    orderItemId,
                 ]
             );
+
+            // Insert toppings for this order item
+            for (const topping of toppings) {
+                await client.query(
+                    "INSERT INTO order_toppings (order_id, order_item_id, topping_id) VALUES ($1, $2, $3)",
+                    [nextOrderId, orderItemId, topping.id]
+                );
+                
+                // Subtract topping from inventory
+                const toppingResult = await client.query(
+                    "SELECT price, quantity FROM inventory WHERE id = $1",
+                    [topping.id]
+                );
+                
+                if (toppingResult.rows.length > 0) {
+                    const toppingData = toppingResult.rows[0];
+                    const toppingCost = parseFloat(toppingData.price || 0);
+                    totalCost += toppingCost;
+                    
+                    // Check inventory
+                    if (toppingData.quantity < 1) {
+                        await client.query("ROLLBACK");
+                        return NextResponse.json(
+                            {
+                                ok: false,
+                                error: `Insufficient inventory for topping: ${topping.name}`,
+                            },
+                            { status: 400 }
+                        );
+                    }
+                    
+                    // Decrement topping inventory
+                    await client.query(
+                        "UPDATE inventory SET quantity = quantity - 1 WHERE id = $1",
+                        [topping.id]
+                    );
+                }
+            }
+
+            // Increment order_item_id for next item
+            orderItemId++;
 
             // Get ingredients for this menu item from menu_recipe
             const recipeResult = await client.query(
@@ -162,6 +216,17 @@ export async function POST(req: Request) {
              ON CONFLICT (order_id) DO NOTHING`,
             [nextOrderId, specialInstructions]
         );
+
+        // Award reward points to signed-in customers
+        // Points earned = total * 10, rounded to nearest integer
+        let pointsEarned = 0;
+        if (resolvedCustomerId > 0) {
+            pointsEarned = Math.round(totalRevenue * 10);
+            await client.query(
+                `UPDATE customers SET points = points + $1 WHERE id = $2`,
+                [pointsEarned, resolvedCustomerId]
+            );
+        }
 
         // Commit transaction
         await client.query("COMMIT");

@@ -29,7 +29,8 @@ export async function GET(req: Request) {
         id,
         ingredients AS name,
         price::numeric::float8 AS price,
-        quantity
+        quantity,
+        COALESCE(istopping, 0) AS istopping
       FROM public.inventory
       ${where}
       ORDER BY id ASC;
@@ -68,6 +69,7 @@ export async function POST(req: Request) {
   const name = typeof body?.name === "string" ? body.name.trim() : "";
   const quantity = Number(body?.quantity);
   const price = Number(body?.price);
+  const istopping = body?.istopping != null ? (Number(body.istopping) === 1 ? 1 : 0) : 0;
 
   if (!name) {
     return NextResponse.json({ ok: false, error: "Name required" }, { status: 400 });
@@ -81,13 +83,13 @@ export async function POST(req: Request) {
 
   // Attempt 1: normal insert (assumes DB generates id)
   const insertNoId = `
-    INSERT INTO public.inventory (ingredients, quantity, price)
-    VALUES ($1, $2, $3)
-    RETURNING id, ingredients AS name, price::numeric::float8 AS price, quantity;
+    INSERT INTO public.inventory (ingredients, quantity, price, istopping)
+    VALUES ($1, $2, $3, $4)
+    RETURNING id, ingredients AS name, price::numeric::float8 AS price, quantity, COALESCE(istopping, 0) AS istopping;
   `;
 
   try {
-    const res1 = await pool.query(insertNoId, [name, quantity, price]);
+    const res1 = await pool.query(insertNoId, [name, quantity, price, istopping]);
     return NextResponse.json({ ok: true, item: res1.rows[0] });
   } catch (e: any) {
     // If id is NOT NULL and no default, fall back to app-generated id
@@ -108,13 +110,13 @@ export async function POST(req: Request) {
     WITH next AS (
       SELECT COALESCE(MAX(id), 0) + 1 AS next_id FROM public.inventory
     )
-    INSERT INTO public.inventory (id, ingredients, quantity, price)
-    SELECT next_id, $1, $2, $3 FROM next
-    RETURNING id, ingredients AS name, price::numeric::float8 AS price, quantity;
+    INSERT INTO public.inventory (id, ingredients, quantity, price, istopping)
+    SELECT next_id, $1, $2, $3, $4 FROM next
+    RETURNING id, ingredients AS name, price::numeric::float8 AS price, quantity, COALESCE(istopping, 0) AS istopping;
   `;
 
   try {
-    const res2 = await pool.query(insertWithNextId, [name, quantity, price]);
+    const res2 = await pool.query(insertWithNextId, [name, quantity, price, istopping]);
     return NextResponse.json({ ok: true, item: res2.rows[0], note: "Inserted with app-generated id (consider adding IDENTITY to the table)" });
   } catch (e2: any) {
     console.error("inventory POST error (fallback attempt):", e2);

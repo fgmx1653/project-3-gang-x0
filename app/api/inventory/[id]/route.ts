@@ -19,12 +19,14 @@ export async function PUT(req: Request, ctx: { params: { id: string } } | { para
   const name = body?.name != null ? String(body.name).trim() : undefined;
   const quantity = body?.quantity != null ? Number(body.quantity) : undefined;
   const price = body?.price != null ? Number(body.price) : undefined;
+  const istopping = body?.istopping != null ? (Number(body.istopping) === 1 ? 1 : 0) : undefined;
 
   const sets: string[] = [];
   const values: any[] = [];
-  if (name !== undefined)     { values.push(name);     sets.push(`ingredients = $${values.length}`); }
-  if (quantity !== undefined) { values.push(quantity); sets.push(`quantity = $${values.length}`); }
-  if (price !== undefined)    { values.push(price);    sets.push(`price = $${values.length}`); }
+  if (name !== undefined)      { values.push(name);      sets.push(`ingredients = $${values.length}`); }
+  if (quantity !== undefined)  { values.push(quantity);  sets.push(`quantity = $${values.length}`); }
+  if (price !== undefined)     { values.push(price);     sets.push(`price = $${values.length}`); }
+  if (istopping !== undefined) { values.push(istopping); sets.push(`istopping = $${values.length}`); }
   if (sets.length === 0) return NextResponse.json({ ok: false, error: "No fields to update" }, { status: 400 });
 
   values.push(id);
@@ -33,7 +35,7 @@ export async function PUT(req: Request, ctx: { params: { id: string } } | { para
       `update public.inventory
          set ${sets.join(", ")}
        where id = $${values.length}
-       returning id, ingredients as name, price::numeric::float8 as price, quantity`,
+       returning id, ingredients as name, price::numeric::float8 as price, quantity, COALESCE(istopping, 0) as istopping`,
       values
     )).rows[0];
     return NextResponse.json({ ok: true, item: row });

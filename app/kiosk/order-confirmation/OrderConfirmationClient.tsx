@@ -196,6 +196,10 @@ export default function OrderConfirmationClient({ encodedData }: Props) {
         doc.text(`Sugar: ${item.sugar}%`, 25, yPosition);
         yPosition += 5;
       }
+      if (item.toppings && item.toppings.length > 0) {
+        doc.text(`Toppings: ${item.toppings.map((t: any) => t.name).join(', ')}`, 25, yPosition);
+        yPosition += 5;
+      }
       yPosition += 3;
     });
 
@@ -325,8 +329,13 @@ export default function OrderConfirmationClient({ encodedData }: Props) {
                   <div className="text-sm text-gray-500">
                     Size: {Number(item.size || 1) === 1 ? 'Small' : Number(item.size || 1) === 2 ? 'Medium' : 'Large'}
                   </div>
+                  {item.toppings && item.toppings.length > 0 && (
+                    <div className="text-sm text-green-600">
+                      Toppings: {item.toppings.map((t: any) => t.name).join(', ')}
+                    </div>
+                  )}
                 </div>
-                <div className="font-medium">${(Number(item.price || 0) + Math.max(0, Number(item.size || 1) - 1)).toFixed(2)}</div>
+                <div className="font-medium">${(Number(item.price || 0) + Math.max(0, Number(item.size || 1) - 1) + (item.toppings || []).reduce((sum: number, t: any) => sum + Number(t.price || 0), 0)).toFixed(2)}</div>
               </div>
             ))}
           </div>

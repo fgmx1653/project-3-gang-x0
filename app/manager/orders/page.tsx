@@ -94,11 +94,12 @@ export default function OrdersHistoryPage() {
 
           // Set field-specific error
           if (validationError.field) {
+            const fieldName = validationError.field;
             setFieldErrors(prev => ({
               ...prev,
-              [validationError.field]: validationError.error,
+              [fieldName]: validationError.error,
             }));
-            form.setError(validationError.field as any, {
+            form.setError(fieldName as any, {
               message: validationError.error,
             });
           }

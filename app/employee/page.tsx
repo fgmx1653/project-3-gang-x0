@@ -44,8 +44,27 @@ export default function Home() {
     const [editBoba, setEditBoba] = useState(100);
     const [editIce, setEditIce] = useState(100);
     const [editSugar, setEditSugar] = useState(100);
+    const [editSize, setEditSize] = useState<number>(1);
+    const [editToppings, setEditToppings] = useState<any[]>([]);
+    const [availableToppings, setAvailableToppings] = useState<any[]>([]);
     const [showInstructionsDialog, setShowInstructionsDialog] = useState(false);
     const [specialInstructions, setSpecialInstructions] = useState("");
+
+    // Fetch available toppings
+    useEffect(() => {
+        async function fetchToppings() {
+            try {
+                const res = await fetch("/api/ingredients/toppings");
+                const data = await res.json();
+                if (data.ok && data.toppings) {
+                    setAvailableToppings(data.toppings);
+                }
+            } catch (e) {
+                console.error("Failed to fetch toppings:", e);
+            }
+        }
+        fetchToppings();
+    }, []);
 
     async function getMenuItems() {
         setLoading(true);
@@ -275,11 +294,17 @@ export default function Home() {
                                                 Size: {Number(item.size || 1) === 1 ? 'Small' : Number(item.size || 1) === 2 ? 'Medium' : 'Large'}
                                                 <br />
                                                 Boba: {item.boba ?? 100}% | Ice: {item.ice ?? 100}% | Sugar: {item.sugar ?? 100}%
+                                                {item.toppings && item.toppings.length > 0 && (
+                                                    <>
+                                                        <br />
+                                                        Toppings: {item.toppings.map((t: any) => t.name).join(', ')}
+                                                    </>
+                                                )}
                                             </div>
                                         </div>
                                         <div className="flex items-center gap-2">
                                             <span className="font-deco font-bold text-black/50">
-                                                ${(Number(item.price || 0) + Math.max(0, Number(item.size || 1) - 1)).toFixed(2)}
+                                                ${(Number(item.price || 0) + Math.max(0, Number(item.size || 1) - 1) + (item.toppings || []).reduce((sum: number, t: any) => sum + Number(t.price || 0), 0)).toFixed(2)}
                                             </span>
                                             <Button
                                                 variant="ghost"
@@ -294,6 +319,8 @@ export default function Home() {
                                                     setEditSugar(
                                                         item.sugar ?? 100
                                                     );
+                                                    setEditSize(Number(item.size || 1));
+                                                    setEditToppings(item.toppings || []);
                                                 }}
                                             >
                                                 <Edit className="h-4 w-4" />
@@ -373,6 +400,7 @@ export default function Home() {
                                         boba: 100,
                                         ice: 100,
                                         sugar: 100,
+                                        toppings: [],
                                     };
                                     setCart((prev) => [...prev, newItem]);
                                 }}
@@ -403,8 +431,7 @@ export default function Home() {
                     <DialogHeader>
                         <DialogTitle>Customize {editingItem?.name}</DialogTitle>
                         <DialogDescription>
-                            Adjust boba, ice, and sugar levels (25%, 50%, 75%,
-                            or 100%)
+                            Adjust boba, ice, sugar levels, and toppings
                         </DialogDescription>
                     </DialogHeader>
                     <div className="space-y-4 py-4">
@@ -469,6 +496,68 @@ export default function Home() {
                                 ))}
                             </div>
                         </div>
+                        <div className="space-y-2">
+                            <Label htmlFor="size">
+                                Size:{" "}
+                                {editSize === 1
+                                    ? "Small"
+                                    : editSize === 2
+                                    ? "Medium"
+                                    : "Large"}
+                            </Label>
+                            <div className="flex gap-2">
+                                {[1, 2, 3].map((s) => (
+                                    <Button
+                                        key={s}
+                                        variant={
+                                            editSize === s
+                                                ? "default"
+                                                : "outline"
+                                        }
+                                        onClick={() => setEditSize(s)}
+                                        className="flex-1"
+                                    >
+                                        {s === 1
+                                            ? "Small"
+                                            : s === 2
+                                            ? "Medium"
+                                            : "Large"}
+                                        {s === 2
+                                            ? " (+$1)"
+                                            : s === 3
+                                            ? " (+$2)"
+                                            : ""}
+                                    </Button>
+                                ))}
+                            </div>
+                        </div>
+                        {availableToppings.length > 0 && (
+                            <div className="space-y-2">
+                                <Label>Toppings</Label>
+                                <div className="flex flex-wrap gap-2">
+                                    {availableToppings.map((topping) => {
+                                        const isSelected = editToppings.some((t: any) => t.id === topping.id);
+                                        return (
+                                            <Button
+                                                key={topping.id}
+                                                variant={isSelected ? "default" : "outline"}
+                                                size="sm"
+                                                className={isSelected ? "bg-green-600 hover:bg-green-700" : ""}
+                                                onClick={() => {
+                                                    if (isSelected) {
+                                                        setEditToppings(editToppings.filter((t: any) => t.id !== topping.id));
+                                                    } else {
+                                                        setEditToppings([...editToppings, topping]);
+                                                    }
+                                                }}
+                                            >
+                                                {topping.name} +${Number(topping.price).toFixed(2)}
+                                            </Button>
+                                        );
+                                    })}
+                                </div>
+                            </div>
+                        )}
                     </div>
                     <DialogFooter>
                         <Button
@@ -487,6 +576,8 @@ export default function Home() {
                                                   boba: editBoba,
                                                   ice: editIce,
                                                   sugar: editSugar,
+                                                  size: editSize,
+                                                  toppings: editToppings,
                                               }
                                             : i
                                     )

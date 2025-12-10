@@ -21,6 +21,7 @@ type Item = {
   name: string;       // mapped from ingredients
   quantity: number;
   price: number;      // unit cost
+  istopping: number;  // 0 or 1
 };
 
 export default function InventoryPage() {
@@ -34,6 +35,7 @@ export default function InventoryPage() {
   const [nName, setNName] = useState("");
   const [nQty, setNQty] = useState<number | "">("");
   const [nPrice, setNPrice] = useState<number | "">("");
+  const [nIsTopping, setNIsTopping] = useState(false);
 
   // inline edits
   const [edit, setEdit] = useState<Record<number, Partial<Item>>>({});
@@ -157,6 +159,7 @@ export default function InventoryPage() {
         name: nName.trim(),
         quantity: Number(nQty),
         price: Number(nPrice),
+        istopping: nIsTopping ? 1 : 0,
       };
       const res = await fetch("/api/inventory", {
         method: "POST",
@@ -165,7 +168,7 @@ export default function InventoryPage() {
       });
       const data = await res.json();
       if (!data.ok) throw new Error(data.error || "Add failed");
-      setNName(""); setNQty(""); setNPrice("");
+      setNName(""); setNQty(""); setNPrice(""); setNIsTopping(false);
       await load();
     } catch (e: any) {
       setError(e?.message || "Error");
@@ -310,7 +313,7 @@ export default function InventoryPage() {
         <Card>
           <CardHeader><CardTitle>Add Ingredient</CardTitle></CardHeader>
           <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-5 gap-3">
+            <div className="grid grid-cols-1 md:grid-cols-6 gap-3">
               <Input placeholder="Ingredient name" value={nName} onChange={(e) => setNName(e.target.value)} />
               <Input
                 placeholder="Quantity"
@@ -325,7 +328,16 @@ export default function InventoryPage() {
                 value={nPrice}
                 onChange={(e) => setNPrice(e.target.value === "" ? "" : Number(e.target.value))}
               />
-              <div className="md:col-span-2">
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={nIsTopping}
+                  onChange={(e) => setNIsTopping(e.target.checked)}
+                  className="w-4 h-4"
+                />
+                <span className="text-sm">Topping</span>
+              </label>
+              <div>
                 <Button className="gap-2" onClick={addItem}><Plus className="h-4 w-4" /> Add</Button>
               </div>
             </div>
@@ -347,12 +359,13 @@ export default function InventoryPage() {
                     <th className="py-2 pr-4">Ingredient</th>
                     <th className="py-2 pr-4">Quantity</th>
                     <th className="py-2 pr-4">Unit Cost</th>
+                    <th className="py-2 pr-4">Topping</th>
                     <th className="py-2 pr-4">Actions</th>
                   </tr>
                 </thead>
                 <tbody>
                   {items.length === 0 ? (
-                    <tr><td className="py-3" colSpan={5}>No items</td></tr>
+                    <tr><td className="py-3" colSpan={6}>No items</td></tr>
                   ) : items.map((it) => {
                     const e = edit[it.id] || {};
                     return (
@@ -383,6 +396,14 @@ export default function InventoryPage() {
                             value={e.price ?? it.price}
                             onChange={(ev) => setField(it.id, "price", Number(ev.target.value))}
                             className="w-28"
+                          />
+                        </td>
+                        <td className="py-2 pr-4">
+                          <input
+                            type="checkbox"
+                            checked={(e.istopping ?? it.istopping) === 1}
+                            onChange={(ev) => setField(it.id, "istopping", ev.target.checked ? 1 : 0)}
+                            className="w-4 h-4 cursor-pointer"
                           />
                         </td>
                         <td className="py-2 pr-4">

@@ -4,12 +4,14 @@ import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { signOut, useSession } from "next-auth/react";
 
 import { translateText } from '@/lib/translate';
 import { useLanguage } from "@/lib/LanguageContext";
 
 export default function CheckoutPage() {
   const router = useRouter();
+  const { data: session, status } = useSession();
   const [cart, setCart] = useState<any[]>([]);
   const [translatedCart, setTranslatedCart] = useState<any[]>([]);
   const [paymentType, setPaymentType] = useState<string | null>(null);
@@ -38,6 +40,9 @@ export default function CheckoutPage() {
     const [completeCheckoutLabel, setCompleteCheckoutLabel] = useState('Complete Checkout');
     const [specialInstructionsLabel, setSpecialInstructionsLabel] = useState('Special Instructions (Optional)');
     const [instructionsPlaceholderLabel, setInstructionsPlaceholderLabel] = useState('Add any special requests or dietary notes...');
+    const [signedInAsLabel, setSignedInAsLabel] = useState('Signed in as');
+    const [rewardPointsLabel, setRewardPointsLabel] = useState('Reward Points');
+    const [signOutLabel, setSignOutLabel] = useState('Sign Out');
 
     const handleLangChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
       setLang(e.target.value);
@@ -64,6 +69,9 @@ export default function CheckoutPage() {
           setCompleteCheckoutLabel(await translateText('Complete Checkout', lang));
           setSpecialInstructionsLabel(await translateText('Special Instructions (Optional)', lang));
           setInstructionsPlaceholderLabel(await translateText('Add any special requests or dietary notes...', lang));
+          setSignedInAsLabel(await translateText('Signed in as', lang));
+          setRewardPointsLabel(await translateText('Reward Points', lang));
+          setSignOutLabel(await translateText('Sign Out', lang));
 
       }
       translateLabels();
@@ -84,6 +92,7 @@ export default function CheckoutPage() {
               boba: it?.boba ?? 100,
               ice: it?.ice ?? 100,
               sugar: it?.sugar ?? 100,
+              toppings: it?.toppings ?? [],
             }))
           );
         } else {
@@ -100,7 +109,8 @@ export default function CheckoutPage() {
     const base = Number(it.price || 0);
     const size = Number(it.size || 1);
     const extra = Math.max(0, size - 1);
-    return s + base + extra;
+    const toppingTotal = (it.toppings || []).reduce((t: number, top: any) => t + Number(top.price || 0), 0);
+    return s + base + extra + toppingTotal;
   }, 0);
   const tax = subtotal * TAX_RATE;
   const grandTotal = subtotal + tax;
@@ -145,6 +155,7 @@ export default function CheckoutPage() {
             items: cart,
             specialInstructions: specialInstructions.trim() || null,
             // No employeeId for customer kiosk orders (will be NULL)
+            customerId: session?.user ? (session.user as any).id : -1,
           }),
           signal: controller.signal,
         });
@@ -255,6 +266,29 @@ export default function CheckoutPage() {
             <Button variant="outline">{backToKioskLabel}</Button>
           </Link>
         </div>
+
+        {/* Show signed-in status if user is logged in (sign-in moved to main kiosk page) */}
+        {session?.user && (
+          <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+            <div className="flex items-center justify-between flex-wrap gap-2">
+              <div>
+                <p className="font-medium">
+                  {signedInAsLabel}: {session.user.name}
+                </p>
+                <p className="text-sm text-gray-600">
+                  {rewardPointsLabel}: {(session.user as any).points ?? 0}
+                </p>
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => signOut({ redirect: false })}
+              >
+                {signOutLabel}
+              </Button>
+            </div>
+          </div>
+        )}
 
         <div className="space-y-4 mb-6">
           {cart.length === 0 ? (

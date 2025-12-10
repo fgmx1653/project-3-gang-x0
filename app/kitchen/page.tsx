@@ -16,6 +16,8 @@ interface OrderItem {
     ice: number;
     sugar: number;
     size?: number;
+    order_item_id?: number;
+    toppings?: { id: number; name: string }[];
 }
 
 interface Order {
@@ -396,6 +398,14 @@ export default function KitchenPage() {
                                                         Size: {sizeLabel} • ${adjPrice}
                                                         <br />
                                                         Boba: {item.boba}% | Ice: {item.ice}% | Sugar: {item.sugar}%
+                                                        {item.toppings && item.toppings.length > 0 && (
+                                                            <>
+                                                                <br />
+                                                                <span className="text-green-700 font-medium">
+                                                                    Toppings: {item.toppings.map(t => t.name).join(', ')}
+                                                                </span>
+                                                            </>
+                                                        )}
                                                     </div>
                                                 </div>
                                                 );

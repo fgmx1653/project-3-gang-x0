@@ -40,6 +40,8 @@ export default function ManagerOrderPage() {
     const [editSize, setEditSize] = useState<number>(1);
     const [showInstructionsDialog, setShowInstructionsDialog] = useState(false);
     const [specialInstructions, setSpecialInstructions] = useState("");
+    const [availableToppings, setAvailableToppings] = useState<any[]>([]);
+    const [editToppings, setEditToppings] = useState<any[]>([]);
 
     async function getMenuItems() {
         setLoading(true);
@@ -128,6 +130,16 @@ export default function ManagerOrderPage() {
         }
 
         getMenuItems();
+
+        // Fetch available toppings
+        fetch("/api/ingredients/toppings")
+            .then((res) => res.json())
+            .then((data) => {
+                if (data.ok) {
+                    setAvailableToppings(data.toppings || []);
+                }
+            })
+            .catch((err) => console.error("Failed to fetch toppings:", err));
     }, [router]);
 
     return (
@@ -197,6 +209,12 @@ export default function ManagerOrderPage() {
                                                 Boba: {item.boba ?? 100}% | Ice:{" "}
                                                 {item.ice ?? 100}% | Sugar:{" "}
                                                 {item.sugar ?? 100}%
+                                                {item.toppings && item.toppings.length > 0 && (
+                                                    <>
+                                                        <br />
+                                                        Toppings: {item.toppings.map((t: any) => t.name).join(', ')}
+                                                    </>
+                                                )}
                                             </div>
                                         </div>
                                         <div className="flex items-center gap-2">
@@ -208,7 +226,8 @@ export default function ManagerOrderPage() {
                                                         0,
                                                         Number(item.size || 1) -
                                                             1
-                                                    )
+                                                    ) +
+                                                    (item.toppings || []).reduce((sum: number, t: any) => sum + Number(t.price || 0), 0)
                                                 ).toFixed(2)}
                                             </span>
                                             <Button
@@ -227,6 +246,7 @@ export default function ManagerOrderPage() {
                                                     setEditSize(
                                                         Number(item.size || 1)
                                                     );
+                                                    setEditToppings(item.toppings || []);
                                                 }}
                                             >
                                                 <Edit className="h-4 w-4" />
@@ -299,6 +319,7 @@ export default function ManagerOrderPage() {
                                         ice: 100,
                                         sugar: 100,
                                         size: 1,
+                                        toppings: [],
                                     };
                                     setCart((prev) => [...prev, newItem]);
                                 }}
@@ -429,6 +450,33 @@ export default function ManagerOrderPage() {
                                 ))}
                             </div>
                         </div>
+                        {availableToppings.length > 0 && (
+                            <div className="space-y-2">
+                                <Label>Toppings</Label>
+                                <div className="flex flex-wrap gap-2">
+                                    {availableToppings.map((topping) => {
+                                        const isSelected = editToppings.some((t: any) => t.id === topping.id);
+                                        return (
+                                            <Button
+                                                key={topping.id}
+                                                variant={isSelected ? "default" : "outline"}
+                                                size="sm"
+                                                className={isSelected ? "bg-green-600 hover:bg-green-700" : ""}
+                                                onClick={() => {
+                                                    if (isSelected) {
+                                                        setEditToppings(editToppings.filter((t: any) => t.id !== topping.id));
+                                                    } else {
+                                                        setEditToppings([...editToppings, topping]);
+                                                    }
+                                                }}
+                                            >
+                                                {topping.name} +${Number(topping.price).toFixed(2)}
+                                            </Button>
+                                        );
+                                    })}
+                                </div>
+                            </div>
+                        )}
                     </div>
                     <DialogFooter>
                         <Button
@@ -448,6 +496,7 @@ export default function ManagerOrderPage() {
                                                   ice: editIce,
                                                   sugar: editSugar,
                                                   size: editSize,
+                                                  toppings: editToppings,
                                               }
                                             : i
                                     )

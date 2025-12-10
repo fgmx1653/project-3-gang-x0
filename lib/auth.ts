@@ -8,6 +8,11 @@ export const authOptions: NextAuthOptions = {
     GoogleProvider({
       clientId: process.env.GOOGLE_CLIENT_ID!,
       clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
+      authorization: {
+        params: {
+          prompt: "select_account",  // Always show account selection screen
+        },
+      },
     }),
   ],
   callbacks: {
@@ -18,31 +23,31 @@ export const authOptions: NextAuthOptions = {
         if (!email) return false; // must have email for identification
 
         // Look for existing user first
-        let res = await pool.query("SELECT id, google_id FROM employees WHERE email = $1", [email]);
+        let res = await pool.query("SELECT id, google_id FROM customers WHERE email = $1", [email]);
 
         if (res.rows.length === 0) {
           // Attempt creation
           const username = (email.split("@")[0] || user.name || "user").slice(0, 64);
           // Find the current max id
-          const idRes = await pool.query('SELECT MAX(id) AS max_id FROM employees');
+          const idRes = await pool.query('SELECT MAX(id) AS max_id FROM customers');
           const nextId = (idRes.rows[0]?.max_id ?? 0) + 1;
-          const employdate = new Date().toISOString().slice(0, 10); // YYYY-MM-DD
-          const hrsalary = 15;
+          const joindate = new Date().toISOString().slice(0, 10); // YYYY-MM-DD
+          const defaultPoints = 0; // New customers start with 0 reward points
           await pool.query(
-            `INSERT INTO employees (id, username, password, ismanager, employdate, hrsalary, email, google_id, name)
-             VALUES ($1, $2, NULL, 0, $3, $4, $5, $6, $7)
+            `INSERT INTO customers (id, username, password, joindate, points, email, google_id, name)
+             VALUES ($1, $2, NULL, $3, $4, $5, $6, $7)
              ON CONFLICT (email) DO NOTHING`,
-            [nextId, username, employdate, hrsalary, email, googleId, user.name ?? username]
+            [nextId, username, joindate, defaultPoints, email, googleId, user.name ?? username]
           );
           // Re-check existence after attempted insert
-          res = await pool.query("SELECT id, google_id FROM employees WHERE email = $1", [email]);
+          res = await pool.query("SELECT id, google_id FROM customers WHERE email = $1", [email]);
           if (res.rows.length === 0) {
-            console.error("Sign-in aborted: employee record not created for email", email);
+            console.error("Sign-in aborted: customer record not created for email", email);
             return false; // Guard: do NOT allow sign-in if DB lacks record
           }
         } else if (googleId && !res.rows[0].google_id) {
           // Backfill google_id if previously null
-          await pool.query(`UPDATE employees SET google_id = $2 WHERE email = $1`, [email, googleId]);
+          await pool.query(`UPDATE customers SET google_id = $2 WHERE email = $1`, [email, googleId]);
         }
 
         return true; // proceed only if record exists
@@ -56,22 +61,24 @@ export const authOptions: NextAuthOptions = {
         const email = token.email as string | undefined;
         if (!email) return token;
         const res = await pool.query(
-          "SELECT id, ismanager, username, name FROM employees WHERE email = $1",
+          "SELECT id, username, name, points FROM customers WHERE email = $1",
           [email]
         );
         if (res.rows.length > 0) {
           const row = res.rows[0];
-          (token as any).employeeId = row.id;
-          (token as any).ismanager = row.ismanager === true || row.ismanager === 1 || row.ismanager === '1';
+          (token as any).customerId = row.id;
+          (token as any).points = row.points ?? 0;
           (token as any).displayName = row.name || row.username || token.name;
+          (token as any).isCustomer = true;
         }
       } catch (_) {}
       return token;
     },
     async session({ session, token }) {
       if (session.user) {
-        (session.user as any).id = (token as any).employeeId ?? (session.user as any).id;
-        (session.user as any).ismanager = (token as any).ismanager ?? false;
+        (session.user as any).id = (token as any).customerId ?? (session.user as any).id;
+        (session.user as any).points = (token as any).points ?? 0;
+        (session.user as any).isCustomer = (token as any).isCustomer ?? false;
         if ((token as any).displayName) session.user.name = (token as any).displayName as string;
       }
       return session;

@@ -17,8 +17,6 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { getStoredUser } from "@/lib/clientAuth";
 
-import { signIn } from "next-auth/react";
-
 import {
     Tooltip,
     TooltipContent,
@@ -69,46 +67,16 @@ export default function Home() {
     }
 
     useEffect(() => {
-        // First, check if we already have an Auth.js session; if so, bootstrap localStorage
-        (async () => {
-            try {
-                const res = await fetch("/api/auth/session", {
-                    cache: "no-store",
-                });
-                if (res.ok) {
-                    const session = await res.json();
-                    if (session?.user) {
-                        const m = (session.user as any).ismanager;
-                        const isManager = m === true || m === "1" || m === 1;
-                        const userPayload = {
-                            id: (session.user as any).id,
-                            name: session.user.name,
-                            username: session.user.name,
-                            ismanager: isManager,
-                        };
-                        localStorage.setItem(
-                            "user",
-                            JSON.stringify(userPayload)
-                        );
-                        localStorage.setItem("isLoggedIn", "1");
-                        router.push(isManager ? "/manager" : "/employee");
-                        return;
-                    }
-                }
-            } catch (_) {
-                // Ignore network errors; fall back to localStorage check
-            }
 
-            // Fallback: respect any existing localStorage session
-            const user = getStoredUser();
-            if (user) {
-                const m = user?.ismanager;
-                const isManager = m === true || m === "1" || m === 1;
-                router.push(isManager ? "/manager" : "/employee");
-            }
-            setCheckingSession(false);
-        })();
-    }, [router]);
+        // Fallback: respect any existing localStorage session
+        const user = getStoredUser();
+        if (user) {
+            const m = user?.ismanager;
+            const isManager = m === true || m === "1" || m === 1;
+            router.push(isManager ? "/manager" : "/employee");
+        }
+        setCheckingSession(false);
+}, [router]);
 
     return (
         <div className="relative flex h-screen w-full items-center justify-center overflow-hidden">
@@ -165,17 +133,6 @@ export default function Home() {
                         }}
                     >
                         {loading ? "Signing in..." : "Login"}
-                    </Button>
-                    <h2>or</h2>
-                    <Button
-                        className="w-full"
-                        variant="outline"
-                        type="button"
-                        onClick={() => {
-                            signIn("google", { callbackUrl: "/login" });
-                        }}
-                    >
-                        {"Continue with Google"}
                     </Button>
                     {error && <p className="text-sm text-black">{error}</p>}
                 </CardFooter>

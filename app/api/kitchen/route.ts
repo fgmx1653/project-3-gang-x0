@@ -47,6 +47,16 @@ export async function GET(req: Request) {
             )
         `);
 
+        // Ensure order_toppings table exists
+        await pool.query(`
+            CREATE TABLE IF NOT EXISTS order_toppings (
+                order_id INTEGER NOT NULL,
+                order_item_id INTEGER NOT NULL,
+                topping_id INTEGER NOT NULL,
+                PRIMARY KEY (order_id, order_item_id, topping_id)
+            )
+        `);
+
         // Get orders from both orders table (active) and cancelled_orders table (cancelled)
         // Use UNION to avoid duplicates if an order exists in both tables
         const result = await pool.query(
@@ -65,7 +75,14 @@ export async function GET(req: Request) {
                         'boba', COALESCE(o.boba, 100),
                         'ice', COALESCE(o.ice, 100),
                         'sugar', COALESCE(o.sugar, 100),
-                        'size', COALESCE(o.size, 1)
+                        'size', COALESCE(o.size, 1),
+                        'order_item_id', o.order_item_id,
+                        'toppings', COALESCE((
+                          SELECT json_agg(json_build_object('id', inv.id, 'name', inv.ingredients))
+                          FROM order_toppings ot
+                          JOIN inventory inv ON ot.topping_id = inv.id
+                          WHERE ot.order_id = o.order_id AND ot.order_item_id = o.order_item_id
+                        ), '[]'::json)
           )
         ) as items
       FROM orders o
@@ -94,7 +111,9 @@ export async function GET(req: Request) {
                         'boba', COALESCE(co.boba, 100),
                         'ice', COALESCE(co.ice, 100),
                         'sugar', COALESCE(co.sugar, 100),
-                        'size', COALESCE(co.size, 1)
+                        'size', COALESCE(co.size, 1),
+                        'order_item_id', NULL,
+                        'toppings', '[]'::json
           )
         ) as items
       FROM cancelled_orders co

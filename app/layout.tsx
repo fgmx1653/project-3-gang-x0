@@ -5,6 +5,7 @@ import { Delius } from "next/font/google";
 import "./globals.css";
 import AccessibilityMenu from "@/components/AccessibilityMenu";
 import { LanguageProvider } from "@/lib/LanguageContext";
+import SessionProvider from "@/components/SessionProvider";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -43,10 +44,12 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} ${pacifico.variable} ${delius.variable} antialiased`}
       >
-        <LanguageProvider>
-          {children}
-          <AccessibilityMenu />
-        </LanguageProvider>
+        <SessionProvider>
+          <LanguageProvider>
+            {children}
+            <AccessibilityMenu />
+          </LanguageProvider>
+        </SessionProvider>
       </body>
     </html>
   );
