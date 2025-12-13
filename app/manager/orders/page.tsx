@@ -23,6 +23,7 @@ import {
   type OrderHistoryFormData,
   type ValidationErrorResponse,
 } from "@/lib/validation/orderHistory";
+import { getChicagoDate } from "@/lib/timezone";
 
 type OrderRow = {
   order_id: number;
@@ -336,7 +337,7 @@ export default function OrdersHistoryPage() {
                         <FormControl>
                           <Input
                             type="date"
-                            max={new Date().toISOString().slice(0, 10)}
+                            max={getChicagoDate()} // Chicago timezone
                             {...field}
                           />
                         </FormControl>
@@ -359,7 +360,7 @@ export default function OrdersHistoryPage() {
                         <FormControl>
                           <Input
                             type="date"
-                            max={new Date().toISOString().slice(0, 10)}
+                            max={getChicagoDate()} // Chicago timezone
                             {...field}
                           />
                         </FormControl>

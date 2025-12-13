@@ -2,6 +2,7 @@
 import { NextResponse } from "next/server";
 import { pool } from "@/lib/db";
 import { orderHistoryQuerySchema, type ValidationErrorResponse, type OrderHistoryQuery } from "@/lib/validation/orderHistory";
+import { getChicagoDate, getChicagoDateDaysAgo } from "@/lib/timezone";
 
 /**
  * Validates and sanitizes query parameters using Zod schema
@@ -63,14 +64,12 @@ async function verifyMenuItemExists(client: any, menuId: number): Promise<boolea
 
 /**
  * Apply default values for missing optional parameters
+ * Uses Chicago timezone for consistent date handling
  */
 function applyDefaults(data: Partial<OrderHistoryQuery>) {
-  const today = new Date();
-  const weekAgo = new Date(Date.now() - 6 * 24 * 3600 * 1000);
-
   return {
-    start: data.start || weekAgo.toISOString().slice(0, 10),
-    end: data.end || today.toISOString().slice(0, 10),
+    start: data.start || getChicagoDateDaysAgo(6), // 7 days ago (inclusive)
+    end: data.end || getChicagoDate(), // Today in Chicago timezone
     timeStart: data.timeStart || "00:00",
     timeEnd: data.timeEnd || "23:59",
     employee: data.employee, // Can be undefined
@@ -164,23 +163,27 @@ export async function GET(req: Request) {
       .then(r => !!r.rows?.[0]?.ok);
 
     const withNames = `
-      SELECT o.order_id, o.order_date, o.order_time,
+      SELECT o.order_id,
+             to_char(o.order_date, 'YYYY-MM-DD') AS order_date,
+             o.order_time::text AS order_time,
              o.menu_item_id, mi.name AS menu_item_name,
              o.price::numeric::float8 AS price, o.employee
       FROM public.orders o
       JOIN public.menu_items mi ON mi.id = o.menu_item_id
       ${where}
-      ORDER BY o.order_date ASC, o.order_time ASC, o.order_id ASC
+      ORDER BY o.order_date DESC, o.order_time DESC, o.order_id DESC
       LIMIT ${limit} OFFSET ${offset}
     `;
 
     const anon = `
-      SELECT o.order_id, o.order_date, o.order_time,
+      SELECT o.order_id,
+             to_char(o.order_date, 'YYYY-MM-DD') AS order_date,
+             o.order_time::text AS order_time,
              o.menu_item_id, NULL::text AS menu_item_name,
              o.price::numeric::float8 AS price, o.employee
       FROM public.orders o
       ${where}
-      ORDER BY o.order_date ASC, o.order_time ASC, o.order_id ASC
+      ORDER BY o.order_date DESC, o.order_time DESC, o.order_id DESC
       LIMIT ${limit} OFFSET ${offset}
     `;
 

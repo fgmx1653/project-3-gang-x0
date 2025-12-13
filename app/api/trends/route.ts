@@ -1,10 +1,6 @@
 import { NextResponse } from "next/server";
 import { pool } from "@/lib/db";
-
-function toISODate(d: Date) {
-  return new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()))
-    .toISOString().slice(0, 10);
-}
+import { getChicagoDate, getChicagoDateDaysAgo } from "@/lib/timezone";
 
 type Cols = {
   dateCol: string;
@@ -41,9 +37,9 @@ export async function GET(req: Request) {
   const group = (url.searchParams.get("group") || "day").toLowerCase() as "day"|"week"|"month";
   const iso = /^\d{4}-\d{2}-\d{2}$/;
 
-  const today = new Date();
-  const defaultEnd = toISODate(today);
-  const defaultStart = toISODate(new Date(today.getTime() - 29*24*60*60*1000));
+  // Use Chicago timezone for consistent date handling
+  const defaultEnd = getChicagoDate(); // Today in Chicago timezone
+  const defaultStart = getChicagoDateDaysAgo(29); // 30 days ago (inclusive)
 
   const start = (url.searchParams.get("start") || defaultStart).slice(0,10);
   const end   = (url.searchParams.get("end")   || defaultEnd).slice(0,10);

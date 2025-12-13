@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { pool } from "@/lib/db";
+import { getChicagoDate, getChicagoDateTimeString } from "@/lib/timezone";
 
 /**
  * POST /api/reports/z-report
@@ -9,8 +10,8 @@ import { pool } from "@/lib/db";
  */
 export async function POST() {
   try {
-    const today = new Date();
-    const todayDateStr = today.toISOString().split('T')[0]; // Format: YYYY-MM-DD
+    // Use Chicago timezone for consistent date handling
+    const todayDateStr = getChicagoDate(); // Format: YYYY-MM-DD in Chicago timezone
 
     // Check if Z-Report already exists for today
     const existingZReport = await pool.query(
@@ -78,7 +79,7 @@ export async function POST() {
 
     // Format the report text
     const dateStr = todayDateStr;
-    const generatedStr = new Date().toISOString().replace('T', ' ').substring(0, 23);
+    const generatedStr = getChicagoDateTimeString(); // Chicago timezone timestamp
     const totalSales = parseFloat(totals.rows[0].total_sales) || 0;
     const totalTaxes = parseFloat(totals.rows[0].total_taxes) || 0;
     const totalOrders = parseInt(totals.rows[0].total_orders) || 0;

@@ -7,6 +7,7 @@ import { jsPDF } from "jspdf";
 
 import { translateText } from '@/lib/translate';
 import { useLanguage } from "@/lib/LanguageContext";
+import { formatChicagoDateTime } from "@/lib/timezone";
 
 type Props = {
   encodedData?: string | null;
@@ -120,13 +121,9 @@ export default function OrderConfirmationClient({ encodedData }: Props) {
     );
   }
 
-  const currentDate = new Date().toLocaleDateString("en-US", {
-    year: "numeric",
-    month: "long",
-    day: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
+  // Use Chicago timezone for consistent receipt display
+  // If orderData has date/time from DB, we could use that, but for now use current Chicago time
+  const currentDate = formatChicagoDateTime(new Date(), true);
 
   const downloadReceipt = () => {
     const doc = new jsPDF();

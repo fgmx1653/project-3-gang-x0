@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { pool } from "@/lib/db";
+import { getChicagoDateTime, getChicagoDateTimeString } from "@/lib/timezone";
 
 /**
  * POST /api/orders/cancel
@@ -160,12 +161,9 @@ export async function POST(req: Request) {
         const profit = -(totalRevenue - totalCost);
 
         // Add cancellation record to reports (negative profit)
-        const cancelDate = new Date();
-        const year = cancelDate.getFullYear();
-        const month = String(cancelDate.getMonth() + 1).padStart(2, "0");
-        const day = String(cancelDate.getDate()).padStart(2, "0");
-        const date = `${year}-${month}-${day}`;
-        const time = cancelDate.toTimeString().split(" ")[0];
+        // Use Chicago timezone for consistent date/time handling
+        const { date, time } = getChicagoDateTime();
+        const dateTimeStr = getChicagoDateTimeString();
 
         await client.query(
             `INSERT INTO reports (report_name, report_type, report_text)

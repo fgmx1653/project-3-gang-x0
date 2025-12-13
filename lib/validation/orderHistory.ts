@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { getChicagoDate, getChicagoDateDaysAgo } from "@/lib/timezone";
 
 // Constants for order history validation
 export const ORDER_HISTORY_LIMITS = {
@@ -69,11 +70,11 @@ export const orderHistoryQuerySchema = z.object({
     .default(0),
 }).superRefine((data, ctx) => {
   // Cross-field validations
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
+  // Use Chicago timezone for "today" validation to ensure consistency
+  const todayChicago = getChicagoDate(); // YYYY-MM-DD in Chicago timezone
 
   // Validate future dates
-  if (data.start && new Date(data.start) > today) {
+  if (data.start && data.start > todayChicago) {
     ctx.addIssue({
       code: z.ZodIssueCode.custom,
       message: "Start date cannot be in the future",
@@ -81,7 +82,7 @@ export const orderHistoryQuerySchema = z.object({
     });
   }
 
-  if (data.end && new Date(data.end) > today) {
+  if (data.end && data.end > todayChicago) {
     ctx.addIssue({
       code: z.ZodIssueCode.custom,
       message: "End date cannot be in the future",
@@ -161,11 +162,11 @@ export const orderHistoryFormSchema = z.object({
     .max(ORDER_HISTORY_LIMITS.MAX_OFFSET, "Offset exceeds maximum allowed"),
 }).superRefine((data, ctx) => {
   // Same cross-field validations as backend schema
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
+  // Use Chicago timezone for "today" validation to ensure consistency
+  const todayChicago = getChicagoDate(); // YYYY-MM-DD in Chicago timezone
 
   // Validate future dates
-  if (data.start && new Date(data.start) > today) {
+  if (data.start && data.start > todayChicago) {
     ctx.addIssue({
       code: z.ZodIssueCode.custom,
       message: "Start date cannot be in the future",
@@ -173,7 +174,7 @@ export const orderHistoryFormSchema = z.object({
     });
   }
 
-  if (data.end && new Date(data.end) > today) {
+  if (data.end && data.end > todayChicago) {
     ctx.addIssue({
       code: z.ZodIssueCode.custom,
       message: "End date cannot be in the future",
@@ -211,22 +212,12 @@ export type OrderHistoryFormData = z.infer<typeof orderHistoryFormSchema>;
 
 /**
  * Get default values for the order history form (last 7 days)
+ * Uses Chicago timezone for consistent date handling
  */
 export function getDefaultQueryValues(): OrderHistoryFormData {
-  const today = new Date();
-  const weekAgo = new Date(Date.now() - 6 * 24 * 3600 * 1000);
-
-  // Format dates in local timezone to avoid UTC conversion issues
-  const formatLocalDate = (date: Date): string => {
-    const year = date.getFullYear();
-    const month = String(date.getMonth() + 1).padStart(2, '0');
-    const day = String(date.getDate()).padStart(2, '0');
-    return `${year}-${month}-${day}`;
-  };
-
   return {
-    start: formatLocalDate(weekAgo),
-    end: formatLocalDate(today),
+    start: getChicagoDateDaysAgo(6), // 7 days ago (inclusive) in Chicago timezone
+    end: getChicagoDate(), // Today in Chicago timezone
     timeStart: "00:00",
     timeEnd: "23:59",
     employee: undefined,

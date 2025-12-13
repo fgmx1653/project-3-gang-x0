@@ -11,6 +11,7 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { getChicagoDate } from "@/lib/timezone";
 
 type Employee = {
   id?: number;
@@ -102,7 +103,7 @@ export default function Page() {
       username: "new_user",
       password: "",
       ismanager: false,
-      employdate: new Date().toISOString().slice(0, 10),
+      employdate: getChicagoDate(), // Use Chicago timezone
       hrsalary: 0,
       email: null,
       google_id: null,

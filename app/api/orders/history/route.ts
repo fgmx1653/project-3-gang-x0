@@ -15,7 +15,7 @@ export async function GET(req: Request) {
 
         // Get orders for this customer with their items
         const result = await pool.query(
-            `SELECT 
+            `SELECT
                 o.order_id,
                 o.order_date,
                 o.order_time,
