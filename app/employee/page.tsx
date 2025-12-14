@@ -100,16 +100,19 @@ export default function Home() {
         } catch (err: any) {
             console.error("Menu request error:", err);
 
-            let errorMessage = "Network error. Please check your connection and try again.";
+            let errorMessage =
+                "Network error. Please check your connection and try again.";
             if (err.name === "AbortError") {
-                errorMessage = "Request timeout. Please check your connection and try again.";
+                errorMessage =
+                    "Request timeout. Please check your connection and try again.";
             } else if (err.message === "server_error") {
                 errorMessage = "Server error. Please try again later.";
             } else if (
                 err.message?.includes("Failed to fetch") ||
                 err.message?.includes("NetworkError")
             ) {
-                errorMessage = "Network error. Please check your connection and try again.";
+                errorMessage =
+                    "Network error. Please check your connection and try again.";
             }
 
             setError(errorMessage);
@@ -131,7 +134,9 @@ export default function Home() {
         }
 
         if (cart.length === 0) {
-            setError("Cart is empty. Please add items before placing an order.");
+            setError(
+                "Cart is empty. Please add items before placing an order."
+            );
             return;
         }
 
@@ -149,7 +154,7 @@ export default function Home() {
                 body: JSON.stringify({
                     items: cart,
                     employeeId: user.id,
-                    specialInstructions: specialInstructions.trim() || null
+                    specialInstructions: specialInstructions.trim() || null,
                 }),
                 signal: controller.signal,
             });
@@ -176,18 +181,23 @@ export default function Home() {
         } catch (err: any) {
             console.error("Order placement failed:", err);
 
-            let errorMessage = "Network error. Please check your connection and try again.";
+            let errorMessage =
+                "Network error. Please check your connection and try again.";
             if (err.name === "AbortError") {
-                errorMessage = "Order request timeout. Please check your connection and try again.";
+                errorMessage =
+                    "Order request timeout. Please check your connection and try again.";
             } else if (err.message === "server_error") {
-                errorMessage = "Server error. Unable to process order. Please try again later.";
+                errorMessage =
+                    "Server error. Unable to process order. Please try again later.";
             } else if (err.message === "client_error") {
-                errorMessage = "Invalid order data. Please check your cart and try again.";
+                errorMessage =
+                    "Invalid order data. Please check your cart and try again.";
             } else if (
                 err.message?.includes("Failed to fetch") ||
                 err.message?.includes("NetworkError")
             ) {
-                errorMessage = "Network error. Please check your connection and try again.";
+                errorMessage =
+                    "Network error. Please check your connection and try again.";
             } else if (err.message) {
                 errorMessage = err.message;
             }
@@ -202,7 +212,9 @@ export default function Home() {
     useEffect(() => {
         if (error && retryCount < 3) {
             const timer = setTimeout(() => {
-                console.log(`Auto-retrying menu fetch (attempt ${retryCount + 1}/3)`);
+                console.log(
+                    `Auto-retrying menu fetch (attempt ${retryCount + 1}/3)`
+                );
                 setRetryCount((prev) => prev + 1);
                 getMenuItems();
             }, 3000); // Retry after 3 seconds
@@ -249,10 +261,13 @@ export default function Home() {
                                         <h3 className="text-lg font-bold text-red-800 mb-1">
                                             Error
                                         </h3>
-                                        <p className="text-red-600 text-sm">{error}</p>
+                                        <p className="text-red-600 text-sm">
+                                            {error}
+                                        </p>
                                         {retryCount > 0 && retryCount < 3 && (
                                             <p className="text-xs text-red-500 mt-2">
-                                                Retrying... (Attempt {retryCount}/3)
+                                                Retrying... (Attempt{" "}
+                                                {retryCount}/3)
                                             </p>
                                         )}
                                     </div>
@@ -291,20 +306,54 @@ export default function Home() {
                                                 {item.name}
                                             </h2>
                                             <div className="text-xs text-gray-600 font-deco">
-                                                Size: {Number(item.size || 1) === 1 ? 'Small' : Number(item.size || 1) === 2 ? 'Medium' : 'Large'}
+                                                Size:{" "}
+                                                {Number(item.size || 1) === 1
+                                                    ? "Small"
+                                                    : Number(item.size || 1) ===
+                                                      2
+                                                    ? "Medium"
+                                                    : "Large"}
                                                 <br />
-                                                Boba: {item.boba ?? 100}% | Ice: {item.ice ?? 100}% | Sugar: {item.sugar ?? 100}%
-                                                {item.toppings && item.toppings.length > 0 && (
-                                                    <>
-                                                        <br />
-                                                        Toppings: {item.toppings.map((t: any) => t.name).join(', ')}
-                                                    </>
-                                                )}
+                                                Boba: {item.boba ?? 100}% | Ice:{" "}
+                                                {item.ice ?? 100}% | Sugar:{" "}
+                                                {item.sugar ?? 100}%
+                                                {item.toppings &&
+                                                    item.toppings.length >
+                                                        0 && (
+                                                        <>
+                                                            <br />
+                                                            Toppings:{" "}
+                                                            {item.toppings
+                                                                .map(
+                                                                    (t: any) =>
+                                                                        t.name
+                                                                )
+                                                                .join(", ")}
+                                                        </>
+                                                    )}
                                             </div>
                                         </div>
                                         <div className="flex items-center gap-2">
                                             <span className="font-deco font-bold text-black/50">
-                                                ${(Number(item.price || 0) + Math.max(0, Number(item.size || 1) - 1) + (item.toppings || []).reduce((sum: number, t: any) => sum + Number(t.price || 0), 0)).toFixed(2)}
+                                                $
+                                                {(
+                                                    Number(item.price || 0) +
+                                                    Math.max(
+                                                        0,
+                                                        Number(item.size || 1) -
+                                                            1
+                                                    ) +
+                                                    (
+                                                        item.toppings || []
+                                                    ).reduce(
+                                                        (sum: number, t: any) =>
+                                                            sum +
+                                                            Number(
+                                                                t.price || 0
+                                                            ),
+                                                        0
+                                                    )
+                                                ).toFixed(2)}
                                             </span>
                                             <Button
                                                 variant="ghost"
@@ -319,8 +368,12 @@ export default function Home() {
                                                     setEditSugar(
                                                         item.sugar ?? 100
                                                     );
-                                                    setEditSize(Number(item.size || 1));
-                                                    setEditToppings(item.toppings || []);
+                                                    setEditSize(
+                                                        Number(item.size || 1)
+                                                    );
+                                                    setEditToppings(
+                                                        item.toppings || []
+                                                    );
                                                 }}
                                             >
                                                 <Edit className="h-4 w-4" />
@@ -352,7 +405,9 @@ export default function Home() {
                                 className="w-full"
                                 onClick={() => setShowInstructionsDialog(true)}
                             >
-                                {specialInstructions ? 'Edit Special Instructions' : 'Add Special Instructions'}
+                                {specialInstructions
+                                    ? "Edit Special Instructions"
+                                    : "Add Special Instructions"}
                             </Button>
                             <Button
                                 className="w-full text-lg py-6 shadow-lg"
@@ -378,46 +433,46 @@ export default function Home() {
                             </div>
                         </div>
                     ) : (
-                    <div className="grid grid-cols-[repeat(auto-fill,minmax(220px,1fr))] gap-4 pb-20">
-                        {menuItems.map((item) => (
-                            <button
-                                key={item.id}
-                                className="text-left h-full"
-                                onClick={() => {
-                                    const cartId =
-                                        typeof crypto !== "undefined" &&
-                                        "randomUUID" in crypto
-                                            ? (crypto as any).randomUUID()
-                                            : `${
-                                                  item.id
-                                              }-${Date.now()}-${Math.floor(
-                                                  Math.random() * 10000
-                                              )}`;
+                        <div className="grid grid-cols-[repeat(auto-fill,minmax(220px,1fr))] gap-4 pb-20">
+                            {menuItems.map((item) => (
+                                <button
+                                    key={item.id}
+                                    className="text-left h-full"
+                                    onClick={() => {
+                                        const cartId =
+                                            typeof crypto !== "undefined" &&
+                                            "randomUUID" in crypto
+                                                ? (crypto as any).randomUUID()
+                                                : `${
+                                                      item.id
+                                                  }-${Date.now()}-${Math.floor(
+                                                      Math.random() * 10000
+                                                  )}`;
 
-                                    const newItem = {
-                                        ...item,
-                                        cartId,
-                                        boba: 100,
-                                        ice: 100,
-                                        sugar: 100,
-                                        toppings: [],
-                                    };
-                                    setCart((prev) => [...prev, newItem]);
-                                }}
-                            >
-                                <Card className="h-full bg-white/60 backdrop-blur-md hover:bg-white hover:scale-105 transition-all duration-200 shadow-sm hover:shadow-xl border-2 border-transparent hover:border-yellow-400/50 group">
-                                    <CardContent className="p-5 flex flex-col justify-between h-full gap-4">
-                                        <h1 className="font-deco font-bold text-xl group-hover:text-yellow-600 transition-colors">
-                                            {item.name}
-                                        </h1>
-                                        <div className="font-deco text-2xl font-bold text-black/40 self-end">
-                                            ${item.price}
-                                        </div>
-                                    </CardContent>
-                                </Card>
-                            </button>
-                        ))}
-                    </div>
+                                        const newItem = {
+                                            ...item,
+                                            cartId,
+                                            boba: 100,
+                                            ice: 100,
+                                            sugar: 100,
+                                            toppings: [],
+                                        };
+                                        setCart((prev) => [...prev, newItem]);
+                                    }}
+                                >
+                                    <Card className="h-full bg-white/60 backdrop-blur-md hover:bg-white hover:scale-105 transition-all duration-200 shadow-sm hover:shadow-xl border-2 border-transparent hover:border-yellow-400/50 group">
+                                        <CardContent className="p-5 flex flex-col justify-between h-full gap-4">
+                                            <h1 className="font-deco font-bold text-xl group-hover:text-yellow-600 transition-colors">
+                                                {item.name}
+                                            </h1>
+                                            <div className="font-deco text-2xl font-bold text-black/40 self-end">
+                                                ${item.price}
+                                            </div>
+                                        </CardContent>
+                                    </Card>
+                                </button>
+                            ))}
+                        </div>
                     )}
                 </div>
             </div>
@@ -439,8 +494,8 @@ export default function Home() {
                             <Label htmlFor="boba">
                                 Boba Level: {editBoba}%
                             </Label>
-                            <div className="flex gap-2">
-                                {[25, 50, 75, 100].map((level) => (
+                            <div className="flex gap-2 flex-wrap">
+                                {[25, 50, 75, 100, 125, 150].map((level) => (
                                     <Button
                                         key={level}
                                         variant={
@@ -458,8 +513,8 @@ export default function Home() {
                         </div>
                         <div className="space-y-2">
                             <Label htmlFor="ice">Ice Level: {editIce}%</Label>
-                            <div className="flex gap-2">
-                                {[25, 50, 75, 100].map((level) => (
+                            <div className="flex gap-2 flex-wrap">
+                                {[25, 50, 75, 100, 125, 150].map((level) => (
                                     <Button
                                         key={level}
                                         variant={
@@ -479,8 +534,8 @@ export default function Home() {
                             <Label htmlFor="sugar">
                                 Sugar Level: {editSugar}%
                             </Label>
-                            <div className="flex gap-2">
-                                {[25, 50, 75, 100].map((level) => (
+                            <div className="flex gap-2 flex-wrap">
+                                {[25, 50, 75, 100, 125, 150].map((level) => (
                                     <Button
                                         key={level}
                                         variant={
@@ -536,22 +591,44 @@ export default function Home() {
                                 <Label>Toppings</Label>
                                 <div className="flex flex-wrap gap-2">
                                     {availableToppings.map((topping) => {
-                                        const isSelected = editToppings.some((t: any) => t.id === topping.id);
+                                        const isSelected = editToppings.some(
+                                            (t: any) => t.id === topping.id
+                                        );
                                         return (
                                             <Button
                                                 key={topping.id}
-                                                variant={isSelected ? "default" : "outline"}
+                                                variant={
+                                                    isSelected
+                                                        ? "default"
+                                                        : "outline"
+                                                }
                                                 size="sm"
-                                                className={isSelected ? "bg-green-600 hover:bg-green-700" : ""}
+                                                className={
+                                                    isSelected
+                                                        ? "bg-green-600 hover:bg-green-700"
+                                                        : ""
+                                                }
                                                 onClick={() => {
                                                     if (isSelected) {
-                                                        setEditToppings(editToppings.filter((t: any) => t.id !== topping.id));
+                                                        setEditToppings(
+                                                            editToppings.filter(
+                                                                (t: any) =>
+                                                                    t.id !==
+                                                                    topping.id
+                                                            )
+                                                        );
                                                     } else {
-                                                        setEditToppings([...editToppings, topping]);
+                                                        setEditToppings([
+                                                            ...editToppings,
+                                                            topping,
+                                                        ]);
                                                     }
                                                 }}
                                             >
-                                                {topping.name} +${Number(topping.price).toFixed(2)}
+                                                {topping.name} +$
+                                                {Number(topping.price).toFixed(
+                                                    2
+                                                )}
                                             </Button>
                                         );
                                     })}
@@ -592,12 +669,16 @@ export default function Home() {
             </Dialog>
 
             {/* Special Instructions Dialog */}
-            <Dialog open={showInstructionsDialog} onOpenChange={setShowInstructionsDialog}>
+            <Dialog
+                open={showInstructionsDialog}
+                onOpenChange={setShowInstructionsDialog}
+            >
                 <DialogContent className="bg-white">
                     <DialogHeader>
                         <DialogTitle>Special Instructions</DialogTitle>
                         <DialogDescription>
-                            Add any special requests or dietary notes for this order (optional)
+                            Add any special requests or dietary notes for this
+                            order (optional)
                         </DialogDescription>
                     </DialogHeader>
                     <div className="py-4">
@@ -606,7 +687,9 @@ export default function Home() {
                             rows={5}
                             placeholder="Add any special requests or dietary notes..."
                             value={specialInstructions}
-                            onChange={(e) => setSpecialInstructions(e.target.value)}
+                            onChange={(e) =>
+                                setSpecialInstructions(e.target.value)
+                            }
                             maxLength={500}
                         />
                         <div className="text-xs text-gray-500 mt-1 text-right">
@@ -614,10 +697,15 @@ export default function Home() {
                         </div>
                     </div>
                     <DialogFooter>
-                        <Button variant="outline" onClick={() => setShowInstructionsDialog(false)}>
+                        <Button
+                            variant="outline"
+                            onClick={() => setShowInstructionsDialog(false)}
+                        >
                             Cancel
                         </Button>
-                        <Button onClick={() => setShowInstructionsDialog(false)}>
+                        <Button
+                            onClick={() => setShowInstructionsDialog(false)}
+                        >
                             Save
                         </Button>
                     </DialogFooter>

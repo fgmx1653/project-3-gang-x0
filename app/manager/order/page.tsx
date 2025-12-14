@@ -209,12 +209,20 @@ export default function ManagerOrderPage() {
                                                 Boba: {item.boba ?? 100}% | Ice:{" "}
                                                 {item.ice ?? 100}% | Sugar:{" "}
                                                 {item.sugar ?? 100}%
-                                                {item.toppings && item.toppings.length > 0 && (
-                                                    <>
-                                                        <br />
-                                                        Toppings: {item.toppings.map((t: any) => t.name).join(', ')}
-                                                    </>
-                                                )}
+                                                {item.toppings &&
+                                                    item.toppings.length >
+                                                        0 && (
+                                                        <>
+                                                            <br />
+                                                            Toppings:{" "}
+                                                            {item.toppings
+                                                                .map(
+                                                                    (t: any) =>
+                                                                        t.name
+                                                                )
+                                                                .join(", ")}
+                                                        </>
+                                                    )}
                                             </div>
                                         </div>
                                         <div className="flex items-center gap-2">
@@ -227,7 +235,16 @@ export default function ManagerOrderPage() {
                                                         Number(item.size || 1) -
                                                             1
                                                     ) +
-                                                    (item.toppings || []).reduce((sum: number, t: any) => sum + Number(t.price || 0), 0)
+                                                    (
+                                                        item.toppings || []
+                                                    ).reduce(
+                                                        (sum: number, t: any) =>
+                                                            sum +
+                                                            Number(
+                                                                t.price || 0
+                                                            ),
+                                                        0
+                                                    )
                                                 ).toFixed(2)}
                                             </span>
                                             <Button
@@ -246,7 +263,9 @@ export default function ManagerOrderPage() {
                                                     setEditSize(
                                                         Number(item.size || 1)
                                                     );
-                                                    setEditToppings(item.toppings || []);
+                                                    setEditToppings(
+                                                        item.toppings || []
+                                                    );
                                                 }}
                                             >
                                                 <Edit className="h-4 w-4" />
@@ -349,8 +368,7 @@ export default function ManagerOrderPage() {
                     <DialogHeader>
                         <DialogTitle>Customize {editingItem?.name}</DialogTitle>
                         <DialogDescription>
-                            Adjust boba, ice, and sugar levels (25%, 50%, 75%,
-                            or 100%)
+                            Adjust boba, ice, and sugar levels
                         </DialogDescription>
                     </DialogHeader>
                     <div className="space-y-4 py-4">
@@ -358,8 +376,8 @@ export default function ManagerOrderPage() {
                             <Label htmlFor="boba">
                                 Boba Level: {editBoba}%
                             </Label>
-                            <div className="flex gap-2">
-                                {[25, 50, 75, 100].map((level) => (
+                            <div className="flex gap-2 flex-wrap">
+                                {[25, 50, 75, 100, 125, 150].map((level) => (
                                     <Button
                                         key={level}
                                         variant={
@@ -377,8 +395,8 @@ export default function ManagerOrderPage() {
                         </div>
                         <div className="space-y-2">
                             <Label htmlFor="ice">Ice Level: {editIce}%</Label>
-                            <div className="flex gap-2">
-                                {[25, 50, 75, 100].map((level) => (
+                            <div className="flex gap-2 flex-wrap">
+                                {[25, 50, 75, 100, 125, 150].map((level) => (
                                     <Button
                                         key={level}
                                         variant={
@@ -398,8 +416,8 @@ export default function ManagerOrderPage() {
                             <Label htmlFor="sugar">
                                 Sugar Level: {editSugar}%
                             </Label>
-                            <div className="flex gap-2">
-                                {[25, 50, 75, 100].map((level) => (
+                            <div className="flex gap-2 flex-wrap">
+                                {[25, 50, 75, 100, 125, 150].map((level) => (
                                     <Button
                                         key={level}
                                         variant={
@@ -455,22 +473,44 @@ export default function ManagerOrderPage() {
                                 <Label>Toppings</Label>
                                 <div className="flex flex-wrap gap-2">
                                     {availableToppings.map((topping) => {
-                                        const isSelected = editToppings.some((t: any) => t.id === topping.id);
+                                        const isSelected = editToppings.some(
+                                            (t: any) => t.id === topping.id
+                                        );
                                         return (
                                             <Button
                                                 key={topping.id}
-                                                variant={isSelected ? "default" : "outline"}
+                                                variant={
+                                                    isSelected
+                                                        ? "default"
+                                                        : "outline"
+                                                }
                                                 size="sm"
-                                                className={isSelected ? "bg-green-600 hover:bg-green-700" : ""}
+                                                className={
+                                                    isSelected
+                                                        ? "bg-green-600 hover:bg-green-700"
+                                                        : ""
+                                                }
                                                 onClick={() => {
                                                     if (isSelected) {
-                                                        setEditToppings(editToppings.filter((t: any) => t.id !== topping.id));
+                                                        setEditToppings(
+                                                            editToppings.filter(
+                                                                (t: any) =>
+                                                                    t.id !==
+                                                                    topping.id
+                                                            )
+                                                        );
                                                     } else {
-                                                        setEditToppings([...editToppings, topping]);
+                                                        setEditToppings([
+                                                            ...editToppings,
+                                                            topping,
+                                                        ]);
                                                     }
                                                 }}
                                             >
-                                                {topping.name} +${Number(topping.price).toFixed(2)}
+                                                {topping.name} +$
+                                                {Number(topping.price).toFixed(
+                                                    2
+                                                )}
                                             </Button>
                                         );
                                     })}
