@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { X, Edit } from "lucide-react";
+import { X, Edit, Search } from "lucide-react";
 import { getStoredUser, logoutClient } from "@/lib/clientAuth";
 
 import {
@@ -23,6 +23,7 @@ import {
     DialogTitle,
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
 
 export default function ManagerOrderPage() {
     const router = useRouter();
@@ -42,6 +43,12 @@ export default function ManagerOrderPage() {
     const [specialInstructions, setSpecialInstructions] = useState("");
     const [availableToppings, setAvailableToppings] = useState<any[]>([]);
     const [editToppings, setEditToppings] = useState<any[]>([]);
+    const [searchQuery, setSearchQuery] = useState("");
+
+    // Filter menu items based on search query
+    const filteredMenuItems = menuItems.filter((item) =>
+        item.name.toLowerCase().includes(searchQuery.toLowerCase())
+    );
 
     async function getMenuItems() {
         setLoading(true);
@@ -150,9 +157,8 @@ export default function ManagerOrderPage() {
                 <Button variant="outline">← Back</Button>
             </Link>
 
-            <div className="flex-1 flex flex-row gap-6 p-6 overflow-hidden">
-                <div className='flex flex-row items-end'>
-                    <Card className="bg-white/60 backdrop-blur-md w-96 flex flex-col shadow-xl border-2 border-white/50 h-[calc(100vh_-_7rem)]">
+            <div className="flex-1 flex flex-row gap-6 p-6 pt-20 overflow-hidden">
+                <Card className="bg-white/60 backdrop-blur-md w-96 flex flex-col shadow-xl border-2 border-white/50 h-full">
                         <CardHeader className="flex-none">
                             <CardTitle className="font-header text-3xl text-black bg-yellow-500/50 p-2 rounded-md">
                                 Order (Manager)
@@ -300,11 +306,40 @@ export default function ManagerOrderPage() {
                             </CardFooter>
                         )}
                     </Card>
-                </div>
 
-                <div className="flex-1 overflow-y-auto pr-2">
-                    <div className="grid grid-cols-[repeat(auto-fill,minmax(220px,1fr))] gap-4 pb-20">
-                        {menuItems.map((item) => (
+                <div className="flex-1 flex flex-col overflow-hidden pr-2">
+                    {/* Sticky Search Bar */}
+                    <div className="sticky top-0 z-10 bg-white/80 backdrop-blur-md border-2 border-white/50 rounded-lg shadow-lg mb-4 p-4">
+                        <div className="relative">
+                            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
+                            <Input
+                                type="text"
+                                placeholder="Search menu items..."
+                                value={searchQuery}
+                                onChange={(e) => setSearchQuery(e.target.value)}
+                                className="pl-10 pr-4 py-2 w-full text-lg"
+                            />
+                            {searchQuery && (
+                                <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    className="absolute right-2 top-1/2 transform -translate-y-1/2 h-7 px-2"
+                                    onClick={() => setSearchQuery("")}
+                                >
+                                    Clear
+                                </Button>
+                            )}
+                        </div>
+                        {searchQuery && (
+                            <p className="text-sm text-gray-600 mt-2">
+                                Found {filteredMenuItems.length} item{filteredMenuItems.length !== 1 ? 's' : ''}
+                            </p>
+                        )}
+                    </div>
+
+                    <div className="flex-1 overflow-y-auto">
+                        <div className="grid grid-cols-[repeat(auto-fill,minmax(220px,1fr))] gap-4 pb-20">
+                            {filteredMenuItems.map((item) => (
                             <button
                                 key={item.id}
                                 className="text-left h-full"
@@ -345,6 +380,7 @@ export default function ManagerOrderPage() {
                         ))}
                     </div>
                 </div>
+            </div>
             </div>
 
             {/* Edit Customization Dialog */}
