@@ -3,7 +3,7 @@
 
 import React, { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, Plus, RefreshCw, Save, Trash2, FileText } from "lucide-react";
+import { ArrowLeft, Plus, RefreshCw, Save, Trash2, FileText, BarChart3 } from "lucide-react";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -47,6 +47,14 @@ export default function InventoryPage() {
   const [reportLoading, setReportLoading] = useState(false);
   const [reportError, setReportError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+
+  // product usage chart dialog
+  const [usageDialogOpen, setUsageDialogOpen] = useState(false);
+  const [usageStart, setUsageStart] = useState<string>("");
+  const [usageEnd, setUsageEnd] = useState<string>("");
+  const [usageData, setUsageData] = useState<any>(null);
+  const [usageLoading, setUsageLoading] = useState(false);
+  const [usageError, setUsageError] = useState<string | null>(null);
 
   const load = async () => {
     setLoading(true);
@@ -283,6 +291,44 @@ export default function InventoryPage() {
     }
   };
 
+  const openUsageDialog = () => {
+    // Set default dates (last 7 days)
+    const today = new Date();
+    const weekAgo = new Date(today);
+    weekAgo.setDate(weekAgo.getDate() - 7);
+
+    setUsageEnd(today.toISOString().split('T')[0]);
+    setUsageStart(weekAgo.toISOString().split('T')[0]);
+    setUsageDialogOpen(true);
+    setUsageData(null);
+    setUsageError(null);
+  };
+
+  const fetchUsageData = async () => {
+    if (!usageStart || !usageEnd) {
+      setUsageError("Please select both start and end dates");
+      return;
+    }
+
+    setUsageLoading(true);
+    setUsageError(null);
+    try {
+      const params = new URLSearchParams();
+      params.set("start", usageStart);
+      params.set("end", usageEnd);
+
+      const res = await fetch(`/api/inventory/usage?${params.toString()}`);
+      const data = await res.json();
+
+      if (!data.ok) throw new Error(data.error || "Failed to fetch usage data");
+      setUsageData(data.usage);
+    } catch (e: any) {
+      setUsageError(e?.message || "Error fetching usage data");
+    } finally {
+      setUsageLoading(false);
+    }
+  };
+
   return (
     <div className="min-h-screen">
       <div className="max-w-7xl mx-auto px-6 py-6 space-y-6">
@@ -303,6 +349,9 @@ export default function InventoryPage() {
               onKeyDown={(e) => e.key === "Enter" && load()}
             />
             <Button onClick={load} className="gap-2"><RefreshCw className="h-4 w-4" /> Refresh</Button>
+            <Button onClick={openUsageDialog} variant="outline" className="gap-2">
+              <BarChart3 className="h-4 w-4" /> Product Usage Chart
+            </Button>
             <Button onClick={openReportDialog} variant="outline" className="gap-2">
               <FileText className="h-4 w-4" /> Generate Inventory Report
             </Button>
@@ -561,7 +610,227 @@ export default function InventoryPage() {
             </DialogFooter>
           </DialogContent>
         </Dialog>
+
+        {/* Product Usage Chart Dialog */}
+        <Dialog open={usageDialogOpen} onOpenChange={setUsageDialogOpen}>
+          <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>Product Usage Chart</DialogTitle>
+              <DialogDescription>
+                View ingredient and topping usage over a selected time period. Usage is calculated based on drink sizes and toppings ordered.
+              </DialogDescription>
+            </DialogHeader>
+
+            <div className="space-y-4">
+              {/* Time Window Selection */}
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">Start Date</label>
+                  <Input
+                    type="date"
+                    value={usageStart}
+                    onChange={(e) => setUsageStart(e.target.value)}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">End Date</label>
+                  <Input
+                    type="date"
+                    value={usageEnd}
+                    onChange={(e) => setUsageEnd(e.target.value)}
+                  />
+                </div>
+              </div>
+
+              <Button onClick={fetchUsageData} disabled={usageLoading} className="w-full">
+                {usageLoading ? "Loading..." : "Generate Chart"}
+              </Button>
+
+              {/* Error Display */}
+              {usageError && (
+                <div className="text-sm text-destructive bg-destructive/10 p-3 rounded">
+                  {usageError}
+                </div>
+              )}
+
+              {/* Chart Display */}
+              {usageData && usageData.length > 0 && (
+                <div className="space-y-4">
+                  <div className="bg-muted p-4 rounded-lg">
+                    <h3 className="font-semibold mb-2">Summary</h3>
+                    <div className="text-sm">
+                      <div>Period: <span className="font-medium">{usageStart}</span> to <span className="font-medium">{usageEnd}</span></div>
+                      <div>Total Items Tracked: <span className="font-medium">{usageData.length}</span></div>
+                    </div>
+                  </div>
+
+                  {/* Bar Chart */}
+                  <div className="border rounded-lg p-4 bg-white">
+                    <h3 className="font-semibold mb-4">Usage by Ingredient/Topping</h3>
+                    <div className="space-y-2">
+                      {usageData.map((item: any, idx: number) => {
+                        const maxUsage = Math.max(...usageData.map((d: any) => d.total_used));
+                        const percentage = (item.total_used / maxUsage) * 100;
+
+                        return (
+                          <div key={idx} className="space-y-1">
+                            <div className="flex justify-between text-sm">
+                              <span className="font-medium truncate max-w-[200px]" title={item.name}>
+                                {item.name}
+                              </span>
+                              <span className="text-muted-foreground">
+                                {item.total_used} units
+                              </span>
+                            </div>
+                            <div className="w-full bg-gray-200 rounded-full h-6 relative overflow-hidden">
+                              <div
+                                className="bg-blue-500 h-6 rounded-full transition-all duration-300 flex items-center justify-end pr-2"
+                                style={{ width: `${percentage}%` }}
+                              >
+                                {percentage > 15 && (
+                                  <span className="text-xs text-white font-medium">
+                                    {percentage.toFixed(1)}%
+                                  </span>
+                                )}
+                              </div>
+                              {percentage <= 15 && (
+                                <span className="absolute left-2 top-1/2 -translate-y-1/2 text-xs text-gray-700 font-medium">
+                                  {percentage.toFixed(1)}%
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  {/* Data Table */}
+                  <div className="border rounded-lg overflow-hidden">
+                    <table className="w-full text-sm">
+                      <thead className="bg-muted">
+                        <tr>
+                          <th className="text-left p-2">Rank</th>
+                          <th className="text-left p-2">Ingredient/Topping</th>
+                          <th className="text-left p-2">Total Used</th>
+                          <th className="text-left p-2">Percentage</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {usageData.map((item: any, idx: number) => {
+                          const totalUsage = usageData.reduce((sum: number, d: any) => sum + d.total_used, 0);
+                          const percentage = (item.total_used / totalUsage) * 100;
+
+                          return (
+                            <tr key={idx} className="border-t">
+                              <td className="p-2 font-medium">#{idx + 1}</td>
+                              <td className="p-2">{item.name}</td>
+                              <td className="p-2 font-medium">{item.total_used}</td>
+                              <td className="p-2 text-muted-foreground">{percentage.toFixed(1)}%</td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
+
+              {usageData && usageData.length === 0 && !usageLoading && (
+                <div className="text-center py-8 text-muted-foreground">
+                  No usage data found for the selected period.
+                </div>
+              )}
+            </div>
+
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setUsageDialogOpen(false)}>
+                Close
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
+    </div>
+  );
+}
+
+// Usage Bar Chart Component
+function UsageBarChart({ data }: { data: Array<{ id: number; name: string; total_used: number }> }) {
+  const maxUsage = Math.max(...data.map(d => d.total_used), 1);
+  const height = 400;
+  const padding = 60;
+  const width = Math.max(720, 60 * data.length + padding * 2);
+
+  const yScale = (v: number) => {
+    const innerH = height - padding * 2;
+    return padding + (innerH - (v / maxUsage) * innerH);
+  };
+
+  const xStep = (width - padding * 2) / Math.max(1, data.length);
+  const labelEvery = data.length > 20 ? Math.ceil(data.length / 20) : 1;
+
+  return (
+    <div className="min-w-[720px] w-full">
+      <svg viewBox={`0 0 ${width} ${height}`} className="w-full h-[400px]">
+        {/* Axes */}
+        <line x1={padding} y1={height - padding} x2={width - padding} y2={height - padding} stroke="currentColor" strokeWidth="1" />
+        <line x1={padding} y1={padding} x2={padding} y2={height - padding} stroke="currentColor" strokeWidth="1" />
+
+        {/* Y-axis labels */}
+        {Array.from({ length: 5 }).map((_, i) => {
+          const val = (maxUsage * i) / 4;
+          const y = yScale(val);
+          return (
+            <g key={i}>
+              <line x1={padding} y1={y} x2={width - padding} y2={y} stroke="currentColor" strokeOpacity="0.15" />
+              <text x={padding - 8} y={y + 4} textAnchor="end" className="text-[10px] fill-current">
+                {Math.round(val)}
+              </text>
+            </g>
+          );
+        })}
+
+        {/* Bars */}
+        {data.map((item, i) => {
+          const x = padding + i * xStep + xStep * 0.1;
+          const w = xStep * 0.8;
+          const v = item.total_used;
+          const y = yScale(v);
+          return (
+            <g key={item.id}>
+              <rect x={x} y={y} width={w} height={(height - padding) - y} fill="currentColor" opacity={0.7} />
+            </g>
+          );
+        })}
+
+        {/* X-axis labels */}
+        {data.map((item, i) => {
+          if (i % labelEvery !== 0) return null;
+          const x = padding + i * xStep + xStep / 2;
+          return (
+            <text
+              key={item.id}
+              x={x}
+              y={height - padding + 16}
+              textAnchor="middle"
+              className="text-[9px] fill-current"
+              style={{
+                maxWidth: `${xStep}px`,
+                overflow: 'hidden',
+                textOverflow: 'ellipsis'
+              }}
+            >
+              {item.name.length > 12 ? item.name.substring(0, 12) + '...' : item.name}
+            </text>
+          );
+        })}
+
+        {/* Title */}
+        <text x={width / 2} y={20} textAnchor="middle" className="text-[12px] font-semibold fill-current">
+          Usage by Ingredient/Topping
+        </text>
+      </svg>
     </div>
   );
 }
