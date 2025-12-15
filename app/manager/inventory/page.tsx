@@ -669,8 +669,14 @@ export default function InventoryPage() {
                     <h3 className="font-semibold mb-4">Usage by Ingredient/Topping</h3>
                     <div className="space-y-2">
                       {usageData.map((item: any, idx: number) => {
-                        const maxUsage = Math.max(...usageData.map((d: any) => d.total_used));
-                        const percentage = (item.total_used / maxUsage) * 100;
+                          const totalUsage = usageData.reduce(
+                          (sum: number, d: any) => sum + d.total_used,
+                          0
+                          );
+                          
+                          const percentage = totalUsage === 0
+                          ? 0
+                          : (item.total_used / totalUsage) * 100;  
 
                         return (
                           <div key={idx} className="space-y-1">
