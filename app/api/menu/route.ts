@@ -26,6 +26,7 @@ export async function POST(req: Request) {
       isavail = true,
       seasonal = false,
       isexclusive = false,
+      points = 0,
     } = body;
 
     // Get the next available ID manually
@@ -35,7 +36,7 @@ export async function POST(req: Request) {
     const nextId = maxIdResult.rows[0].next_id;
 
     const result = await pool.query(
-      "INSERT INTO menu_items (name, id, price, isavail, seasonal, isexclusive) VALUES ($1, $2, $3, $4, $5, $6) RETURNING *",
+      "INSERT INTO menu_items (name, id, price, isavail, seasonal, isexclusive, points) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *",
       [
         name,
         nextId,
@@ -43,6 +44,7 @@ export async function POST(req: Request) {
         isavail ? 1 : 0,
         seasonal ? 1 : 0,
         isexclusive ? 1 : 0,
+        points || 0,
       ]
     );
 

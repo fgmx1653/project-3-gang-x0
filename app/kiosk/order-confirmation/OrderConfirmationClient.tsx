@@ -284,22 +284,22 @@ export default function OrderConfirmationClient({ encodedData }: Props) {
         <div className="text-center mb-8">
           <div className="text-6xl mb-4">✓</div>
           <h1 className="text-3xl font-bold text-green-600 mb-2">{orderPlacedLabel}</h1>
-          <p className="text-gray-600">{thankYouLabel}</p>
+          <p className="text-foreground-muted">{thankYouLabel}</p>
         </div>
 
         <div className="border-t border-b py-6 mb-6">
           <h2 className="text-xl font-semibold mb-4">{orderDetailsLabel}</h2>
           <div className="space-y-2 text-sm">
             <div className="flex justify-between">
-              <span className="text-gray-600">{orderNumberLabel}:</span>
+              <span className="text-foreground-muted">{orderNumberLabel}:</span>
               <span className="font-medium">#{orderData.orderId}</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-gray-600">{dateLabel}:</span>
+              <span className="text-foreground-muted">{dateLabel}:</span>
               <span className="font-medium">{currentDate}</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-gray-600">{paymentMethodLabel}:</span>
+              <span className="text-foreground-muted">{paymentMethodLabel}:</span>
               <span className="font-medium capitalize">{paymentTypeLabel}</span>
             </div>
           </div>
@@ -340,11 +340,11 @@ export default function OrderConfirmationClient({ encodedData }: Props) {
 
         <div className="border-t pt-4 space-y-2 mb-8">
           <div className="flex justify-between text-lg">
-            <span className="text-gray-600">{subtotalLabel}</span>
+            <span className="text-foreground-muted">{subtotalLabel}</span>
             <span>${orderData.subtotal?.toFixed(2)}</span>
           </div>
           <div className="flex justify-between text-lg">
-            <span className="text-gray-600">{taxLabel} (8.50%)</span>
+            <span className="text-foreground-muted">{taxLabel} (8.50%)</span>
             <span>${orderData.tax?.toFixed(2)}</span>
           </div>
           <div className="flex justify-between text-2xl font-bold mt-2 pt-2 border-t">

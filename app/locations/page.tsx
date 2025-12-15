@@ -99,15 +99,13 @@ const storeLocations: StoreLocation[] = [
 
 export default function LocationsPage() {
     return (
-        <div className="min-h-screen bg-gradient-to-br from-slate-100 via-gray-100 to-slate-200">
-            <div className="max-w-7xl mx-auto px-4 py-8">
+        <div className="min-h-screen bg-gradient-to-br from-slate-100 via-gray-100 to-slate-200 relative">
+            <Link className="absolute top-8 left-8" href="/">
+                <Button variant="outline">← Home</Button>
+            </Link>
+            <div className="max-w-7xl mx-auto px-4 py-8 pt-24">
                 {/* Header */}
                 <div className="mb-8">
-                    <Link href="/">
-                        <Button variant="outline" className="mb-4">
-                            ← Back to Home
-                        </Button>
-                    </Link>
                     <h1 className="text-5xl font-bold font-header text-gray-900 mb-2">
                         Our Locations
                     </h1>

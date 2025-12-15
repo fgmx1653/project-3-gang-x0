@@ -7,6 +7,7 @@ import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
+import Link from "next/link";
 import {
   Dialog,
   DialogContent,
@@ -299,16 +300,14 @@ export default function TrendsPage() {
   return (
     // Use the global background by NOT setting any bg-* here.
     // Just a centered container like other manager pages.
-    <div className="min-h-screen"> {/* ← relies on app/globals.css background */}
-      <div className="max-w-7xl mx-auto px-6 py-6 space-y-6">
-        {/* Top Bar: Back + Title/Controls */}
+    <div className="min-h-screen relative"> {/* ← relies on app/globals.css background */}
+      <Link className="absolute top-8 left-8" href="/manager">
+        <Button variant="outline">← Back</Button>
+      </Link>
+      <div className="max-w-7xl mx-auto px-6 py-6 pt-24 space-y-6">
+        {/* Top Bar: Title/Controls */}
         <div className="flex items-center justify-between gap-4 flex-wrap">
           <div className="flex items-center gap-3">
-            {/* BACK BUTTON */}
-            <Button variant="ghost" onClick={() => router.back()} className="gap-2">
-              <ArrowLeft className="h-4 w-4" />
-              Back
-            </Button>
             <h1 className="text-2xl font-semibold">Trends</h1>
             <Button onClick={openHistoryDialog} variant="outline" className="gap-2">
               <History className="h-4 w-4" /> Reports History

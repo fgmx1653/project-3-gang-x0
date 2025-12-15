@@ -2,9 +2,10 @@
 
 import React, { useEffect, useState, useRef } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { ArrowLeft, RefreshCw, Download } from "lucide-react";
+import { RefreshCw, Download } from "lucide-react";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -278,17 +279,13 @@ export default function OrdersHistoryPage() {
   );
 
   return (
-    <div className="min-h-screen">
-      <div className="max-w-7xl mx-auto px-6 py-6 space-y-6">
+    <div className="min-h-screen relative">
+      <Link className="absolute top-8 left-8" href="/manager">
+        <Button variant="outline">← Back</Button>
+      </Link>
+      <div className="max-w-7xl mx-auto px-6 py-6 pt-24 space-y-6">
         <div className="flex items-center justify-between gap-4 flex-wrap">
           <div className="flex items-center gap-3">
-            <Button
-              variant="ghost"
-              onClick={() => router.back()}
-              className="gap-2"
-            >
-              <ArrowLeft className="h-4 w-4" /> Back
-            </Button>
             <h1 className="text-2xl font-semibold">Order History</h1>
           </div>
 
@@ -620,9 +617,9 @@ export default function OrdersHistoryPage() {
                     </tr>
                   </thead>
                   <tbody>
-                    {items.map(r => (
+                    {items.map((r, idx) => (
                       <tr
-                        key={`${r.order_id}-${r.order_time}-${r.menu_item_id}`}
+                        key={`${r.order_id}-${r.order_time}-${r.menu_item_id}-${idx}`}
                       >
                         <td className="pr-4">{r.order_id}</td>
                         <td className="pr-4">{r.order_date}</td>

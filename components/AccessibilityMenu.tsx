@@ -16,6 +16,7 @@ export default function AccessibilityMenu() {
   const [isOpen, setIsOpen] = useState(false);
   const [zoom, setZoom] = useState(1.0);
   const [highContrast, setHighContrast] = useState(false);
+  const [animatedBg, setAnimatedBg] = useState(false); // OFF by default
   const [mounted, setMounted] = useState(false);
   const { lang, setLang } = useLanguage();
 
@@ -25,6 +26,7 @@ export default function AccessibilityMenu() {
   const [increaseLabel, setIncreaseLabel] = useState('Increase');
   const [displayAdjustmentsLabel, setDisplayAdjustmentsLabel] = useState('Display Adjustments');
   const [highContrastModeLabel, setHighContrastModeLabel] = useState('High Contrast Mode');
+  const [animatedBgLabel, setAnimatedBgLabel] = useState('Kiosk Animated Background');
   const [textSizeLabel, setTextSizeLabel] = useState('Text Size');
   const [selectLanguageLabel, setSelectLanguageLabel] = useState('Select Language');
   const [accessibilityLabel, setAccessibilityLabel] = useState('Accessibility');
@@ -48,6 +50,7 @@ export default function AccessibilityMenu() {
         setIncreaseLabel(await translateText('Increase', lang));
         setDisplayAdjustmentsLabel(await translateText('Display Adjustments', lang));
         setHighContrastModeLabel(await translateText('High Contrast Mode', lang));
+        setAnimatedBgLabel(await translateText('Kiosk Animated Background', lang));
         setTextSizeLabel(await translateText('Text Size', lang));
         setSelectLanguageLabel(await translateText('Select Language', lang));
         setAccessibilityLabel(await translateText('Accessibility', lang));
@@ -59,6 +62,7 @@ export default function AccessibilityMenu() {
     try {
       const savedZoom = localStorage.getItem('accessibility-zoom');
       const savedContrast = localStorage.getItem('accessibility-contrast');
+      const savedAnimatedBg = localStorage.getItem('accessibility-animated-bg');
 
       if (savedZoom) {
         const parsedZoom = parseFloat(savedZoom);
@@ -69,6 +73,11 @@ export default function AccessibilityMenu() {
 
       if (savedContrast === 'true') {
         setHighContrast(true);
+      }
+
+      // Animated background is OFF by default, only turn on if explicitly saved as 'true'
+      if (savedAnimatedBg === 'true') {
+        setAnimatedBg(true);
       }
     } catch (e) {
       console.error('Failed to load accessibility settings:', e);
@@ -117,6 +126,20 @@ export default function AccessibilityMenu() {
       console.error('Failed to save contrast setting:', e);
     }
   }, [highContrast, mounted]);
+
+  // Apply Animated Background setting and save to localStorage
+  useEffect(() => {
+    if (!mounted) return;
+
+    // Save to localStorage
+    try {
+      localStorage.setItem('accessibility-animated-bg', animatedBg.toString());
+      // Dispatch a custom event so the kiosk page can react
+      window.dispatchEvent(new CustomEvent('animated-bg-change', { detail: animatedBg }));
+    } catch (e) {
+      console.error('Failed to save animated background setting:', e);
+    }
+  }, [animatedBg, mounted]);
 
 
   // Accessibility: text size (root font-size in px). Persist in localStorage under 'textSize'
@@ -190,7 +213,7 @@ export default function AccessibilityMenu() {
                 variant="ghost"
                 size="icon"
                 className="h-8 w-8"
-                onClick={() => { setZoom(1); setHighContrast(false); }}
+                onClick={() => { setZoom(1); setHighContrast(false); setAnimatedBg(false); }}
                 title="Reset All"
               >
                 <RotateCcw className="h-4 w-4" />
@@ -232,6 +255,14 @@ export default function AccessibilityMenu() {
             >
                 <span>{highContrastModeLabel}</span>
                 {highContrast ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+            </Button>
+            <Button
+                className="w-full justify-between"
+                variant={animatedBg ? "default" : "outline"}
+                onClick={() => setAnimatedBg(!animatedBg)}
+            >
+                <span>{animatedBgLabel}</span>
+                <Eye className="h-4 w-4" />
             </Button>
           </div>
 

@@ -67,6 +67,7 @@ export async function POST(req: Request) {
         let totalRevenue = 0;
         let totalCost = 0;
         let orderItemId = 0; // Track order_item_id for each item in the order
+        let totalPointsToDeduct = 0; // Track points to deduct for redeemed items
 
         // Process each item in the order
 
@@ -75,6 +76,13 @@ export async function POST(req: Request) {
             const sizeNum = Number(item.size || 1);
             const priceBase = parseFloat(item.price);
             const extra = Math.max(0, sizeNum - 1);
+            const isRedeemed = item.redeemed === true;
+            const pointsValue = Number(item.pointsValue || 0);
+            
+            // Track points to deduct for redeemed items
+            if (isRedeemed && pointsValue > 0) {
+                totalPointsToDeduct += pointsValue;
+            }
             
             // Calculate topping prices
             const toppings = item.toppings || [];
@@ -83,7 +91,8 @@ export async function POST(req: Request) {
                 toppingTotal += parseFloat(topping.price || 0);
             }
             
-            const price = priceBase + extra + toppingTotal; // adjusted price for size and toppings
+            // For redeemed items, price is 0 (free)
+            const price = isRedeemed ? 0 : (priceBase + extra + toppingTotal);
             const boba = item.boba ?? 100;
             const ice = item.ice ?? 100;
             const sugar = item.sugar ?? 100;
@@ -219,12 +228,17 @@ export async function POST(req: Request) {
 
         // Award reward points to signed-in customers
         // Points earned = total * 10, rounded to nearest integer
+        // Also deduct points for redeemed items
         let pointsEarned = 0;
+        let netPointsChange = 0;
         if (resolvedCustomerId > 0) {
             pointsEarned = Math.round(totalRevenue * 10);
+            netPointsChange = pointsEarned - totalPointsToDeduct;
+            
+            // Update customer points (can be positive or negative change)
             await client.query(
-                `UPDATE customers SET points = points + $1 WHERE id = $2`,
-                [pointsEarned, resolvedCustomerId]
+                `UPDATE customers SET points = GREATEST(0, points + $1) WHERE id = $2`,
+                [netPointsChange, resolvedCustomerId]
             );
         }
 

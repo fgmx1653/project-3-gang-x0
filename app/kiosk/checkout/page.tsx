@@ -93,6 +93,8 @@ export default function CheckoutPage() {
               ice: it?.ice ?? 100,
               sugar: it?.sugar ?? 100,
               toppings: it?.toppings ?? [],
+              redeemed: it?.redeemed ?? false,
+              pointsValue: it?.pointsValue ?? 0,
             }))
           );
         } else {
@@ -106,6 +108,8 @@ export default function CheckoutPage() {
 
   const TAX_RATE = 0.085;
   const subtotal = cart.reduce((s, it) => {
+    // Redeemed items are free
+    if (it.redeemed) return s;
     const base = Number(it.price || 0);
     const size = Number(it.size || 1);
     const extra = Math.max(0, size - 1);
@@ -114,6 +118,14 @@ export default function CheckoutPage() {
   }, 0);
   const tax = subtotal * TAX_RATE;
   const grandTotal = subtotal + tax;
+  
+  // Calculate total points being redeemed
+  const totalPointsToRedeem = cart.reduce((sum, it) => {
+    if (it.redeemed && it.pointsValue) {
+      return sum + Number(it.pointsValue);
+    }
+    return sum;
+  }, 0);
 
   function removeAt(idx: number) {
     const next = cart.filter((_, i) => i !== idx);
@@ -259,12 +271,12 @@ export default function CheckoutPage() {
 
   return (
     <div className="min-h-screen p-8 bg-background text-foreground">
+      <Link className='absolute top-8 left-8' href="/kiosk">
+        <Button variant="outline">← {backToKioskLabel}</Button>
+      </Link>
       <div className="max-w-4xl mx-auto bg-white/70 backdrop-blur-md rounded-lg p-6">
         <div className="flex items-center justify-between mb-6">
           <h1 className="text-2xl font-bold">{checkoutLabel}</h1>
-          <Link href="/kiosk">
-            <Button variant="outline">{backToKioskLabel}</Button>
-          </Link>
         </div>
 
         {/* Show signed-in status if user is logged in (sign-in moved to main kiosk page) */}
@@ -299,11 +311,22 @@ export default function CheckoutPage() {
             cart.map((item, idx) => (
               <div
                 key={idx}
-                className="flex justify-between items-center border-b py-3"
+                className={`flex justify-between items-center border-b py-3 ${item.redeemed ? 'bg-purple-50 -mx-4 px-4 rounded' : ''}`}
               >
                 <div>
-                  <div className="font-medium">{translatedCart[idx]?.name || item.name}</div>
-                      <div className="text-sm text-gray-500">${(Number(item.price || 0) + Math.max(0, Number(item.size || 1) - 1)).toFixed(2)}</div>
+                  <div className="font-medium">
+                    {translatedCart[idx]?.name || item.name}
+                    {item.redeemed && (
+                      <span className="ml-2 text-xs bg-purple-600 text-white px-2 py-0.5 rounded-full">
+                        Redeemed
+                      </span>
+                    )}
+                  </div>
+                      {item.redeemed ? (
+                        <div className="text-purple-600 font-bold">FREE <span className="font-normal text-sm">(-{item.pointsValue} pts)</span></div>
+                      ) : (
+                        <div className="text-sm text-gray-500">${(Number(item.price || 0) + Math.max(0, Number(item.size || 1) - 1)).toFixed(2)}</div>
+                      )}
                       <div className="text-sm text-gray-500">
                         Size: {Number(item.size || 1) === 1 ? 'Small' : Number(item.size || 1) === 2 ? 'Medium' : 'Large'}
                       </div>
@@ -331,15 +354,21 @@ export default function CheckoutPage() {
 
         <div className="border-t pt-4 space-y-2 mb-6">
           <div className="flex justify-between text-lg">
-            <span className="text-gray-600">{subtotalLabel}</span>
+            <span className="text-foreground-muted">{subtotalLabel}</span>
             <span>${subtotal.toFixed(2)}</span>
           </div>
           <div className="flex justify-between text-lg">
-            <span className="text-gray-600">
+            <span className="text-foreground-muted">
               {taxLabel} ({(TAX_RATE * 100).toFixed(2)}%)
             </span>
             <span>${tax.toFixed(2)}</span>
           </div>
+          {totalPointsToRedeem > 0 && (
+            <div className="flex justify-between text-lg text-purple-600">
+              <span>Points Redeemed</span>
+              <span>-{totalPointsToRedeem} pts</span>
+            </div>
+          )}
           <div className="flex justify-between text-xl font-bold mt-2 pt-2 border-t">
             <span>{totalLabel}</span>
             <span>${grandTotal.toFixed(2)}</span>

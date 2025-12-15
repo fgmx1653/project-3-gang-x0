@@ -3,7 +3,8 @@
 
 import React, { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, Plus, RefreshCw, Save, Trash2, FileText, BarChart3 } from "lucide-react";
+import Link from "next/link";
+import { Plus, RefreshCw, Save, Trash2, FileText, BarChart3 } from "lucide-react";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -330,14 +331,14 @@ export default function InventoryPage() {
   };
 
   return (
-    <div className="min-h-screen">
-      <div className="max-w-7xl mx-auto px-6 py-6 space-y-6">
+    <div className="min-h-screen relative">
+      <Link className="absolute top-8 left-8" href="/manager">
+        <Button variant="outline">← Back</Button>
+      </Link>
+      <div className="max-w-7xl mx-auto px-6 py-6 pt-24 space-y-6">
         {/* Header */}
         <div className="flex items-center justify-between gap-4 flex-wrap">
           <div className="flex items-center gap-3">
-            <Button variant="ghost" onClick={() => router.back()} className="gap-2">
-              <ArrowLeft className="h-4 w-4" /> Back
-            </Button>
             <h1 className="text-2xl font-semibold">Inventory</h1>
           </div>
           <div className="flex items-center gap-2">

@@ -35,9 +35,27 @@ export default function Home() {
     const [orderHistoryOpen, setOrderHistoryOpen] = useState(false);
     const [orderHistory, setOrderHistory] = useState<any[]>([]);
     const [loadingHistory, setLoadingHistory] = useState(false);
+    const [animatedBg, setAnimatedBg] = useState(false); // OFF by default
+
+    // Load animated background setting from localStorage and listen for changes
+    useEffect(() => {
+        // Initial load
+        const saved = localStorage.getItem('accessibility-animated-bg');
+        setAnimatedBg(saved === 'true');
+
+        // Listen for changes from accessibility menu
+        const handleChange = (e: CustomEvent) => {
+            setAnimatedBg(e.detail);
+        };
+        window.addEventListener('animated-bg-change', handleChange as EventListener);
+        return () => window.removeEventListener('animated-bg-change', handleChange as EventListener);
+    }, []);
 
     const TAX_RATE = 0.085;
     const subtotal = cart.reduce((sum, item) => {
+        // If item is redeemed with points, it's free (no cost)
+        if (item.redeemed) return sum;
+        
         const base = Number(item.price || 0);
         const size = Number(item.size || 1);
         const extra = Math.max(0, size - 1); // medium +1, large +2
@@ -50,6 +68,14 @@ export default function Home() {
     }, 0);
     const tax = subtotal * TAX_RATE;
     const grandTotal = subtotal + tax;
+    
+    // Calculate total points being redeemed in cart
+    const totalPointsToRedeem = cart.reduce((sum, item) => {
+        if (item.redeemed && item.pointsValue) {
+            return sum + Number(item.pointsValue);
+        }
+        return sum;
+    }, 0);
 
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
@@ -109,6 +135,11 @@ export default function Home() {
         "No previous orders found"
     );
     const [orderLabel, setOrderLabel] = useState("Order");
+    const [redeemLabel, setRedeemLabel] = useState("Redeem");
+    const [pointsRequiredLabel, setPointsRequiredLabel] = useState("pts required");
+    const [redeemedLabel, setRedeemedLabel] = useState("Redeemed");
+    const [notEnoughPointsLabel, setNotEnoughPointsLabel] = useState("Not enough points");
+    const [freeLabel, setFreeLabel] = useState("FREE");
 
     // Accessibility: text size (root font-size in px). Persist in localStorage under 'textSize'
     const [textSize, setTextSize] = useState<number | null>(null);
@@ -336,7 +367,27 @@ export default function Home() {
         getMenuItems();
     }, []);
 
-    function addToCart(item: any) {
+    function addToCart(item: any, redeem: boolean = false) {
+        const isExclusive = item.isexclusive === 1 || item.isexclusive === true;
+        const pointsValue = Number(item.points || 0);
+        const userPoints = (session?.user as any)?.points ?? 0;
+        
+        // Calculate points already being redeemed in cart
+        const pointsInCart = cart.reduce((sum, cartItem) => {
+            if (cartItem.redeemed && cartItem.pointsValue) {
+                return sum + Number(cartItem.pointsValue);
+            }
+            return sum;
+        }, 0);
+        
+        // Check if redeeming and user has enough points
+        if (redeem && isExclusive && pointsValue > 0) {
+            if (userPoints - pointsInCart < pointsValue) {
+                alert(notEnoughPointsLabel);
+                return;
+            }
+        }
+        
         const withMods = {
             ...item,
             boba: 100,
@@ -344,6 +395,8 @@ export default function Home() {
             sugar: 100,
             size: 1,
             toppings: [],
+            redeemed: redeem && isExclusive && pointsValue > 0,
+            pointsValue: isExclusive ? pointsValue : 0,
         };
         setCart((prev) => [...prev, withMods]);
     }
@@ -514,6 +567,21 @@ export default function Home() {
                 setOrderLabel(
                     await translateText("Order", lang).catch(() => "Order")
                 );
+                setRedeemLabel(
+                    await translateText("Redeem", lang).catch(() => "Redeem")
+                );
+                setPointsRequiredLabel(
+                    await translateText("pts required", lang).catch(() => "pts required")
+                );
+                setRedeemedLabel(
+                    await translateText("Redeemed", lang).catch(() => "Redeemed")
+                );
+                setNotEnoughPointsLabel(
+                    await translateText("Not enough points", lang).catch(() => "Not enough points")
+                );
+                setFreeLabel(
+                    await translateText("FREE", lang).catch(() => "FREE")
+                );
 
                 setErrorLoadingMenuLabel(
                     await translateText("Error loading menu", lang).catch(
@@ -621,19 +689,21 @@ export default function Home() {
 
     return (
         <div className="kiosk-text flex flex-col w-full h-screen overflow-hidden relative">
-            <div className="fixed inset-0 -z-20 bg-white/50">
-                <Iridescence
-                    color={[1.0, 0.7, 0.7]}
-                    mouseReact={true}
-                    amplitude={0.1}
-                    speed={1.0}
-                />
+            <div className="fixed inset-0 -z-20 bg-(--background)">
+                {animatedBg && (
+                    <Iridescence
+                        color={[1.0, 0.7, 0.7]}
+                        mouseReact={true}
+                        amplitude={0.1}
+                        speed={1.0}
+                    />
+                )}
             </div>
 
-            <div className="flex-none p-6 z-10 flex items-center justify-between flex-wrap gap-4">
-                <Link href="/">
+            <div className="flex-none p-6 z-10 flex items-center justify-end flex-wrap gap-4">
+                <Link className='absolute top-8 left-8' href="/">
                     <Button variant="outline" className="shadow-md">
-                        {homeLabel}
+                        ← {homeLabel}
                     </Button>
                 </Link>
 
@@ -673,7 +743,7 @@ export default function Home() {
                         </div>
                     ) : (
                         <div className="flex items-center gap-3 flex-wrap">
-                            <p className="text-sm text-gray-600">
+                            <p className="text-sm text-foreground-muted">
                                 {signInForRewardsLabel}
                             </p>
                             <Button
@@ -878,14 +948,32 @@ export default function Home() {
                                                     translatedItem
                                                         ? translatedItem.name
                                                         : item.name;
+                                                
+                                                // Check if this is an exclusive item with point requirements
+                                                const isExclusive = item.isexclusive === 1 || item.isexclusive === true;
+                                                const pointsRequired = Number(item.points || 0);
+                                                const userPoints = (session?.user as any)?.points ?? 0;
+                                                
+                                                // Calculate points already being redeemed in cart
+                                                const pointsInCart = cart.reduce((sum, cartItem) => {
+                                                    if (cartItem.redeemed && cartItem.pointsValue) {
+                                                        return sum + Number(cartItem.pointsValue);
+                                                    }
+                                                    return sum;
+                                                }, 0);
+                                                
+                                                const availablePoints = userPoints - pointsInCart;
+                                                const canRedeem = isExclusive && pointsRequired > 0 && availablePoints >= pointsRequired;
 
                                                 return (
                                                     <Card
                                                         key={item.id}
-                                                        onClick={() =>
-                                                            addToCart(item)
-                                                        }
-                                                        className="relative bg-white/80 backdrop-blur-md hover:scale-105 hover:shadow-xl hover:bg-white transition-all duration-200 cursor-pointer border-2 border-transparent hover:border-primary/20 flex flex-col aspect-[4/5] w-full"
+                                                        onClick={() => {
+                                                            // For exclusive items with points, don't add on card click - use buttons
+                                                            if (isExclusive && pointsRequired > 0) return;
+                                                            addToCart(item);
+                                                        }}
+                                                        className={`relative bg-white/80 backdrop-blur-md hover:scale-105 hover:shadow-xl hover:bg-white transition-all duration-200 cursor-pointer border-2 border-transparent hover:border-primary/20 flex flex-col aspect-[4/5] w-full ${isExclusive && pointsRequired > 0 ? 'cursor-default' : ''}`}
                                                     >
                                                         {/* top-left badge for category top-seller (show in tabs and in All view for any category top-seller) */}
                                                         {(() => {
@@ -971,10 +1059,47 @@ export default function Home() {
                                                                         displayName
                                                                     }
                                                                 </h1>
-                                                                <h1 className="font-deco text-xl text-primary font-semibold">
-                                                                    $
-                                                                    {item.price}
-                                                                </h1>
+                                                                {isExclusive && pointsRequired > 0 ? (
+                                                                    <div className="space-y-2">
+                                                                        <div className="text-sm text-purple-600 font-medium">
+                                                                            {pointsRequired} {pointsRequiredLabel}
+                                                                        </div>
+                                                                        <div className="flex gap-2 justify-center">
+                                                                            <Button
+                                                                                size="sm"
+                                                                                variant="outline"
+                                                                                onClick={(e) => {
+                                                                                    e.stopPropagation();
+                                                                                    addToCart(item, false);
+                                                                                }}
+                                                                                className="text-xs"
+                                                                            >
+                                                                                ${item.price}
+                                                                            </Button>
+                                                                            <Button
+                                                                                size="sm"
+                                                                                onClick={(e) => {
+                                                                                    e.stopPropagation();
+                                                                                    addToCart(item, true);
+                                                                                }}
+                                                                                disabled={!canRedeem}
+                                                                                className={`text-xs ${canRedeem ? 'bg-purple-600 hover:bg-purple-700' : 'bg-gray-400'}`}
+                                                                            >
+                                                                                {redeemLabel}
+                                                                            </Button>
+                                                                        </div>
+                                                                        {!canRedeem && (
+                                                                            <p className="text-xs text-gray-500">
+                                                                                {availablePoints}/{pointsRequired} pts
+                                                                            </p>
+                                                                        )}
+                                                                    </div>
+                                                                ) : (
+                                                                    <h1 className="font-deco text-xl text-primary font-semibold">
+                                                                        $
+                                                                        {item.price}
+                                                                    </h1>
+                                                                )}
                                                             </div>
                                                         </CardContent>
                                                     </Card>
@@ -1008,7 +1133,7 @@ export default function Home() {
                                 </span>
                             ) : (
                                 <span
-                                    className="block truncate"
+                                    className="block truncate text-muted-foreground"
                                     title={(() => {
                                         // Aggregate identical items and preserve first-seen order
                                         const seen = new Map<
@@ -1112,7 +1237,7 @@ export default function Home() {
                         onClick={() => setCartOpen(false)}
                     />
 
-                    <div className="relative bg-white w-full max-w-lg h-[85vh] sm:h-[80vh] sm:rounded-2xl shadow-2xl flex flex-col animate-in slide-in-from-bottom-10">
+                    <div className="relative bg-(--background) w-full max-w-lg h-[85vh] sm:h-[80vh] sm:rounded-2xl shadow-2xl flex flex-col animate-in slide-in-from-bottom-10">
                         <div className="flex items-center justify-between p-6 border-b">
                             <h2 className="text-2xl font-bold font-deco">
                                 {yourCartLabel}
@@ -1167,35 +1292,47 @@ export default function Home() {
                                     const itemName = translatedItemWithID
                                         ? translatedItemWithID.name
                                         : item.name;
+                                    const isRedeemed = item?.redeemed === true;
                                     return (
                                         <div
                                             key={idx}
-                                            className="flex flex-col border-b border-gray-100 pb-6 last:border-0"
+                                            className={`flex flex-col border-b border-gray-100 pb-6 last:border-0 ${isRedeemed ? 'bg-purple-50 -mx-6 px-6 py-4 rounded-lg' : ''}`}
                                         >
                                             <div className="flex justify-between items-start mb-4">
                                                 <div>
                                                     <span className="font-bold text-lg block">
                                                         {itemName}
+                                                        {isRedeemed && (
+                                                            <span className="ml-2 text-xs bg-purple-600 text-white px-2 py-0.5 rounded-full">
+                                                                {redeemedLabel}
+                                                            </span>
+                                                        )}
                                                     </span>
-                                                    <span className="text-primary font-medium">
-                                                        $
-                                                        {(
-                                                            Number(
-                                                                item.price || 0
-                                                            ) +
-                                                            Math.max(
-                                                                0,
+                                                    {isRedeemed ? (
+                                                        <span className="text-purple-600 font-bold">
+                                                            {freeLabel} <span className="text-sm font-normal">(-{item.pointsValue} pts)</span>
+                                                        </span>
+                                                    ) : (
+                                                        <span className="text-primary font-medium">
+                                                            $
+                                                            {(
                                                                 Number(
-                                                                    item.size ||
-                                                                        1
-                                                                ) - 1
-                                                            ) +
-                                                            toppingTotal
-                                                        ).toFixed(2)}
-                                                    </span>
+                                                                    item.price || 0
+                                                                ) +
+                                                                Math.max(
+                                                                    0,
+                                                                    Number(
+                                                                        item.size ||
+                                                                            1
+                                                                    ) - 1
+                                                                ) +
+                                                                toppingTotal
+                                                            ).toFixed(2)}
+                                                        </span>
+                                                    )}
                                                     {itemToppings.length >
                                                         0 && (
-                                                        <span className="text-xs text-gray-500 block">
+                                                        <span className="text-xs text-foreground-muted block">
                                                             +{" "}
                                                             {itemToppings
                                                                 .map(
@@ -1223,7 +1360,7 @@ export default function Home() {
                                                 </Button>
                                             </div>
 
-                                            <div className="grid grid-cols-1 gap-3 bg-gray-50 p-3 rounded-lg">
+                                            <div className="grid grid-cols-1 gap-3 bg-(--background) p-3 rounded-lg">
                                                 {/* Size row — same container as Boba/Ice/Sugar */}
                                                 <div className="flex items-center justify-between">
                                                     <span className="text-xs font-bold text-gray-500 uppercase w-12">
@@ -1526,13 +1663,13 @@ export default function Home() {
                             )}
                         </div>
 
-                        <div className="p-6 bg-gray-50 border-t">
+                        <div className="p-6 bg-(--background) border-t">
                             <div className="space-y-2 mb-6">
-                                <div className="flex justify-between text-gray-600">
+                                <div className="flex justify-between text-foreground-muted">
                                     <span>{subtotalLabel}</span>
                                     <span>${subtotal.toFixed(2)}</span>
                                 </div>
-                                <div className="flex justify-between text-gray-600">
+                                <div className="flex justify-between text-foreground-muted">
                                     <span>{taxLabel} (8.5%)</span>
                                     <span>${tax.toFixed(2)}</span>
                                 </div>

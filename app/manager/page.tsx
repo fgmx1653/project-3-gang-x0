@@ -92,11 +92,11 @@ export default function ManagerHome() {
             {/* Background */}
             <div className="absolute -z-20 w-full h-full bg-gradient-to-br from-slate-100 via-gray-100 to-slate-200"></div>{" "}
             {/* Header */}
-            <div className="absolute left-4 top-4 flex flex-col gap-2">
-                <Link href="/">
-                    <Button variant="outline">Home</Button>
-                </Link>
-                <LogoutButton variant="outline" redirect="login" />
+            <Link className="absolute top-8 left-8" href="/">
+                <Button variant="outline">← Home</Button>
+            </Link>
+            <div className="absolute top-20 left-8">
+                <LogoutButton variant="outline" redirect="/login" />
             </div>
             {/* Main Content */}
             <div className="w-full max-w-6xl">

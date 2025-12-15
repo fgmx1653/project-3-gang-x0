@@ -146,173 +146,161 @@ export default function ManagerOrderPage() {
         <div className="relative h-screen w-full flex flex-col overflow-hidden">
             <div className="fixed inset-0 -z-20 bg-gradient-to-br from-slate-100 via-gray-100 to-slate-200"></div>
 
-            <div className="flex-none p-4 flex gap-2 z-10 bg-white/30 backdrop-blur-sm border-b border-white/20">
-                <Link href="/manager">
-                    <Button variant="outline">Dashboard</Button>
-                </Link>
-                <Link href="/">
-                    <Button variant="outline">Home</Button>
-                </Link>
-                <Button
-                    variant="outline"
-                    onClick={() => {
-                        logoutClient();
-                        router.push("/login");
-                    }}
-                >
-                    Log out
-                </Button>
-            </div>
+            <Link className="absolute top-8 left-8 z-10" href="/manager">
+                <Button variant="outline">← Back</Button>
+            </Link>
 
             <div className="flex-1 flex flex-row gap-6 p-6 overflow-hidden">
-                <Card className="bg-white/60 backdrop-blur-md w-96 flex flex-col shadow-xl border-2 border-white/50 h-full">
-                    <CardHeader className="flex-none">
-                        <CardTitle className="font-header text-3xl text-black bg-yellow-500/50 p-2 rounded-md">
-                            Order (Manager)
-                        </CardTitle>
-                    </CardHeader>
-                    <CardContent className="flex-1 overflow-y-auto space-y-4 p-4">
-                        {error && (
-                            <div className="p-3 bg-red-100 border border-red-400 text-red-700 rounded">
-                                {error}
-                            </div>
-                        )}
-                        {orderSuccess && (
-                            <div className="p-3 bg-green-100 border border-green-400 text-green-700 rounded">
-                                Order placed successfully!
-                            </div>
-                        )}
-                        {cart.length === 0 ? (
-                            <div className="text-center py-10 text-muted-foreground font-deco text-xl opacity-50">
-                                Cart is empty
-                            </div>
-                        ) : (
-                            cart.map((item) => (
-                                <div
-                                    key={item.cartId}
-                                    className="flex flex-col gap-2 p-3 bg-white/50 rounded-lg border border-white/40 shadow-sm"
-                                >
-                                    <div className="flex flex-row justify-between items-start">
-                                        <div>
-                                            <h2 className="font-deco font-bold text-lg leading-tight">
-                                                {item.name}
-                                            </h2>
-                                            <div className="text-xs text-gray-600 font-deco">
-                                                Size:{" "}
-                                                {Number(item.size || 1) === 1
-                                                    ? "Small"
-                                                    : Number(item.size || 1) ===
-                                                      2
-                                                    ? "Medium"
-                                                    : "Large"}
-                                                <br />
-                                                Boba: {item.boba ?? 100}% | Ice:{" "}
-                                                {item.ice ?? 100}% | Sugar:{" "}
-                                                {item.sugar ?? 100}%
-                                                {item.toppings &&
-                                                    item.toppings.length >
-                                                        0 && (
-                                                        <>
-                                                            <br />
-                                                            Toppings:{" "}
-                                                            {item.toppings
-                                                                .map(
-                                                                    (t: any) =>
-                                                                        t.name
-                                                                )
-                                                                .join(", ")}
-                                                        </>
-                                                    )}
+                <div className='flex flex-row items-end'>
+                    <Card className="bg-white/60 backdrop-blur-md w-96 flex flex-col shadow-xl border-2 border-white/50 h-[calc(100vh_-_7rem)]">
+                        <CardHeader className="flex-none">
+                            <CardTitle className="font-header text-3xl text-black bg-yellow-500/50 p-2 rounded-md">
+                                Order (Manager)
+                            </CardTitle>
+                        </CardHeader>
+                        <CardContent className="flex-1 overflow-y-auto space-y-4 p-4">
+                            {error && (
+                                <div className="p-3 bg-red-100 border border-red-400 text-red-700 rounded">
+                                    {error}
+                                </div>
+                            )}
+                            {orderSuccess && (
+                                <div className="p-3 bg-green-100 border border-green-400 text-green-700 rounded">
+                                    Order placed successfully!
+                                </div>
+                            )}
+                            {cart.length === 0 ? (
+                                <div className="text-center py-10 text-muted-foreground font-deco text-xl opacity-50">
+                                    Cart is empty
+                                </div>
+                            ) : (
+                                cart.map((item) => (
+                                    <div
+                                        key={item.cartId}
+                                        className="flex flex-col gap-2 p-3 bg-white/50 rounded-lg border border-white/40 shadow-sm"
+                                    >
+                                        <div className="flex flex-row justify-between items-start">
+                                            <div>
+                                                <h2 className="font-deco font-bold text-lg leading-tight">
+                                                    {item.name}
+                                                </h2>
+                                                <div className="text-xs text-gray-600 font-deco">
+                                                    Size:{" "}
+                                                    {Number(item.size || 1) === 1
+                                                        ? "Small"
+                                                        : Number(item.size || 1) ===
+                                                        2
+                                                        ? "Medium"
+                                                        : "Large"}
+                                                    <br />
+                                                    Boba: {item.boba ?? 100}% | Ice:{" "}
+                                                    {item.ice ?? 100}% | Sugar:{" "}
+                                                    {item.sugar ?? 100}%
+                                                    {item.toppings &&
+                                                        item.toppings.length >
+                                                            0 && (
+                                                            <>
+                                                                <br />
+                                                                Toppings:{" "}
+                                                                {item.toppings
+                                                                    .map(
+                                                                        (t: any) =>
+                                                                            t.name
+                                                                    )
+                                                                    .join(", ")}
+                                                            </>
+                                                        )}
+                                                </div>
+                                            </div>
+                                            <div className="flex items-center gap-2">
+                                                <span className="font-deco font-bold text-black/50">
+                                                    $
+                                                    {(
+                                                        Number(item.price || 0) +
+                                                        Math.max(
+                                                            0,
+                                                            Number(item.size || 1) -
+                                                                1
+                                                        ) +
+                                                        (
+                                                            item.toppings || []
+                                                        ).reduce(
+                                                            (sum: number, t: any) =>
+                                                                sum +
+                                                                Number(
+                                                                    t.price || 0
+                                                                ),
+                                                            0
+                                                        )
+                                                    ).toFixed(2)}
+                                                </span>
+                                                <Button
+                                                    variant="ghost"
+                                                    size="icon"
+                                                    className="h-8 w-8 hover:bg-blue-100"
+                                                    onClick={() => {
+                                                        setEditingItem(item);
+                                                        setEditBoba(
+                                                            item.boba ?? 100
+                                                        );
+                                                        setEditIce(item.ice ?? 100);
+                                                        setEditSugar(
+                                                            item.sugar ?? 100
+                                                        );
+                                                        setEditSize(
+                                                            Number(item.size || 1)
+                                                        );
+                                                        setEditToppings(
+                                                            item.toppings || []
+                                                        );
+                                                    }}
+                                                >
+                                                    <Edit className="h-4 w-4" />
+                                                </Button>
+                                                <Button
+                                                    variant="ghost"
+                                                    size="icon"
+                                                    className="h-8 w-8 hover:bg-red-100 hover:text-red-600"
+                                                    onClick={() =>
+                                                        setCart((prev) =>
+                                                            prev.filter(
+                                                                (i) => i !== item
+                                                            )
+                                                        )
+                                                    }
+                                                >
+                                                    <X className="h-4 w-4" />
+                                                </Button>
                                             </div>
                                         </div>
-                                        <div className="flex items-center gap-2">
-                                            <span className="font-deco font-bold text-black/50">
-                                                $
-                                                {(
-                                                    Number(item.price || 0) +
-                                                    Math.max(
-                                                        0,
-                                                        Number(item.size || 1) -
-                                                            1
-                                                    ) +
-                                                    (
-                                                        item.toppings || []
-                                                    ).reduce(
-                                                        (sum: number, t: any) =>
-                                                            sum +
-                                                            Number(
-                                                                t.price || 0
-                                                            ),
-                                                        0
-                                                    )
-                                                ).toFixed(2)}
-                                            </span>
-                                            <Button
-                                                variant="ghost"
-                                                size="icon"
-                                                className="h-8 w-8 hover:bg-blue-100"
-                                                onClick={() => {
-                                                    setEditingItem(item);
-                                                    setEditBoba(
-                                                        item.boba ?? 100
-                                                    );
-                                                    setEditIce(item.ice ?? 100);
-                                                    setEditSugar(
-                                                        item.sugar ?? 100
-                                                    );
-                                                    setEditSize(
-                                                        Number(item.size || 1)
-                                                    );
-                                                    setEditToppings(
-                                                        item.toppings || []
-                                                    );
-                                                }}
-                                            >
-                                                <Edit className="h-4 w-4" />
-                                            </Button>
-                                            <Button
-                                                variant="ghost"
-                                                size="icon"
-                                                className="h-8 w-8 hover:bg-red-100 hover:text-red-600"
-                                                onClick={() =>
-                                                    setCart((prev) =>
-                                                        prev.filter(
-                                                            (i) => i !== item
-                                                        )
-                                                    )
-                                                }
-                                            >
-                                                <X className="h-4 w-4" />
-                                            </Button>
-                                        </div>
                                     </div>
-                                </div>
-                            ))
+                                ))
+                            )}
+                        </CardContent>
+                        {cart.length > 0 && (
+                            <CardFooter className="flex-none border-t border-white/20 p-4 bg-white/20 flex-col gap-3">
+                                <Button
+                                    variant="outline"
+                                    className="w-full"
+                                    onClick={() => setShowInstructionsDialog(true)}
+                                >
+                                    {specialInstructions
+                                        ? "Edit Special Instructions"
+                                        : "Add Special Instructions"}
+                                </Button>
+                                <Button
+                                    className="w-full text-lg py-6 shadow-lg"
+                                    onClick={placeOrder}
+                                    disabled={placingOrder}
+                                >
+                                    {placingOrder
+                                        ? "Placing Order..."
+                                        : "Place Order"}
+                                </Button>
+                            </CardFooter>
                         )}
-                    </CardContent>
-                    {cart.length > 0 && (
-                        <CardFooter className="flex-none border-t border-white/20 p-4 bg-white/20 flex-col gap-3">
-                            <Button
-                                variant="outline"
-                                className="w-full"
-                                onClick={() => setShowInstructionsDialog(true)}
-                            >
-                                {specialInstructions
-                                    ? "Edit Special Instructions"
-                                    : "Add Special Instructions"}
-                            </Button>
-                            <Button
-                                className="w-full text-lg py-6 shadow-lg"
-                                onClick={placeOrder}
-                                disabled={placingOrder}
-                            >
-                                {placingOrder
-                                    ? "Placing Order..."
-                                    : "Place Order"}
-                            </Button>
-                        </CardFooter>
-                    )}
-                </Card>
+                    </Card>
+                </div>
 
                 <div className="flex-1 overflow-y-auto pr-2">
                     <div className="grid grid-cols-[repeat(auto-fill,minmax(220px,1fr))] gap-4 pb-20">

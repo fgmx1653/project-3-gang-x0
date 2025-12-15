@@ -82,8 +82,8 @@ export default function Home() {
         <div className="relative flex h-screen w-full items-center justify-center overflow-hidden">
             <div className="fixed inset-0 -z-20 bg-gradient-to-br from-slate-100 via-gray-100 to-slate-200"></div>
 
-            <Link className="absolute left-4 top-4 z-10" href="/">
-                <Button>Home</Button>
+            <Link className="absolute top-8 left-8 z-10" href="/">
+                <Button variant="outline">← Home</Button>
             </Link>
 
             <Card className="flex w-80 bg-white/60 backdrop-blur-md">

@@ -56,15 +56,11 @@ export default function Home() {
         <div className="relative min-h-screen w-full flex flex-col overflow-hidden">
             <div className="fixed inset-0 -z-20 bg-gradient-to-br from-slate-100 via-gray-100 to-slate-200"></div>
 
-            <div className="flex-none p-6 z-10">
-                <div className="flex flex-row items-start justify-between w-full">
-                    <Link href="/">
-                        <Button variant="outline" className="shadow-md">
-                            Home
-                        </Button>
-                    </Link>
-                </div>
-            </div>
+            <Link className="absolute top-8 left-8" href="/">
+                <Button variant="outline" className="mb-4">
+                    ← Home
+                </Button>
+            </Link>
 
             <div className="flex-1 flex flex-col items-center justify-center p-8 gap-6">
                 <Weather />

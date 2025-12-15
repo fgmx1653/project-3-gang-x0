@@ -20,6 +20,7 @@ type MenuItem = {
   isavail?: boolean;
   seasonal?: boolean;
   isexclusive?: boolean;
+  points?: number | null;
   ingredientIds?: number[];
   [key: string]: any;
 };
@@ -157,6 +158,7 @@ export default function Page() {
       isavail: true,
       seasonal: false,
       isexclusive: false,
+      points: 0,
     };
     try {
       const res = await fetch("/api/menu", {
@@ -341,13 +343,13 @@ export default function Page() {
           }
         }}
       />
-      <Card className="flex flex-col h-full">
+      <Link className="absolute top-8 left-8" href="/manager">
+        <Button variant="outline">← Back</Button>
+      </Link>
+      <Card className="flex flex-col h-full mt-12">
         <CardHeader>
           <div className="flex items-center justify-between">
             <CardTitle>Menu Editor</CardTitle>
-            <Link href="/manager">
-              <Button variant="outline">Back</Button>
-            </Link>
           </div>
         </CardHeader>
         <CardContent className="flex flex-col flex-1 min-h-0">
@@ -526,6 +528,32 @@ export default function Page() {
                                   <span className="text-sm">Exclusive</span>
                                 </label>
                               </div>
+
+                              {/* Points input - only shows when exclusive */}
+                              {it.isexclusive && (
+                                <div className="col-span-12 mt-2 flex items-center gap-2 bg-purple-50 dark:bg-purple-950 p-2 rounded border border-purple-200 dark:border-purple-800">
+                                  <span className="text-sm font-medium text-purple-700 dark:text-purple-300">
+                                    Points Required:
+                                  </span>
+                                  <Input
+                                    type="number"
+                                    min="0"
+                                    value={it.points ?? 0}
+                                    onChange={(e) =>
+                                      handleChange(
+                                        originalIdx,
+                                        "points",
+                                        Number(e.target.value) || 0
+                                      )
+                                    }
+                                    placeholder="Points"
+                                    className="w-24"
+                                  />
+                                  <span className="text-xs text-muted-foreground">
+                                    (Points needed to redeem this exclusive item)
+                                  </span>
+                                </div>
+                              )}
                       <div className="col-span-2 flex gap-1 flex-wrap">
                         <Button
                           size="sm"

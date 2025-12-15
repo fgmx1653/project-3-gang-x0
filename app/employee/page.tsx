@@ -239,14 +239,14 @@ export default function Home() {
         <div className="relative h-screen w-full flex flex-col overflow-hidden">
             <div className="fixed inset-0 -z-20 bg-gradient-to-br from-slate-100 via-gray-100 to-slate-200"></div>
 
-            <div className="flex-none p-4 flex gap-2 z-10 bg-white/30 backdrop-blur-sm border-b border-white/20">
-                <Link href="/">
-                    <Button variant="outline">Home</Button>
-                </Link>
+            <Link className="absolute top-8 left-8 z-10" href="/">
+                <Button variant="outline">← Home</Button>
+            </Link>
+            <div className="absolute top-8 left-32 z-10">
                 <LogoutButton variant="outline" redirect="/login" />
             </div>
 
-            <div className="flex-1 flex flex-row gap-6 p-6 overflow-hidden">
+            <div className="flex-1 flex flex-row gap-6 p-6 pt-20 overflow-hidden">
                 <Card className="bg-white/60 backdrop-blur-md w-96 flex flex-col shadow-xl border-2 border-white/50 h-full">
                     <CardHeader className="flex-none">
                         <CardTitle className="font-header text-3xl text-black bg-yellow-500/50 p-2 rounded-md">

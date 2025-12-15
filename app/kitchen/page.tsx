@@ -250,19 +250,17 @@ export default function KitchenPage() {
             </div>
 
             {/* Header */}
-            <div className="fixed left-4 top-4 flex flex-row gap-2 z-50">
-                <Link href="/">
-                    <Button className="shadow-lg">Home</Button>
-                </Link>
-                <Button
-                    onClick={fetchOrders}
-                    variant="outline"
-                    className="shadow-lg bg-white"
-                >
-                    <RefreshCw className="mr-2 h-4 w-4" />
-                    Refresh
-                </Button>
-            </div>
+            <Link className="absolute top-8 left-8 z-50" href="/">
+                <Button variant="outline" className="shadow-lg">← Home</Button>
+            </Link>
+            <Button
+                onClick={fetchOrders}
+                variant="outline"
+                className="shadow-lg bg-white absolute top-8 left-32 z-50"
+            >
+                <RefreshCw className="h-4 w-4" />
+                Refresh
+            </Button>
 
             {/* Main Content */}
             <div className="flex-1 pt-24 pb-12 px-4 md:px-8 overflow-y-auto max-w-full">

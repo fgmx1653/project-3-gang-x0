@@ -250,14 +250,14 @@ export default function Page() {
     fieldErrors[`${idx}.${key}`];
 
   return (
-    <div className="p-6 h-screen flex flex-col">
-      <Card className="flex flex-col h-full">
+    <div className="p-6 h-screen flex flex-col relative">
+      <Link className="absolute top-8 left-8" href="/manager">
+        <Button variant="outline">← Back</Button>
+      </Link>
+      <Card className="flex flex-col h-full mt-12">
         <CardHeader>
           <div className="flex items-center justify-between">
             <CardTitle>Staff</CardTitle>
-            <Link href="/manager">
-              <Button variant="outline">Back</Button>
-            </Link>
           </div>
         </CardHeader>
         <CardContent className="flex flex-col flex-1 min-h-0">

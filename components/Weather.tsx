@@ -122,16 +122,16 @@ export default function Weather() {
     };
 
     return (
-        <Card className="bg-white/60 backdrop-blur-md border-white/40 shadow-md w-full max-w-2xl">
-            <CardContent className="py-3 px-6">
-                <div className="flex items-center justify-between gap-6">
+        <Card className="bg-white/60 backdrop-blur-md border-white/40 shadow-md w-full max-w-2xl h-20">
+            <CardContent className="py-3 px-6 h-full flex items-center">
+                <div className="flex items-center justify-between gap-6 w-full">
                     <div className="flex items-center gap-3">
                         <img
                             src={`https://openweathermap.org/img/wn/${weather.icon}@2x.png`}
                             alt={weather.description}
                             className="w-12 h-12"
                         />
-                        <div>
+                        <div className="flex flex-col justify-center">
                             <div className="text-sm font-deco font-bold leading-tight">
                                 {weather.city} Weather
                             </div>
@@ -142,7 +142,7 @@ export default function Weather() {
                     </div>
 
                     <div className="flex items-center gap-6">
-                        <div className="flex items-baseline gap-2">
+                        <div className="flex items-center gap-2">
                             <span className="text-3xl font-bold font-deco">
                                 {weather.temp}°F
                             </span>
@@ -151,7 +151,7 @@ export default function Weather() {
                             </span>
                         </div>
 
-                        <div className="text-xs font-deco text-blue-700 text-right max-w-[200px]">
+                        <div className="text-xs font-deco text-blue-700 text-right max-w-[200px] flex items-center">
                             {getDrinkRecommendation(weather.temp)}
                         </div>
                     </div>
