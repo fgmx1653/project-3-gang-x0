@@ -75,6 +75,11 @@ export default function TrendsPage() {
   const [filterStartDate, setFilterStartDate] = useState<string>("");
   const [filterEndDate, setFilterEndDate] = useState<string>("");
   const [filterCategory, setFilterCategory] = useState<string>("all");
+  // Applied filters (what's actually used for filtering)
+  const [appliedStartDate, setAppliedStartDate] = useState<string>("");
+  const [appliedEndDate, setAppliedEndDate] = useState<string>("");
+  const [appliedCategory, setAppliedCategory] = useState<string>("all");
+  const [filterError, setFilterError] = useState<string | null>(null);
 
   // X-Report and Z-Report state
   const [xReportDialogOpen, setXReportDialogOpen] = useState(false);
@@ -86,6 +91,33 @@ export default function TrendsPage() {
   const load = async () => {
     setLoading(true);
     setError(null);
+
+    // Validate dates before loading
+    if (start && end) {
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const startDate = new Date(start);
+      const endDate = new Date(end);
+
+      if (startDate > today) {
+        setError("Start date cannot be in the future");
+        setLoading(false);
+        return;
+      }
+
+      if (endDate > today) {
+        setError("End date cannot be in the future");
+        setLoading(false);
+        return;
+      }
+
+      if (startDate > endDate) {
+        setError("Start date must be before or equal to end date");
+        setLoading(false);
+        return;
+      }
+    }
+
     try {
       const params = new URLSearchParams();
       if (start) params.set("start", start);
@@ -128,22 +160,57 @@ export default function TrendsPage() {
     setFilterStartDate("");
     setFilterEndDate("");
     setFilterCategory("all");
+    setAppliedStartDate("");
+    setAppliedEndDate("");
+    setAppliedCategory("all");
+    setFilterError(null);
     loadReports();
+  };
+
+  const applyFilters = () => {
+    // Validate dates before applying
+    if (filterStartDate || filterEndDate) {
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const start = filterStartDate ? new Date(filterStartDate) : null;
+      const end = filterEndDate ? new Date(filterEndDate) : null;
+
+      if (start && start > today) {
+        setFilterError("Start date cannot be in the future");
+        return;
+      }
+
+      if (end && end > today) {
+        setFilterError("End date cannot be in the future");
+        return;
+      }
+
+      if (start && end && start > end) {
+        setFilterError("Start date must be before or equal to end date");
+        return;
+      }
+    }
+
+    // Apply filters
+    setFilterError(null);
+    setAppliedStartDate(filterStartDate);
+    setAppliedEndDate(filterEndDate);
+    setAppliedCategory(filterCategory);
   };
 
   const filteredReports = useMemo(() => {
     let filtered = reports;
 
     // Filter by category
-    if (filterCategory !== "all") {
+    if (appliedCategory !== "all") {
       filtered = filtered.filter((report) => {
         const reportType = report.report_type.toLowerCase();
-        if (filterCategory === "profit") {
+        if (appliedCategory === "profit") {
           // Profit reports might have different naming, adjust as needed
           return reportType.includes("profit") || reportType.includes("trends");
-        } else if (filterCategory === "z-report") {
+        } else if (appliedCategory === "z-report") {
           return reportType === "z-report";
-        } else if (filterCategory === "inventory") {
+        } else if (appliedCategory === "inventory") {
           return reportType.includes("inventory");
         }
         return true;
@@ -151,24 +218,20 @@ export default function TrendsPage() {
     }
 
     // Filter by date range
-    if (filterStartDate || filterEndDate) {
+    if (appliedStartDate || appliedEndDate) {
       filtered = filtered.filter((report) => {
-        const reportDate = new Date(report.date_created);
-        const start = filterStartDate ? new Date(filterStartDate) : null;
-        const end = filterEndDate ? new Date(filterEndDate) : null;
+        // Extract date directly from string (format: "YYYY-MM-DD HH:MM:SS" or "YYYY-MM-DDTHH:MM:SS")
+        // Avoid Date parsing to prevent timezone issues
+        const reportDateStr = report.date_created.split(/[T ]/)[0];
 
-        if (start && reportDate < start) return false;
-        if (end) {
-          const endOfDay = new Date(end);
-          endOfDay.setHours(23, 59, 59, 999);
-          if (reportDate > endOfDay) return false;
-        }
+        if (appliedStartDate && reportDateStr < appliedStartDate) return false;
+        if (appliedEndDate && reportDateStr > appliedEndDate) return false;
         return true;
       });
     }
 
     return filtered;
-  }, [reports, filterStartDate, filterEndDate, filterCategory]);
+  }, [reports, appliedStartDate, appliedEndDate, appliedCategory]);
 
   const generateXReport = async () => {
     setDailyReportLoading(true);
@@ -320,6 +383,7 @@ export default function TrendsPage() {
               <Input
                 type="date"
                 value={start}
+                max={new Date().toISOString().split('T')[0]}
                 onChange={(e) => setStart(e.target.value)}
                 className="w-44"
               />
@@ -329,6 +393,7 @@ export default function TrendsPage() {
               <Input
                 type="date"
                 value={end}
+                max={new Date().toISOString().split('T')[0]}
                 onChange={(e) => setEnd(e.target.value)}
                 className="w-44"
               />
@@ -475,6 +540,7 @@ export default function TrendsPage() {
                   <Input
                     type="date"
                     value={filterStartDate}
+                    max={new Date().toISOString().split('T')[0]}
                     onChange={(e) => setFilterStartDate(e.target.value)}
                     className="w-44"
                   />
@@ -484,10 +550,17 @@ export default function TrendsPage() {
                   <Input
                     type="date"
                     value={filterEndDate}
+                    max={new Date().toISOString().split('T')[0]}
                     onChange={(e) => setFilterEndDate(e.target.value)}
                     className="w-44"
                   />
                 </div>
+                <Button
+                  size="sm"
+                  onClick={applyFilters}
+                >
+                  Apply Filters
+                </Button>
                 <Button
                   variant="outline"
                   size="sm"
@@ -495,11 +568,22 @@ export default function TrendsPage() {
                     setFilterStartDate("");
                     setFilterEndDate("");
                     setFilterCategory("all");
+                    setAppliedStartDate("");
+                    setAppliedEndDate("");
+                    setAppliedCategory("all");
+                    setFilterError(null);
                   }}
                 >
                   Clear Filters
                 </Button>
               </div>
+
+              {/* Filter Error Display */}
+              {filterError && (
+                <div className="text-sm text-destructive bg-destructive/10 p-3 rounded">
+                  {filterError}
+                </div>
+              )}
 
               {/* Reports List */}
               {reportsLoading ? (
