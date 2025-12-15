@@ -99,6 +99,9 @@ export default function AccessibilityMenu() {
       // CRITICAL FIX: Dispatch a resize event so the Iridescence background
       // recalculates its dimensions immediately after zooming.
       window.dispatchEvent(new Event('resize'));
+      
+      // Dispatch custom event so components can apply inverse zoom to fixed elements
+      window.dispatchEvent(new CustomEvent('accessibility-zoom-change', { detail: zoom }));
 
       // Save to localStorage
       try {

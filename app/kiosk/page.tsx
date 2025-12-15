@@ -36,6 +36,7 @@ export default function Home() {
     const [orderHistory, setOrderHistory] = useState<any[]>([]);
     const [loadingHistory, setLoadingHistory] = useState(false);
     const [animatedBg, setAnimatedBg] = useState(false); // OFF by default
+    const [accessibilityZoom, setAccessibilityZoom] = useState(1.0);
 
     // Load animated background setting from localStorage and listen for changes
     useEffect(() => {
@@ -49,6 +50,23 @@ export default function Home() {
         };
         window.addEventListener('animated-bg-change', handleChange as EventListener);
         return () => window.removeEventListener('animated-bg-change', handleChange as EventListener);
+    }, []);
+
+    // Load zoom setting from localStorage and listen for changes
+    useEffect(() => {
+        // Initial load
+        const savedZoom = localStorage.getItem('accessibility-zoom');
+        if (savedZoom) {
+            const parsed = parseFloat(savedZoom);
+            if (!isNaN(parsed)) setAccessibilityZoom(parsed);
+        }
+
+        // Listen for changes from accessibility menu
+        const handleZoomChange = (e: CustomEvent) => {
+            setAccessibilityZoom(e.detail);
+        };
+        window.addEventListener('accessibility-zoom-change', handleZoomChange as EventListener);
+        return () => window.removeEventListener('accessibility-zoom-change', handleZoomChange as EventListener);
     }, []);
 
     const TAX_RATE = 0.085;
@@ -766,7 +784,7 @@ export default function Home() {
             <Tabs
                 defaultValue="all"
                 value={tab}
-                className="flex-1 flex flex-col min-h-0 px-8 gap-4"
+                className="flex-1 flex flex-col min-h-0 px-8 gap-4 pb-28"
             >
                 <div className="flex-none bg-white/60 backdrop-blur-md p-2 rounded-xl flex flex-wrap gap-2 items-center shadow-sm">
                     <TabsList className="bg-transparent h-auto flex flex-wrap gap-2 p-0">
@@ -1113,7 +1131,11 @@ export default function Home() {
                 </div>
             </Tabs>
 
-            <div className="flex-none bg-white/80 backdrop-blur-xl border-t border-black/5 shadow-[0_-10px_40px_rgba(0,0,0,0.1)] p-6 z-20">
+            {/* Bottom cart bar - fixed position with inverse zoom to stay visible when magnifier is active */}
+            <div 
+                className="fixed bottom-0 left-0 right-0 bg-white/80 backdrop-blur-xl border-t border-black/5 shadow-[0_-10px_40px_rgba(0,0,0,0.1)] p-6 z-20"
+                style={{ zoom: 1 / accessibilityZoom }}
+            >
                 <div className="max-w-7xl mx-auto flex items-center gap-8">
                     <div className="flex flex-col">
                         <span className="text-sm text-muted-foreground uppercase tracking-wider font-bold">
