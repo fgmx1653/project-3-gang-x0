@@ -311,6 +311,27 @@ export default function InventoryPage() {
       return;
     }
 
+    // Validate dates
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const startDate = new Date(usageStart);
+    const endDate = new Date(usageEnd);
+
+    if (startDate > today) {
+      setUsageError("Start date cannot be in the future");
+      return;
+    }
+
+    if (endDate > today) {
+      setUsageError("End date cannot be in the future");
+      return;
+    }
+
+    if (startDate > endDate) {
+      setUsageError("Start date must be before or equal to end date");
+      return;
+    }
+
     setUsageLoading(true);
     setUsageError(null);
     try {
@@ -630,6 +651,7 @@ export default function InventoryPage() {
                   <Input
                     type="date"
                     value={usageStart}
+                    max={new Date().toISOString().split('T')[0]}
                     onChange={(e) => setUsageStart(e.target.value)}
                   />
                 </div>
@@ -638,6 +660,7 @@ export default function InventoryPage() {
                   <Input
                     type="date"
                     value={usageEnd}
+                    max={new Date().toISOString().split('T')[0]}
                     onChange={(e) => setUsageEnd(e.target.value)}
                   />
                 </div>

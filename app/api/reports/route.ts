@@ -106,7 +106,15 @@ export async function GET(req: Request) {
   const report_type = url.searchParams.get("type");
 
   try {
-    let query = "SELECT * FROM public.reports";
+    let query = `
+      SELECT
+        report_id,
+        report_name,
+        report_type,
+        report_text,
+        date_created::timestamp::text as date_created
+      FROM public.reports
+    `;
     const params: any[] = [];
 
     if (report_type) {
