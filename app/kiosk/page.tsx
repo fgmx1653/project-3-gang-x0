@@ -724,9 +724,14 @@ export default function Home() {
                         ← {homeLabel}
                     </Button>
                 </Link>
-                <Link className='absolute top-8 left-36' href="/kiosk/game">
+                <Link className='absolute top-8 left-40' href="/kiosk/game">
                     <Button variant="default" className="shadow-md bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700">
                         🎮 Play X0 Game
+                    </Button>
+                </Link>
+                <Link className='absolute top-8 left-80' href="/kiosk/flappy">
+                    <Button variant="default" className="shadow-md bg-gradient-to-r from-green-600 to-blue-600 hover:from-green-700 hover:to-blue-700">
+                        🐦 Flappy Srihari
                     </Button>
                 </Link>
 

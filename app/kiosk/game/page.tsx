@@ -63,7 +63,7 @@ export default function MatchingGame() {
         const checkPlayStatus = async () => {
             try {
                 const userId = (session.user as any).id;
-                const res = await fetch(`/api/game/check-play?userId=${userId}`);
+                const res = await fetch(`/api/game/check-play?userId=${userId}&game=matching`);
                 const data = await res.json();
 
                 if (data.ok) {
@@ -104,7 +104,7 @@ export default function MatchingGame() {
                 fetch('/api/game/mark-played', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ userId }),
+                    body: JSON.stringify({ userId, game: 'matching' }),
                     keepalive: true,
                 });
             }
@@ -180,6 +180,7 @@ export default function MatchingGame() {
                     points,
                     moves,
                     time: elapsedTime,
+                    game: 'matching',
                 }),
             });
 
@@ -273,7 +274,7 @@ export default function MatchingGame() {
                 await fetch('/api/game/mark-played', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ userId }),
+                    body: JSON.stringify({ userId, game: 'matching' }),
                 });
             } catch (err) {
                 console.error("Error marking game as played:", err);

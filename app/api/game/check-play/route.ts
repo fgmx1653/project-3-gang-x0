@@ -9,6 +9,7 @@ export async function GET(req: NextRequest) {
     try {
         const { searchParams } = new URL(req.url);
         const userId = searchParams.get("userId");
+        const game = searchParams.get("game") || "matching"; // default to matching game
 
         if (!userId) {
             return NextResponse.json(
@@ -23,8 +24,9 @@ export async function GET(req: NextRequest) {
         const result = await pool.query(
             `SELECT * FROM game_plays
              WHERE customer_id = $1
-             AND play_date = $2`,
-            [userId, today]
+             AND play_date = $2
+             AND game_type = $3`,
+            [userId, today, game]
         );
 
         const hasPlayedToday = result.rows.length > 0;
