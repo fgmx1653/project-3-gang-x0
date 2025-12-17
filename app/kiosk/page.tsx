@@ -724,6 +724,11 @@ export default function Home() {
                         ← {homeLabel}
                     </Button>
                 </Link>
+                <Link className='absolute top-8 left-36' href="/kiosk/game">
+                    <Button variant="default" className="shadow-md bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700">
+                        🎮 Play X0 Game
+                    </Button>
+                </Link>
 
                 {/* Customer Google Sign-in Section */}
                 <div className="bg-white/70 backdrop-blur-md p-3 rounded-lg shadow-md">
