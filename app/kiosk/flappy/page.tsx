@@ -37,12 +37,15 @@ export default function FlappyGame() {
     // Game constants
     const GRAVITY = 0.5;
     const JUMP_STRENGTH = -8;
-    const BIRD_SIZE = 50;
+    const BIRD_SIZE = 70; // Increased from 50 to 70
     const PIPE_WIDTH = 60;
     const PIPE_GAP = 180;
     const PIPE_SPEED = 3;
     const CANVAS_WIDTH = 800;
     const CANVAS_HEIGHT = 600;
+    const MAX_OBSTACLES_FOR_POINTS = 15;
+    const POINTS_PER_OBSTACLE = 100;
+    const MAX_POINTS = 1500;
 
     // Load animated background setting
     useEffect(() => {
@@ -54,13 +57,6 @@ export default function FlappyGame() {
         };
         window.addEventListener('animated-bg-change', handleChange as EventListener);
         return () => window.removeEventListener('animated-bg-change', handleChange as EventListener);
-    }, []);
-
-    // Load bird image
-    useEffect(() => {
-        const img = new Image();
-        img.src = '/img/srihari.png';
-        img.onload = () => setBirdImage(img);
     }, []);
 
     // Check if user has played today
@@ -84,7 +80,19 @@ export default function FlappyGame() {
         checkPlayStatus();
     }, [session]);
 
+    // Load bird image
+    useEffect(() => {
+        const img = new Image();
+        img.src = '/img/srihari_bird.png';
+        img.onload = () => setBirdImage(img);
+    }, []);
+
     // Initialize game
+    useEffect(() => {
+        // Initialize pipes on component mount
+        setPipes([{ x: CANVAS_WIDTH, gapY: 250, passed: false }]);
+    }, []);
+
     const initializeGame = () => {
         setBirdY(250);
         setBirdVelocity(0);
@@ -181,7 +189,7 @@ export default function FlappyGame() {
             // Check boundaries
             if (newBirdY <= 0 || newBirdY + BIRD_SIZE >= CANVAS_HEIGHT) {
                 setGameOver(true);
-                const points = Math.min(score * 100, 1500);
+                const points = Math.min(score * POINTS_PER_OBSTACLE, MAX_POINTS);
                 setPointsEarned(points);
                 awardPoints(points);
                 return;
@@ -195,7 +203,7 @@ export default function FlappyGame() {
 
             // Add new pipes
             const lastPipe = newPipes[newPipes.length - 1];
-            if (lastPipe.x < CANVAS_WIDTH - 250) {
+            if (lastPipe && lastPipe.x < CANVAS_WIDTH - 250) {
                 newPipes.push({
                     x: CANVAS_WIDTH,
                     gapY: Math.random() * (CANVAS_HEIGHT - PIPE_GAP - 100) + 50,
@@ -223,7 +231,7 @@ export default function FlappyGame() {
                     (newBirdY < pipe.gapY || newBirdY + BIRD_SIZE > pipe.gapY + PIPE_GAP)
                 ) {
                     setGameOver(true);
-                    const points = Math.min(newScore * 100, 1500);
+                    const points = Math.min(newScore * POINTS_PER_OBSTACLE, MAX_POINTS);
                     setPointsEarned(points);
                     awardPoints(points);
                     return;
@@ -390,6 +398,9 @@ export default function FlappyGame() {
         );
     }
 
+    const currentPoints = Math.min(score * POINTS_PER_OBSTACLE, MAX_POINTS);
+    const maxedOut = score >= MAX_OBSTACLES_FOR_POINTS;
+
     return (
         <div className="flex flex-col w-full min-h-screen overflow-auto relative">
             <div className="fixed inset-0 -z-20 bg-(--background)">
@@ -412,13 +423,19 @@ export default function FlappyGame() {
                     ← Back to Menu
                 </Button>
 
-                <div className="bg-white/80 backdrop-blur-md p-4 rounded-lg shadow-md">
+                <div className="bg-white/80 backdrop-blur-md p-4 rounded-lg shadow-md flex gap-6">
                     <div className="text-center">
-                        <div className="text-sm text-gray-600">Score</div>
+                        <div className="text-sm text-gray-600">Obstacles</div>
                         <div className="text-3xl font-bold">{score}</div>
-                        <div className="text-xs text-gray-500 mt-1">
-                            {Math.min(score * 100, 1500)} points
+                    </div>
+                    <div className="text-center border-l pl-6">
+                        <div className="text-sm text-gray-600">Points</div>
+                        <div className={`text-3xl font-bold ${maxedOut ? 'text-green-600' : 'text-purple-600'}`}>
+                            {currentPoints}
                         </div>
+                        {maxedOut && (
+                            <div className="text-xs text-green-600 font-bold">MAX!</div>
+                        )}
                     </div>
                 </div>
 
@@ -446,14 +463,14 @@ export default function FlappyGame() {
                         <div className="absolute inset-0 flex items-center justify-center bg-black/30 rounded-lg">
                             <div className="text-white text-center">
                                 <p className="text-2xl font-bold mb-2">Click to Start!</p>
-                                <p className="text-sm">100 points per obstacle (max 1500)</p>
+                                <p className="text-sm">100 points per obstacle (max 1500 points)</p>
                             </div>
                         </div>
                     )}
                 </div>
 
                 <p className="text-center text-gray-600 mt-4 text-sm">
-                    Earn 100 points for each obstacle passed (maximum 1500 points)
+                    Earn 100 points per obstacle passed (maximum 1500 points)
                 </p>
             </div>
 
@@ -464,10 +481,10 @@ export default function FlappyGame() {
                     <Card className="relative bg-white w-full max-w-md mx-4 shadow-2xl animate-in zoom-in">
                         <CardContent className="p-8 text-center">
                             <div className="text-6xl mb-4">
-                                {pointsEarned > 0 ? '🎉' : '😢'}
+                                {pointsEarned >= MAX_POINTS ? '🎉' : pointsEarned > 0 ? '🎮' : '😢'}
                             </div>
                             <h2 className="text-3xl font-bold mb-2 font-deco">
-                                {pointsEarned > 0 ? 'Game Over!' : 'Nice Try!'}
+                                {pointsEarned >= MAX_POINTS ? 'Perfect Score!' : 'Game Over!'}
                             </h2>
                             {pointsEarned > 0 && (
                                 <p className="text-2xl font-bold text-purple-600 mb-4">

@@ -707,12 +707,12 @@ export default function Home() {
                     </Button>
                 </Link>
                 <Link className='absolute top-8 left-40' href="/kiosk/game">
-                    <Button variant="default" className="shadow-md bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700">
-                        🎮 Play X0 Game
+                    <Button variant="default" className="shadow-md bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 w-48 h-10">
+                        🎮 X0 Match
                     </Button>
                 </Link>
-                <Link className='absolute top-8 left-80' href="/kiosk/flappy">
-                    <Button variant="default" className="shadow-md bg-gradient-to-r from-green-600 to-blue-600 hover:from-green-700 hover:to-blue-700">
+                <Link className='absolute top-8 left-[368px]' href="/kiosk/flappy">
+                    <Button variant="default" className="shadow-md bg-gradient-to-r from-green-600 to-blue-600 hover:from-green-700 hover:to-blue-700 w-48 h-10">
                         🐦 Flappy Srihari
                     </Button>
                 </Link>
