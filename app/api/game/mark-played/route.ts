@@ -7,7 +7,7 @@ const pool = new Pool({
 
 export async function POST(req: NextRequest) {
     try {
-        const { userId } = await req.json();
+        const { userId, game = "matching" } = await req.json();
 
         if (!userId) {
             return NextResponse.json(
@@ -23,15 +23,16 @@ export async function POST(req: NextRequest) {
         const existing = await pool.query(
             `SELECT * FROM game_plays
              WHERE customer_id = $1
-             AND play_date = $2`,
-            [userId, today]
+             AND play_date = $2
+             AND game_type = $3`,
+            [userId, today, game]
         );
 
         if (existing.rows.length === 0) {
             await pool.query(
-                `INSERT INTO game_plays (customer_id, played_at, play_date, points_earned, completed)
-                 VALUES ($1, NOW(), $2, 0, false)`,
-                [userId, today]
+                `INSERT INTO game_plays (customer_id, played_at, play_date, points_earned, completed, game_type)
+                 VALUES ($1, NOW(), $2, 0, false, $3)`,
+                [userId, today, game]
             );
         }
 
