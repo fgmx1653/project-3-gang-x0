@@ -43,6 +43,7 @@ export default function MatchingGame() {
     const [gameStarted, setGameStarted] = useState(false);
     const [pointsEarned, setPointsEarned] = useState(0);
     const [awardingPoints, setAwardingPoints] = useState(false);
+    const [pointsAwardedThisSession, setPointsAwardedThisSession] = useState(false);
 
     // Force static background for game performance
     useEffect(() => {
@@ -138,6 +139,11 @@ export default function MatchingGame() {
         setElapsedTime(0);
         setGameStarted(false);
         setPointsEarned(0);
+
+        // If points were awarded this session, now mark as played for practice mode
+        if (pointsAwardedThisSession) {
+            setHasPlayedToday(true);
+        }
     };
 
     const calculatePoints = (moves: number, time: number): number => {
@@ -160,8 +166,8 @@ export default function MatchingGame() {
     };
 
     const awardPoints = async (points: number) => {
-        // Don't award points if already played today
-        if (!session?.user || awardingPoints || hasPlayedToday) return;
+        // Don't award points if already played today or already awarded this session
+        if (!session?.user || awardingPoints || hasPlayedToday || pointsAwardedThisSession) return;
 
         setAwardingPoints(true);
         try {
@@ -180,8 +186,8 @@ export default function MatchingGame() {
 
             const data = await res.json();
             if (data.ok) {
-                // Mark as played today in current session
-                setHasPlayedToday(true);
+                // Mark as awarded in this session (will trigger practice mode on next play)
+                setPointsAwardedThisSession(true);
             } else {
                 console.error("Failed to award points:", data.error);
             }
@@ -373,7 +379,7 @@ export default function MatchingGame() {
                 </Button>
 
                 <div className="flex flex-col gap-2">
-                    {hasPlayedToday && (
+                    {(hasPlayedToday || pointsAwardedThisSession) && (
                         <div className="bg-yellow-100 border-2 border-yellow-400 text-yellow-800 px-4 py-2 rounded-lg text-center text-sm font-semibold">
                             ⚠️ Practice Mode - No Points Earned
                         </div>
@@ -403,7 +409,7 @@ export default function MatchingGame() {
                         X0 Matching Game
                     </h1>
                     <p className="text-center text-gray-600 mb-8">
-                        {hasPlayedToday
+                        {hasPlayedToday || pointsAwardedThisSession
                             ? "Playing for fun - Come back tomorrow to earn points!"
                             : "Match all pairs to earn up to 1000 reward points!"}
                     </p>
@@ -454,18 +460,18 @@ export default function MatchingGame() {
                             <h2 className="text-3xl font-bold mb-2 font-deco">
                                 Congratulations!
                             </h2>
-                            {!hasPlayedToday && pointsEarned > 0 && (
+                            {!hasPlayedToday && !pointsAwardedThisSession && pointsEarned > 0 && (
                                 <p className="text-2xl font-bold text-purple-600 mb-4">
                                     +{pointsEarned} Points!
                                 </p>
                             )}
-                            {hasPlayedToday && (
+                            {(hasPlayedToday || pointsAwardedThisSession) && (
                                 <p className="text-lg text-yellow-600 mb-4">
                                     Practice Mode - No Points Earned
                                 </p>
                             )}
                             <p className="text-gray-600 mb-6">
-                                {hasPlayedToday
+                                {hasPlayedToday || pointsAwardedThisSession
                                     ? "You completed the game! Great job!"
                                     : "You completed the game and earned reward points!"}
                             </p>
@@ -478,7 +484,7 @@ export default function MatchingGame() {
                                     <span className="text-gray-600">Time:</span>
                                     <span className="font-bold">{formatTime(elapsedTime)}</span>
                                 </div>
-                                {!hasPlayedToday && (
+                                {!hasPlayedToday && !pointsAwardedThisSession && (
                                     <div className="flex justify-between border-t pt-2 mt-2">
                                         <span className="text-gray-600">Points Earned:</span>
                                         <span className="font-bold text-purple-600">{pointsEarned}</span>
@@ -486,7 +492,7 @@ export default function MatchingGame() {
                                 )}
                             </div>
                             <p className="text-xs text-gray-500 mb-4">
-                                {hasPlayedToday
+                                {hasPlayedToday || pointsAwardedThisSession
                                     ? "You've already earned points today. Come back tomorrow!"
                                     : "Come back tomorrow to play again!"}
                             </p>
