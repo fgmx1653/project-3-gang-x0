@@ -179,7 +179,10 @@ export default function MatchingGame() {
             });
 
             const data = await res.json();
-            if (!data.ok) {
+            if (data.ok) {
+                // Mark as played today in current session
+                setHasPlayedToday(true);
+            } else {
                 console.error("Failed to award points:", data.error);
             }
         } catch (err) {
