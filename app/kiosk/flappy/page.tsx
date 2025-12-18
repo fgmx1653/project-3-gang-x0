@@ -27,6 +27,7 @@ export default function FlappyGame() {
     const [score, setScore] = useState(0);
     const [pointsEarned, setPointsEarned] = useState(0);
     const [awardingPoints, setAwardingPoints] = useState(false);
+    const [pointsAwardedThisSession, setPointsAwardedThisSession] = useState(false);
 
     // Game state
     const [birdY, setBirdY] = useState(250);
@@ -93,6 +94,11 @@ export default function FlappyGame() {
         setGameStarted(false);
         setGameOver(false);
         setPointsEarned(0);
+
+        // If points were awarded this session, now mark as played for practice mode
+        if (pointsAwardedThisSession) {
+            setHasPlayedToday(true);
+        }
     };
 
     // Handle jump
@@ -138,8 +144,8 @@ export default function FlappyGame() {
 
     // Award points
     const awardPoints = async (finalScore: number) => {
-        // Don't award points if already played today
-        if (!session?.user || awardingPoints || hasPlayedToday) return;
+        // Don't award points if already played today or already awarded this session
+        if (!session?.user || awardingPoints || hasPlayedToday || pointsAwardedThisSession) return;
 
         setAwardingPoints(true);
         try {
@@ -158,8 +164,8 @@ export default function FlappyGame() {
 
             const data = await res.json();
             if (data.ok) {
-                // Mark as played today in current session
-                setHasPlayedToday(true);
+                // Mark as awarded in this session (will trigger practice mode on next play)
+                setPointsAwardedThisSession(true);
             } else {
                 console.error("Failed to award points:", data.error);
             }
@@ -385,7 +391,7 @@ export default function FlappyGame() {
                 </Button>
 
                 <div className="flex flex-col gap-2">
-                    {hasPlayedToday && (
+                    {(hasPlayedToday || pointsAwardedThisSession) && (
                         <div className="bg-yellow-100 border-2 border-yellow-400 text-yellow-800 px-4 py-2 rounded-lg text-center text-sm font-semibold">
                             ⚠️ Practice Mode - No Points Earned
                         </div>
@@ -397,13 +403,13 @@ export default function FlappyGame() {
                         </div>
                         <div className="text-center border-l pl-6">
                             <div className="text-sm text-gray-600">Points</div>
-                            <div className={`text-3xl font-bold ${maxedOut ? 'text-green-600' : hasPlayedToday ? 'text-gray-400' : 'text-purple-600'}`}>
+                            <div className={`text-3xl font-bold ${maxedOut ? 'text-green-600' : (hasPlayedToday || pointsAwardedThisSession) ? 'text-gray-400' : 'text-purple-600'}`}>
                                 {currentPoints}
                             </div>
-                            {maxedOut && !hasPlayedToday && (
+                            {maxedOut && !hasPlayedToday && !pointsAwardedThisSession && (
                                 <div className="text-xs text-green-600 font-bold">MAX!</div>
                             )}
-                            {hasPlayedToday && (
+                            {(hasPlayedToday || pointsAwardedThisSession) && (
                                 <div className="text-xs text-gray-500 font-bold">NO POINTS</div>
                             )}
                         </div>
@@ -434,7 +440,7 @@ export default function FlappyGame() {
                         <div className="absolute inset-0 flex items-center justify-center bg-black/30 rounded-lg">
                             <div className="text-white text-center">
                                 <p className="text-2xl font-bold mb-2">Click to Start!</p>
-                                {hasPlayedToday ? (
+                                {hasPlayedToday || pointsAwardedThisSession ? (
                                     <p className="text-sm text-yellow-300">Practice Mode - No points earned today</p>
                                 ) : (
                                     <p className="text-sm">100 points per obstacle (max 1500 points)</p>
@@ -445,7 +451,7 @@ export default function FlappyGame() {
                 </div>
 
                 <p className="text-center text-gray-600 mt-4 text-sm">
-                    {hasPlayedToday
+                    {hasPlayedToday || pointsAwardedThisSession
                         ? "Playing for fun - Come back tomorrow to earn points!"
                         : "Earn 100 points per obstacle passed (maximum 1500 points)"}
                 </p>
@@ -461,14 +467,14 @@ export default function FlappyGame() {
                                 {pointsEarned >= MAX_POINTS ? '🎉' : pointsEarned > 0 ? '🎮' : '😢'}
                             </div>
                             <h2 className="text-3xl font-bold mb-2 font-deco">
-                                {!hasPlayedToday && pointsEarned >= MAX_POINTS ? 'Perfect Score!' : 'Game Over!'}
+                                {!hasPlayedToday && !pointsAwardedThisSession && pointsEarned >= MAX_POINTS ? 'Perfect Score!' : 'Game Over!'}
                             </h2>
-                            {!hasPlayedToday && pointsEarned > 0 && (
+                            {!hasPlayedToday && !pointsAwardedThisSession && pointsEarned > 0 && (
                                 <p className="text-2xl font-bold text-purple-600 mb-4">
                                     +{pointsEarned} Points!
                                 </p>
                             )}
-                            {hasPlayedToday && (
+                            {(hasPlayedToday || pointsAwardedThisSession) && (
                                 <p className="text-lg text-yellow-600 mb-4">
                                     Practice Mode - No Points Earned
                                 </p>
@@ -478,7 +484,7 @@ export default function FlappyGame() {
                                     <span className="text-gray-600">Obstacles Passed:</span>
                                     <span className="font-bold">{score}</span>
                                 </div>
-                                {!hasPlayedToday && (
+                                {!hasPlayedToday && !pointsAwardedThisSession && (
                                     <div className="flex justify-between border-t pt-2 mt-2">
                                         <span className="text-gray-600">Points Earned:</span>
                                         <span className="font-bold text-purple-600">{pointsEarned}</span>
@@ -486,7 +492,7 @@ export default function FlappyGame() {
                                 )}
                             </div>
                             <p className="text-xs text-gray-500 mb-4">
-                                {hasPlayedToday
+                                {hasPlayedToday || pointsAwardedThisSession
                                     ? "You've already earned points today. Come back tomorrow!"
                                     : "Come back tomorrow to play again!"}
                             </p>
