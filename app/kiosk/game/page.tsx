@@ -44,16 +44,9 @@ export default function MatchingGame() {
     const [pointsEarned, setPointsEarned] = useState(0);
     const [awardingPoints, setAwardingPoints] = useState(false);
 
-    // Load animated background setting
+    // Force static background for game performance
     useEffect(() => {
-        const saved = localStorage.getItem('accessibility-animated-bg');
-        setAnimatedBg(saved === 'true');
-
-        const handleChange = (e: CustomEvent) => {
-            setAnimatedBg(e.detail);
-        };
-        window.addEventListener('animated-bg-change', handleChange as EventListener);
-        return () => window.removeEventListener('animated-bg-change', handleChange as EventListener);
+        setAnimatedBg(false);
     }, []);
 
     // Check if user has played today
@@ -77,12 +70,12 @@ export default function MatchingGame() {
         checkPlayStatus();
     }, [session]);
 
-    // Initialize game only if authenticated and haven't played today
+    // Initialize game when authenticated (allow practice mode even if already played)
     useEffect(() => {
-        if (status === "authenticated" && !hasPlayedToday) {
+        if (status === "authenticated") {
             initializeGame();
         }
-    }, [status, hasPlayedToday]);
+    }, [status]);
 
     // Timer
     useEffect(() => {
@@ -95,10 +88,10 @@ export default function MatchingGame() {
         return () => clearInterval(interval);
     }, [startTime, gameWon]);
 
-    // Mark game as played when leaving without finishing
+    // Mark game as played when leaving without finishing (only if hasn't played today)
     useEffect(() => {
         const handleBeforeUnload = () => {
-            if (gameStarted && !gameWon && session?.user) {
+            if (gameStarted && !gameWon && session?.user && !hasPlayedToday) {
                 // Mark as played for today without awarding points
                 const userId = (session.user as any).id;
                 fetch('/api/game/mark-played', {
@@ -112,7 +105,7 @@ export default function MatchingGame() {
 
         window.addEventListener('beforeunload', handleBeforeUnload);
         return () => window.removeEventListener('beforeunload', handleBeforeUnload);
-    }, [gameStarted, gameWon, session]);
+    }, [gameStarted, gameWon, session, hasPlayedToday]);
 
     const initializeGame = () => {
         // Create pairs of cards
@@ -167,7 +160,8 @@ export default function MatchingGame() {
     };
 
     const awardPoints = async (points: number) => {
-        if (!session?.user || awardingPoints) return;
+        // Don't award points if already played today
+        if (!session?.user || awardingPoints || hasPlayedToday) return;
 
         setAwardingPoints(true);
         try {
@@ -267,8 +261,8 @@ export default function MatchingGame() {
     };
 
     const handleBackToMenu = async () => {
-        // If game was started but not won, mark as played
-        if (gameStarted && !gameWon && session?.user) {
+        // If game was started but not won, mark as played (only if hasn't played today)
+        if (gameStarted && !gameWon && session?.user && !hasPlayedToday) {
             try {
                 const userId = (session.user as any).id;
                 await fetch('/api/game/mark-played', {
@@ -352,42 +346,6 @@ export default function MatchingGame() {
         );
     }
 
-    // Show "already played today" message
-    if (hasPlayedToday) {
-        return (
-            <div className="flex flex-col w-full min-h-screen overflow-auto relative">
-                <div className="fixed inset-0 -z-20 bg-(--background)">
-                    {animatedBg && (
-                        <Iridescence
-                            color={[1.0, 0.7, 0.7]}
-                            mouseReact={true}
-                            amplitude={0.1}
-                            speed={1.0}
-                        />
-                    )}
-                </div>
-
-                <div className="flex-1 flex items-center justify-center p-8">
-                    <Card className="bg-white/80 backdrop-blur-md shadow-xl border-2 border-transparent max-w-md">
-                        <CardContent className="p-8 flex flex-col items-center text-center">
-                            <span className="text-6xl mb-4">⏰</span>
-                            <h2 className="text-2xl font-bold font-deco mb-2">
-                                Come Back Tomorrow!
-                            </h2>
-                            <p className="text-gray-600 mb-6">
-                                You've already played the X0 Matching Game today. Come back tomorrow for another chance to earn rewards!
-                            </p>
-                            <Link href="/kiosk" className="w-full">
-                                <Button variant="default" className="w-full">
-                                    Back to Menu
-                                </Button>
-                            </Link>
-                        </CardContent>
-                    </Card>
-                </div>
-            </div>
-        );
-    }
 
     return (
         <div className="flex flex-col w-full min-h-screen overflow-auto relative">
@@ -411,18 +369,25 @@ export default function MatchingGame() {
                     ← Back to Menu
                 </Button>
 
-                <div className="bg-white/80 backdrop-blur-md p-4 rounded-lg shadow-md flex gap-6 items-center">
-                    <div className="text-center">
-                        <div className="text-sm text-gray-600">Moves</div>
-                        <div className="text-2xl font-bold">{moves}</div>
-                    </div>
-                    <div className="text-center">
-                        <div className="text-sm text-gray-600">Matches</div>
-                        <div className="text-2xl font-bold">{matches}/{drinkImages.length}</div>
-                    </div>
-                    <div className="text-center">
-                        <div className="text-sm text-gray-600">Time</div>
-                        <div className="text-2xl font-bold">{formatTime(elapsedTime)}</div>
+                <div className="flex flex-col gap-2">
+                    {hasPlayedToday && (
+                        <div className="bg-yellow-100 border-2 border-yellow-400 text-yellow-800 px-4 py-2 rounded-lg text-center text-sm font-semibold">
+                            ⚠️ Practice Mode - No Points Earned
+                        </div>
+                    )}
+                    <div className="bg-white/80 backdrop-blur-md p-4 rounded-lg shadow-md flex gap-6 items-center">
+                        <div className="text-center">
+                            <div className="text-sm text-gray-600">Moves</div>
+                            <div className="text-2xl font-bold">{moves}</div>
+                        </div>
+                        <div className="text-center">
+                            <div className="text-sm text-gray-600">Matches</div>
+                            <div className="text-2xl font-bold">{matches}/{drinkImages.length}</div>
+                        </div>
+                        <div className="text-center">
+                            <div className="text-sm text-gray-600">Time</div>
+                            <div className="text-2xl font-bold">{formatTime(elapsedTime)}</div>
+                        </div>
                     </div>
                 </div>
 
@@ -435,7 +400,9 @@ export default function MatchingGame() {
                         X0 Matching Game
                     </h1>
                     <p className="text-center text-gray-600 mb-8">
-                        Match all pairs to earn up to 1000 reward points!
+                        {hasPlayedToday
+                            ? "Playing for fun - Come back tomorrow to earn points!"
+                            : "Match all pairs to earn up to 1000 reward points!"}
                     </p>
 
                     <div className="grid grid-cols-4 gap-4 mb-8">
@@ -484,11 +451,20 @@ export default function MatchingGame() {
                             <h2 className="text-3xl font-bold mb-2 font-deco">
                                 Congratulations!
                             </h2>
-                            <p className="text-2xl font-bold text-purple-600 mb-4">
-                                +{pointsEarned} Points!
-                            </p>
+                            {!hasPlayedToday && pointsEarned > 0 && (
+                                <p className="text-2xl font-bold text-purple-600 mb-4">
+                                    +{pointsEarned} Points!
+                                </p>
+                            )}
+                            {hasPlayedToday && (
+                                <p className="text-lg text-yellow-600 mb-4">
+                                    Practice Mode - No Points Earned
+                                </p>
+                            )}
                             <p className="text-gray-600 mb-6">
-                                You completed the game and earned reward points!
+                                {hasPlayedToday
+                                    ? "You completed the game! Great job!"
+                                    : "You completed the game and earned reward points!"}
                             </p>
                             <div className="bg-gray-50 rounded-lg p-4 mb-6 space-y-2">
                                 <div className="flex justify-between">
@@ -499,13 +475,17 @@ export default function MatchingGame() {
                                     <span className="text-gray-600">Time:</span>
                                     <span className="font-bold">{formatTime(elapsedTime)}</span>
                                 </div>
-                                <div className="flex justify-between border-t pt-2 mt-2">
-                                    <span className="text-gray-600">Points Earned:</span>
-                                    <span className="font-bold text-purple-600">{pointsEarned}</span>
-                                </div>
+                                {!hasPlayedToday && (
+                                    <div className="flex justify-between border-t pt-2 mt-2">
+                                        <span className="text-gray-600">Points Earned:</span>
+                                        <span className="font-bold text-purple-600">{pointsEarned}</span>
+                                    </div>
+                                )}
                             </div>
                             <p className="text-xs text-gray-500 mb-4">
-                                Come back tomorrow to play again!
+                                {hasPlayedToday
+                                    ? "You've already earned points today. Come back tomorrow!"
+                                    : "Come back tomorrow to play again!"}
                             </p>
                             <Button
                                 onClick={() => router.push('/kiosk')}
