@@ -31,6 +31,7 @@ To learn more about Next.js, take a look at the following resources:
 
 You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
 
-Deployed on Render - Status: Database is currently offline, will fix soon
+
+## Deployed on Render - Status: Database is currently offline, will fix soon
 
 https://project-3-gang-x0.onrender.com/kiosk
